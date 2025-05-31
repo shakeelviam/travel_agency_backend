@@ -80,13 +80,7 @@
       "label": "Services Tracking",
       "hidden": 1
     },
-    {
-      "fieldname": "selected_services",
-      "fieldtype": "Table",
-      "label": "Selected Services",
-      "options": "Trip Booking Service",
-      "hidden": 1
-    },
+
     {
       "fieldname": "flight_section",
       "fieldtype": "Section Break",
