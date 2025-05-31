@@ -1,8 +1,15 @@
-// Copyright (c) 2025, Shakeel Mohammed Viam and contributors
-// For license information, please see license.txt
-
 frappe.ui.form.on('Trip Booking', {
     refresh: function (frm) {
+      // Hide all service fields initially
+      const fields_to_hide = [
+        'flight_booking_entry',
+        'hotel_booking_entry',
+        'visa_booking_entry',
+        'insurance_booking_entry',
+        'car_rental_booking_entry'
+      ];
+      fields_to_hide.forEach(field => frm.toggle_display(field, false));
+
       if (frm.doc.docstatus === 0) {
         frm.add_custom_button('Add Service', () => {
           frappe.prompt(
@@ -17,72 +24,34 @@ frappe.ui.form.on('Trip Booking', {
             ],
             (values) => {
               const child_table_map = {
-                'Flight GDS': {
-                  fieldname: 'flight_booking_entry',
-                  label: 'Flight Booking Entry',
-                  options: 'Flight Booking Entry'
-                },
-                'Flight Online Airlines': {
-                  fieldname: 'flight_booking_entry',
-                  label: 'Flight Booking Entry',
-                  options: 'Flight Booking Entry'
-                },
-                'Hotel Booking': {
-                  fieldname: 'hotel_booking_entry',
-                  label: 'Hotel Booking Entry',
-                  options: 'Hotel Booking Entry'
-                },
-                'Visa Application Charges': {
-                  fieldname: 'visa_booking_entry',
-                  label: 'Visa Booking Entry',
-                  options: 'Visa Booking Entry'
-                },
-                'Insurance Service': {
-                  fieldname: 'insurance_booking_entry',
-                  label: 'Insurance Booking Entry',
-                  options: 'Insurance Booking Entry'
-                },
-                'Car Rental Service': {
-                  fieldname: 'car_rental_booking_entry',
-                  label: 'Car Rental Booking Entry',
-                  options: 'Car Rental Booking Entry'
-                }
+                'Flight GDS': 'flight_booking_entry',
+                'Flight Online Airlines': 'flight_booking_entry',
+                'Hotel Booking': 'hotel_booking_entry',
+                'Visa Application Charges': 'visa_booking_entry',
+                'Insurance Service': 'insurance_booking_entry',
+                'Car Rental Service': 'car_rental_booking_entry'
               };
 
-              const config = child_table_map[values.service_type];
+              const fieldname = child_table_map[values.service_type];
 
-              if (!config) {
+              if (!fieldname) {
                 frappe.msgprint('❌ No matching child table for selected service.');
                 return;
               }
 
-              // Add child table field if not already present
-              if (!frm.fields_dict[config.fieldname]) {
-                frm.add_custom_field({
-                  fieldname: config.fieldname,
-                  label: config.label,
-                  fieldtype: 'Table',
-                  options: config.options
-                });
+              // Show the correct child table
+              frm.toggle_display(fieldname, true);
 
-                frm.refresh_fields();
-              }
-
-              // Add a new row to the dynamically added child table
-              const row = frm.add_child(config.fieldname, {
+              // Add one row for that service type
+              const row = frm.add_child(fieldname, {
                 service_type: values.service_type
               });
 
-              frm.refresh_field(config.fieldname);
-              frm.scroll_to_field(config.fieldname);
+              frm.refresh_field(fieldname);
+              frm.scroll_to_field(fieldname);
             },
             'Add New Service'
           );
-        });
-
-        // OPTIONAL: Make button visually different (like primary)
-        frm.page.set_primary_action('Add Service', () => {
-          frm.trigger('refresh');
         });
       }
     }
