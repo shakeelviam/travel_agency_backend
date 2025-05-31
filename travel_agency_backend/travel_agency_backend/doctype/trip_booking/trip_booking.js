@@ -1,14 +1,18 @@
 frappe.ui.form.on('Trip Booking', {
     refresh: function (frm) {
-      // Hide all service fields initially
-      const fields_to_hide = [
+      // List of all possible child table fieldnames
+      const all_service_fields = [
         'flight_booking_entry',
         'hotel_booking_entry',
         'visa_booking_entry',
         'insurance_booking_entry',
         'car_rental_booking_entry'
       ];
-      fields_to_hide.forEach(field => frm.toggle_display(field, false));
+
+      // Hide all tables on load
+      all_service_fields.forEach(field => {
+        frm.toggle_display(field, false);
+      });
 
       if (frm.doc.docstatus === 0) {
         frm.add_custom_button('Add Service', () => {
@@ -39,14 +43,11 @@ frappe.ui.form.on('Trip Booking', {
                 return;
               }
 
-              // Show the correct child table
+              // Show the table and add a row
               frm.toggle_display(fieldname, true);
-
-              // Add one row for that service type
               const row = frm.add_child(fieldname, {
                 service_type: values.service_type
               });
-
               frm.refresh_field(fieldname);
               frm.scroll_to_field(fieldname);
             },
