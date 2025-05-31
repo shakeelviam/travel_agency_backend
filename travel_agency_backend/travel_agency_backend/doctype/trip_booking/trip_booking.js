@@ -1,14 +1,9 @@
 frappe.ui.form.on('Trip Booking', {
-    refresh(frm) {
-      if (frm.doc.docstatus === 0) {
-        // Hide all child tables on load
-        frm.toggle_display("flight_booking_entry", false);
-        frm.toggle_display("hotel_booking_entry", false);
-        frm.toggle_display("visa_booking_entry", false);
-        frm.toggle_display("car_rental_booking_entry", false);
-
-        frm.add_custom_button('Add Service', () => {
-          frappe.prompt([
+  refresh: function (frm) {
+    if (frm.doc.docstatus === 0) {
+      frm.add_custom_button('Add Service', () => {
+        frappe.prompt(
+          [
             {
               fieldname: 'service_type',
               label: 'Select Service',
@@ -18,33 +13,37 @@ frappe.ui.form.on('Trip Booking', {
             }
           ],
           (values) => {
-            const child_table_map = {
-              'Flight GDS': 'flight_booking_entry',
-              'Flight Online Airlines': 'flight_booking_entry',
-              'Hotel Booking': 'hotel_booking_entry',
-              'Visa Application Charges': 'visa_booking_entry',
-              'Car Rental Service': 'car_rental_booking_entry'
+            const map = {
+              'Flight GDS': ['flight_section', 'flight_booking_entry'],
+              'Flight Online Airlines': ['flight_section', 'flight_booking_entry'],
+              'Hotel Booking': ['hotel_section', 'hotel_booking_entry'],
+              'Visa Application Charges': ['visa_section', 'visa_booking_entry'],
+              'Insurance Service': ['visa_section', 'visa_booking_entry'],
+              'Car Rental Service': ['car_rental_section', 'car_rental_booking_entry']
             };
 
-            const table_fieldname = child_table_map[values.service_type];
-
-            if (!table_fieldname) {
-              frappe.msgprint('❌ No matching child table for selected service.');
+            const selected = map[values.service_type];
+            if (!selected) {
+              frappe.msgprint('Service not supported.');
               return;
             }
 
-            // Show the table and add a row
-            frm.toggle_display(table_fieldname, true);
+            const [section, table] = selected;
 
-            const row = frm.add_child(table_fieldname, {
+            frm.set_df_property(section, 'hidden', 0);
+            frm.set_df_property(table, 'hidden', 0);
+            frm.refresh_fields([section, table]);
+
+            const row = frm.add_child(table, {
               service_type: values.service_type
             });
 
-            frm.refresh_field(table_fieldname);
-            frm.scroll_to_field(table_fieldname);
+            frm.refresh_field(table);
+            frm.scroll_to_field(table);
           },
-          'Add New Service');
-        });
-      }
+          'Add New Service'
+        );
+      });
     }
-  });
+  }
+});
