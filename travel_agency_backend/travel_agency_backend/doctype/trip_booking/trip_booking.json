@@ -1,79 +1,107 @@
 {
- "actions": [],
- "allow_rename": 1,
- "autoname": "naming_series:",
- "creation": "2025-05-29 14:37:16.027016",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
-"__js": "travel_agency_backend/trip_booking/trip_booking.js",
-"custom_script": "public/js/trip_booking.js"
-"field_order": [
-  "naming_series",
-  "customer",
-  "date_of_issue",
-  "amended_from"
- ],
- "fields": [
-  {
-   "fieldname": "naming_series",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Naming Series",
-   "options": "TBK-.YYYY.-",
-   "reqd": 1
-  },
-  {
-   "fieldname": "customer",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Customer",
-   "options": "Customer",
-   "reqd": 1
-  },
-  {
-   "fieldname": "date_of_issue",
-   "fieldtype": "Date",
-   "in_list_view": 1,
-   "label": "Date of Issue",
-   "reqd": 1
-  },
-  {
-   "fieldname": "amended_from",
-   "fieldtype": "Link",
-   "label": "Amended From",
-   "no_copy": 1,
-   "options": "Trip Booking",
-   "print_hide": 1,
-   "read_only": 1,
-   "search_index": 1
-  }
- ],
- "index_web_pages_for_search": 1,
- "is_submittable": 1,
- "links": [],
- "modified": "2025-05-29 14:37:16.027016",
- "modified_by": "Administrator",
- "module": "Travel Agency Backend",
- "name": "Trip Booking",
- "owner": "Administrator",
- "permissions": [
-  {
-   "cancel": 1,
-   "create": 1,
-   "delete": 1,
-   "email": 1,
-   "export": 1,
-   "print": 1,
-   "read": 1,
-   "report": 1,
-   "role": "System Manager",
-   "share": 1,
-   "submit": 1,
-   "write": 1
-  }
- ],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+  "actions": [],
+  "allow_rename": 1,
+  "autoname": "naming_series:",
+  "creation": "2025-05-29 14:37:16.027016",
+  "doctype": "DocType",
+  "editable_grid": 1,
+  "engine": "InnoDB",
+  "__js": "travel_agency_backend/trip_booking/trip_booking.js",
+  "custom_script": "public/js/trip_booking.js",
+  "field_order": [
+    "naming_series",
+    "customer",
+    "date_of_issue",
+    "amended_from",
+    "flight_booking_entry",
+    "hotel_booking_entry",
+    "visa_booking_entry",
+    "car_rental_booking_entry"
+  ],
+  "fields": [
+    {
+      "fieldname": "naming_series",
+      "fieldtype": "Select",
+      "in_list_view": 1,
+      "label": "Naming Series",
+      "options": "TBK-.YYYY.-",
+      "reqd": 1
+    },
+    {
+      "fieldname": "customer",
+      "fieldtype": "Link",
+      "in_list_view": 1,
+      "label": "Customer",
+      "options": "Customer",
+      "reqd": 1
+    },
+    {
+      "fieldname": "date_of_issue",
+      "fieldtype": "Date",
+      "in_list_view": 1,
+      "label": "Date of Issue",
+      "reqd": 1
+    },
+    {
+      "fieldname": "amended_from",
+      "fieldtype": "Link",
+      "label": "Amended From",
+      "no_copy": 1,
+      "options": "Trip Booking",
+      "print_hide": 1,
+      "read_only": 1,
+      "search_index": 1
+    },
+    {
+      "fieldname": "flight_booking_entry",
+      "fieldtype": "Table",
+      "label": "Flight Booking Entry",
+      "options": "Flight Booking Entry"
+    },
+    {
+      "fieldname": "hotel_booking_entry",
+      "fieldtype": "Table",
+      "label": "Hotel Booking Entry",
+      "options": "Hotel Booking Entry"
+    },
+    {
+      "fieldname": "visa_booking_entry",
+      "fieldtype": "Table",
+      "label": "Visa Booking Entry",
+      "options": "Visa Booking Entry"
+    },
+    {
+      "fieldname": "car_rental_booking_entry",
+      "fieldtype": "Table",
+      "label": "Car Rental Booking Entry",
+      "options": "Car Rental Booking Entry"
+    }
+  ],
+  "index_web_pages_for_search": 1,
+  "is_submittable": 1,
+  "links": [],
+  "modified": "2025-05-29 14:37:16.027016",
+  "modified_by": "Administrator",
+  "module": "Travel Agency Backend",
+  "name": "Trip Booking",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "cancel": 1,
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "submit": 1,
+      "write": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": []
 }
