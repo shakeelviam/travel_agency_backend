@@ -1,3 +1,6 @@
+// Copyright (c) 2025, Shakeel Mohammed Viam and contributors
+// For license information, please see license.txt
+
 frappe.ui.form.on('Trip Booking', {
     refresh: function (frm) {
       if (frm.doc.docstatus === 0) {
@@ -12,7 +15,7 @@ frappe.ui.form.on('Trip Booking', {
                 reqd: 1
               }
             ],
-            function (values) {
+            (values) => {
               const child_table_map = {
                 'Flight GDS': 'Flight Booking Entry',
                 'Flight Online Airlines': 'Flight Booking Entry',
@@ -25,26 +28,22 @@ frappe.ui.form.on('Trip Booking', {
               const child_doctype = child_table_map[values.service_type];
 
               if (!child_doctype) {
-                frappe.msgprint('❌ No matching child table found for selected service.');
+                frappe.msgprint('❌ No matching child table for selected service.');
                 return;
               }
 
-              // Dynamically add the table field if it doesn’t exist
-              const fieldname = frappe.model.scrub(child_doctype);
-
+              // Dynamically add table field if not already added
+              const fieldname = child_doctype.toLowerCase().replace(/ /g, '_');
               if (!frm.fields_dict[fieldname]) {
                 frm.add_field({
                   fieldtype: 'Table',
                   label: child_doctype,
                   fieldname: fieldname,
                   options: child_doctype,
-                  reqd: 0,
-                  in_place_edit: 1
+                  in_place_edit: true,
                 });
-                frm.refresh_fields();
               }
 
-              // Add an empty row to the child table
               const row = frm.add_child(fieldname, {
                 service_type: values.service_type
               });
