@@ -12,11 +12,7 @@
     "naming_series",
     "customer",
     "date_of_issue",
-    "amended_from",
-    "flight_booking_entry",
-    "hotel_booking_entry",
-    "visa_booking_entry",
-    "car_rental_booking_entry"
+    "amended_from"
   ],
   "fields": [
     {
@@ -51,36 +47,12 @@
       "print_hide": 1,
       "read_only": 1,
       "search_index": 1
-    },
-    {
-      "fieldname": "flight_booking_entry",
-      "fieldtype": "Table",
-      "label": "Flight Booking Entry",
-      "options": "Flight Booking Entry"
-    },
-    {
-      "fieldname": "hotel_booking_entry",
-      "fieldtype": "Table",
-      "label": "Hotel Booking Entry",
-      "options": "Hotel Booking Entry"
-    },
-    {
-      "fieldname": "visa_booking_entry",
-      "fieldtype": "Table",
-      "label": "Visa Booking Entry",
-      "options": "Visa Booking Entry"
-    },
-    {
-      "fieldname": "car_rental_booking_entry",
-      "fieldtype": "Table",
-      "label": "Car Rental Booking Entry",
-      "options": "Car Rental Booking Entry"
     }
   ],
   "index_web_pages_for_search": 1,
   "is_submittable": 1,
   "links": [],
-  "modified": "2025-05-29 14:37:16.027016",
+  "modified": "2025-05-31 14:40:00.000000",
   "modified_by": "Administrator",
   "module": "Travel Agency Backend",
   "name": "Trip Booking",
