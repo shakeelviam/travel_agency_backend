@@ -1,115 +1,85 @@
 {
- "actions": [],
- "allow_rename": 1,
- "creation": "2025-05-29 15:06:58.001199",
- "doctype": "DocType",
- "editable_grid": 1,
- "engine": "InnoDB",
- "field_order": [
-  "passenger",
-  "supplier",
-  "airline",
-  "trip_type",
-  "from_sector",
-  "to_sector",
-  "return_sector",
-  "pnr",
-  "net_fare",
-  "markup",
-  "service_fee",
-  "selling_price",
-  "remarks"
- ],
- "fields": [
-  {
-   "fieldname": "passenger",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Passenger",
-   "options": "Passenger",
-   "reqd": 1
-  },
-  {
-   "fieldname": "supplier",
-   "fieldtype": "Link",
-   "label": "Supplier",
-   "options": "Supplier"
-  },
-  {
-   "fieldname": "airline",
-   "fieldtype": "Link",
-   "label": "Airline",
-   "options": "Airline Master"
-  },
-  {
-   "fieldname": "trip_type",
-   "fieldtype": "Select",
-   "label": "Trip Type",
-   "options": "One Way\nReturn"
-  },
-  {
-   "depends_on": "eval:doc.trip_type == 'One Way' || doc.trip_type == 'Return'",
-   "fieldname": "from_sector",
-   "fieldtype": "Link",
-   "label": "From Sector",
-   "options": "Sector Master"
-  },
-  {
-   "depends_on": "eval:doc.trip_type == 'One Way' || doc.trip_type == 'Return'",
-   "fieldname": "to_sector",
-   "fieldtype": "Link",
-   "label": "To Sector",
-   "options": "Sector Master"
-  },
-  {
-   "depends_on": "eval:doc.trip_type == 'Return'",
-   "fieldname": "return_sector",
-   "fieldtype": "Link",
-   "label": "Return To Sector",
-   "options": "Sector Master"
-  },
-  {
-   "fieldname": "pnr",
-   "fieldtype": "Data",
-   "label": "PNR"
-  },
-  {
-   "fieldname": "net_fare",
-   "fieldtype": "Currency",
-   "label": "Net Fare"
-  },
-  {
-   "fieldname": "markup",
-   "fieldtype": "Currency",
-   "label": "Markup"
-  },
-  {
-   "fieldname": "service_fee",
-   "fieldtype": "Currency",
-   "label": "Service Fee"
-  },
-  {
-   "fieldname": "selling_price",
-   "fieldtype": "Currency",
-   "label": "Selling Price",
-   "read_only": 1
-  },
-  {
-   "fieldname": "remarks",
-   "fieldtype": "Small Text",
-   "label": "Remarks"
-  }
- ],
- "index_web_pages_for_search": 1,
- "istable": 1,
- "links": [],
- "modified": "2025-05-31 17:36:23.149029",
- "modified_by": "Administrator",
- "module": "Travel Agency Backend",
- "name": "Flight Booking Entry",
- "owner": "Administrator",
- "permissions": [],
- "sort_field": "modified",
- "sort_order": "DESC",
- "states": []
+  "doctype": "DocType",
+  "name": "Flight Booking Entry",
+  "module": "Travel Agency Backend",
+  "custom": 0,
+  "istable": 1,
+  "fields": [
+    {
+      "fieldname": "passenger",
+      "label": "Passenger",
+      "fieldtype": "Link",
+      "options": "Passenger",
+      "reqd": 1
+    },
+    {
+      "fieldname": "airline",
+      "label": "Airline",
+      "fieldtype": "Link",
+      "options": "Airline Master"
+    },
+    {
+      "fieldname": "trip_type",
+      "label": "Trip Type",
+      "fieldtype": "Select",
+      "options": "One Way\nReturn"
+    },
+    {
+      "fieldname": "from_sector",
+      "label": "From Sector",
+      "fieldtype": "Link",
+      "options": "Sector Master"
+    },
+    {
+      "fieldname": "to_sector",
+      "label": "To Sector",
+      "fieldtype": "Link",
+      "options": "Sector Master"
+    },
+    {
+      "fieldname": "return_sector",
+      "label": "Return To Sector",
+      "fieldtype": "Link",
+      "options": "Sector Master"
+    },
+    {
+      "fieldname": "pnr",
+      "label": "PNR",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "ticket_number",
+      "label": "Ticket Number",
+      "fieldtype": "Data"
+    },
+    {
+  "fieldname": "supplier_cost",
+  "label": "Supplier Cost",
+  "fieldtype": "Currency",
+  "idx": 9,
+  "parentfield": "flight_booking_entry",
+  "parenttype": "Trip Booking",
+  "doctype": "DocField"
+},
+    {
+      "fieldname": "markup",
+      "label": "Markup",
+      "fieldtype": "Currency"
+    },
+    {
+      "fieldname": "service_fee",
+      "label": "Service Fee",
+      "fieldtype": "Currency"
+    },
+    {
+      "fieldname": "selling_price",
+      "label": "Selling Price",
+      "fieldtype": "Currency"
+    },
+    {
+      "fieldname": "remarks",
+      "label": "Remarks",
+      "fieldtype": "Small Text"
+    }
+  ]
 }

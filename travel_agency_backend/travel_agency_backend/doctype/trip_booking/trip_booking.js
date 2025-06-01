@@ -18,7 +18,7 @@ frappe.ui.form.on('Trip Booking', {
               'Flight Online Airlines': ['flight_section', 'flight_booking_entry'],
               'Hotel Booking': ['hotel_section', 'hotel_booking_entry'],
               'Visa Application Charges': ['visa_section', 'visa_booking_entry'],
-              'Insurance Service': ['visa_section', 'visa_booking_entry'],
+              'Insurance Service': ['insurance_section', 'insurance_booking_entry'], // ✅ Fixed
               'Car Rental Service': ['car_rental_section', 'car_rental_booking_entry']
             };
 
