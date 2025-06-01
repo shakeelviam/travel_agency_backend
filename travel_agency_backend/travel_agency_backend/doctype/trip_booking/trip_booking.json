@@ -82,18 +82,32 @@
     },
 
     {
-      "fieldname": "flight_section",
-      "fieldtype": "Section Break",
-      "label": "Flight Services",
-      "hidden": 1
-    },
-    {
-      "fieldname": "flight_booking_entry",
-      "fieldtype": "Table",
-      "label": "Flight Booking Entry",
-      "options": "Flight Booking Entry",
-      "hidden": 1
-    },
+  "fieldname": "flight_gds_section",
+  "fieldtype": "Section Break",
+  "label": "Flight GDS Services",
+  "hidden": 1
+},
+{
+  "fieldname": "flight_booking_entry_gds",
+  "fieldtype": "Table",
+  "label": "Flight Booking Entry GDS",
+  "options": "Flight Booking Entry GDS",
+  "hidden": 1
+},
+{
+  "fieldname": "flight_online_section",
+  "fieldtype": "Section Break",
+  "label": "Flight Online Services",
+  "hidden": 1
+},
+{
+  "fieldname": "flight_booking_entry_online",
+  "fieldtype": "Table",
+  "label": "Flight Booking Entry Online",
+  "options": "Flight Booking Entry Online",
+  "hidden": 1
+}
+,
     {
       "fieldname": "hotel_section",
       "fieldtype": "Section Break",
