@@ -4,8 +4,8 @@
 import frappe
 from frappe.model.document import Document
 
-
 class TripBooking(Document):
+
     def validate(self):
         self.validate_services()
         self.calculate_total_amount()
@@ -37,10 +37,11 @@ class TripBooking(Document):
             self.hotel_booking_entry = []
             self.visa_booking_entry = []
             self.car_rental_booking_entry = []
+            self.insurance_booking_entry = []
             return
 
         active = {s.service_category for s in self.selected_services}
-        for category in ["Flight", "Hotel", "Visa", "Car Rental"]:
+        for category in ["Flight", "Hotel", "Visa", "Car Rental", "Insurance"]:
             if category not in active:
                 table_fieldname = self.get_table_fieldname(category)
                 if table_fieldname:
@@ -55,12 +56,78 @@ class TripBooking(Document):
             if table is not None and not table:
                 frappe.throw(f"Please add booking details for {service.service_category} service")
 
+    def on_submit(self):
+        self.create_purchase_invoices()
+        self.create_sales_invoice()
+
+    def create_purchase_invoices(self):
+        service_map = {
+            "flight": "flight_booking_entry",
+            "hotel": "hotel_booking_entry",
+            "visa": "visa_booking_entry",
+            "car_rental": "car_rental_booking_entry",
+            "insurance": "insurance_booking_entry"
+        }
+
+        for key, table in service_map.items():
+            supplier = self.get(f"{key}_supplier")
+            entries = self.get(table)
+
+            if supplier and entries:
+                pi = frappe.new_doc("Purchase Invoice")
+                pi.supplier = supplier
+                pi.due_date = frappe.utils.nowdate()
+                pi.set_posting_time = 1
+
+                for row in entries:
+                    pi.append("items", {
+                        "item_name": f"{row.service_type} - {row.passenger}",
+                        "qty": 1,
+                        "rate": row.total_amount,
+                        "amount": row.total_amount,
+                        "schedule_date": frappe.utils.nowdate()
+                    })
+
+                pi.insert()
+                pi.submit()
+
+    def create_sales_invoice(self):
+        si = frappe.new_doc("Sales Invoice")
+        si.customer = self.customer
+        si.due_date = frappe.utils.nowdate()
+        si.set_posting_time = 1
+        si.is_pos = 0
+
+        service_tables = [
+            "flight_booking_entry",
+            "hotel_booking_entry",
+            "visa_booking_entry",
+            "car_rental_booking_entry",
+            "insurance_booking_entry"
+        ]
+
+        for table in service_tables:
+            entries = self.get(table)
+            if entries:
+                for row in entries:
+                    si.append("items", {
+                        "item_name": f"{row.service_type} - {row.passenger}",
+                        "qty": 1,
+                        "rate": row.total_amount,
+                        "amount": row.total_amount,
+                        "schedule_date": frappe.utils.nowdate()
+                    })
+
+        si.insert()
+        si.submit()
+
     def get_table_fieldname(self, service_category):
         return {
             "Flight": "flight_booking_entry",
             "Hotel": "hotel_booking_entry",
             "Visa": "visa_booking_entry",
-            "Car Rental": "car_rental_booking_entry"
+            "Car Rental": "car_rental_booking_entry",
+            "Insurance": "insurance_booking_entry"
         }.get(service_category)
 
     def get_child_table(self, category):
@@ -75,7 +142,8 @@ def get_available_services():
         {"value": "Flight Online Airlines", "label": "Flight Online Airlines", "category": "Flight"},
         {"value": "Hotel Booking", "label": "Hotel Booking", "category": "Hotel"},
         {"value": "Visa Application Charges", "label": "Visa Application Charges", "category": "Visa"},
-        {"value": "Car Rental Service", "label": "Car Rental Service", "category": "Car Rental"}
+        {"value": "Car Rental Service", "label": "Car Rental Service", "category": "Car Rental"},
+        {"value": "Insurance Service", "label": "Insurance Service", "category": "Insurance"}
     ]
 
 
@@ -102,5 +170,6 @@ def get_service_category_mapping():
         "Flight Online Airlines": "Flight",
         "Hotel Booking": "Hotel",
         "Visa Application Charges": "Visa",
-        "Car Rental Service": "Car Rental"
+        "Car Rental Service": "Car Rental",
+        "Insurance Service": "Insurance"
     }
