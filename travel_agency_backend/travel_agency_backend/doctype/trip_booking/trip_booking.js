@@ -14,12 +14,36 @@ frappe.ui.form.on("Trip Booking", {
           ],
           (values) => {
             const serviceMap = {
-              "Flight GDS": ["flight_section", "flight_booking_entry_gds"],
-              "Flight Online Airlines": ["flight_section", "flight_booking_entry_online"],
-              "Hotel Booking": ["hotel_section", "hotel_booking_entry"],
-              "Visa Application Charges": ["visa_section", "visa_booking_entry"],
-              "Insurance Service": ["insurance_section", "insurance_booking_entry"],
-              "Car Rental Service": ["car_rental_section", "car_rental_booking_entry"],
+              "Flight GDS": [
+                "flight_gds_section",
+                "flight_booking_entry_gds",
+                "flight_gds_supplier",
+              ],
+              "Flight Online Airlines": [
+                "flight_online_section",
+                "flight_booking_entry_online",
+                "flight_online_supplier",
+              ],
+              "Hotel Booking": [
+                "hotel_section",
+                "hotel_booking_entry",
+                "hotel_supplier",
+              ],
+              "Visa Application Charges": [
+                "visa_section",
+                "visa_booking_entry",
+                "visa_supplier",
+              ],
+              "Insurance Service": [
+                "insurance_section",
+                "insurance_booking_entry",
+                "insurance_supplier",
+              ],
+              "Car Rental Service": [
+                "car_rental_section",
+                "car_rental_booking_entry",
+                "car_rental_supplier",
+              ],
             };
 
             const selected = serviceMap[values.service_type];
@@ -32,18 +56,20 @@ frappe.ui.form.on("Trip Booking", {
 
             frm.set_df_property(section, "hidden", 0);
             frm.set_df_property(table, "hidden", 0);
-            frm.refresh_field(table);
-
             if (supplier_field) {
               frm.set_df_property(supplier_field, "hidden", 0);
-              frm.refresh_field(supplier_field);
             }
+
+            frm.refresh_fields([section, table, supplier_field]);
 
             const exists = (frm.doc[table] || []).some(
               (row) => row.service_type === values.service_type
             );
+
             if (!exists) {
-              frm.add_child(table, { service_type: values.service_type });
+              frm.add_child(table, {
+                service_type: values.service_type,
+              });
               frm.refresh_field(table);
               frm.scroll_to_field(table);
             } else {

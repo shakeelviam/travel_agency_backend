@@ -1,10 +1,6 @@
-# Copyright (c) 2025, Shakeel Mohammed Viam and contributors
-# For license information, please see license.txt
-
 import frappe
 from frappe.model.document import Document
 from frappe.utils import now_datetime
-
 
 class TripBooking(Document):
     def validate(self):
@@ -23,7 +19,6 @@ class TripBooking(Document):
 
     def validate_services(self):
         if not self.selected_services:
-            # Edge case: rows present but no selected_services
             if any(self.get(table) for table in self.get_all_booking_tables()):
                 frappe.throw("Service selection missing, but bookings exist")
             return
@@ -33,7 +28,6 @@ class TripBooking(Document):
             if table is not None:
                 if not table:
                     frappe.throw(f"Please add details for {service.service_category} service")
-
                 for row in table:
                     cost = getattr(row, "supplier_cost_payable", None) or getattr(row, "net_fare", None)
                     if cost in (None, 0):
