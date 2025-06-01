@@ -28,11 +28,16 @@ frappe.ui.form.on("Trip Booking", {
               return;
             }
 
-            const [section, table] = selected;
+            const [section, table, supplier_field] = selected;
 
             frm.set_df_property(section, "hidden", 0);
             frm.set_df_property(table, "hidden", 0);
             frm.refresh_field(table);
+
+            if (supplier_field) {
+              frm.set_df_property(supplier_field, "hidden", 0);
+              frm.refresh_field(supplier_field);
+            }
 
             const exists = (frm.doc[table] || []).some(
               (row) => row.service_type === values.service_type

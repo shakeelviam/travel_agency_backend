@@ -1,5 +1,10 @@
+# Copyright (c) 2025, Shakeel Mohammed Viam and contributors
+# For license information, please see license.txt
+
 import frappe
 from frappe.model.document import Document
+from frappe.utils import now_datetime
+
 
 class TripBooking(Document):
     def validate(self):
@@ -17,21 +22,22 @@ class TripBooking(Document):
                 row.selling_price = base + markup + extra
 
     def validate_services(self):
-    if not self.selected_services:
-        return
+        if not self.selected_services:
+            # Edge case: rows present but no selected_services
+            if any(self.get(table) for table in self.get_all_booking_tables()):
+                frappe.throw("Service selection missing, but bookings exist")
+            return
 
-    for service in self.selected_services:
-        table = self.get_child_table(service.service_category)
-        if table is not None:
-            if not table:
-                frappe.throw(f"Please add details for {service.service_category} service")
+        for service in self.selected_services:
+            table = self.get_child_table(service.service_category)
+            if table is not None:
+                if not table:
+                    frappe.throw(f"Please add details for {service.service_category} service")
 
-            for row in table:
-                # Check cost presence
-                cost = getattr(row, "supplier_cost_payable", None) or getattr(row, "net_fare", None)
-                if cost in (None, 0):
-                    frappe.throw(f"Missing Supplier Cost for passenger '{row.passenger}' in {service.service_category}")
-
+                for row in table:
+                    cost = getattr(row, "supplier_cost_payable", None) or getattr(row, "net_fare", None)
+                    if cost in (None, 0):
+                        frappe.throw(f"Missing Supplier Cost for passenger '{row.passenger}' in {service.service_category}")
 
     def calculate_total_amount(self):
         total = 0
@@ -42,16 +48,12 @@ class TripBooking(Document):
 
     def clean_unused_services(self):
         if not self.selected_services:
-            self.flight_booking_entry_gds = []
-            self.flight_booking_entry_online = []
-            self.hotel_booking_entry = []
-            self.visa_booking_entry = []
-            self.car_rental_booking_entry = []
-            self.insurance_booking_entry = []
+            for table in self.get_all_booking_tables():
+                setattr(self, table, [])
             return
 
         active = {s.service_category for s in self.selected_services}
-        for category in ["Flight GDS", "Flight Online Airlines", "Hotel", "Visa", "Car Rental", "Insurance"]:
+        for category in self.get_service_category_mapping().values():
             if category not in active:
                 table_fieldname = self.get_table_fieldname(category)
                 if table_fieldname:
@@ -60,6 +62,7 @@ class TripBooking(Document):
     def before_submit(self):
         if not self.selected_services:
             frappe.throw("Please add at least one service before submitting")
+
         for service in self.selected_services:
             table = self.get_child_table(service.service_category)
             if table is not None and not table:
@@ -86,7 +89,7 @@ class TripBooking(Document):
             if supplier and entries:
                 pi = frappe.new_doc("Purchase Invoice")
                 pi.supplier = supplier
-                pi.due_date = frappe.utils.nowdate()
+                pi.due_date = now_datetime()
                 pi.set_posting_time = 1
 
                 for row in entries:
@@ -96,16 +99,17 @@ class TripBooking(Document):
                         "qty": 1,
                         "rate": base,
                         "amount": base,
-                        "schedule_date": frappe.utils.nowdate()
+                        "schedule_date": now_datetime()
                     })
 
                 pi.insert()
                 pi.submit()
+                frappe.msgprint(f"Purchase Invoice created for {supplier}")
 
     def create_sales_invoice(self):
         si = frappe.new_doc("Sales Invoice")
         si.customer = self.customer
-        si.due_date = frappe.utils.nowdate()
+        si.due_date = now_datetime()
         si.set_posting_time = 1
         si.is_pos = 0
 
@@ -118,11 +122,12 @@ class TripBooking(Document):
                         "qty": 1,
                         "rate": row.selling_price or 0,
                         "amount": row.selling_price or 0,
-                        "schedule_date": frappe.utils.nowdate()
+                        "schedule_date": now_datetime()
                     })
 
         si.insert()
         si.submit()
+        frappe.msgprint("Sales Invoice created for this Trip Booking")
 
     def get_table_fieldname(self, service_category):
         return {
