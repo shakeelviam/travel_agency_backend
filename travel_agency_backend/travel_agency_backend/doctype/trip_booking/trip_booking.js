@@ -1,5 +1,50 @@
 frappe.ui.form.on("Trip Booking", {
   refresh: function (frm) {
+    const serviceMap = {
+      "Flight GDS": [
+        "flight_gds_section",
+        "flight_booking_entry_gds",
+        "flight_gds_supplier",
+      ],
+      "Flight Online Airlines": [
+        "flight_online_section",
+        "flight_booking_entry_online",
+        "flight_online_supplier",
+      ],
+      "Hotel Booking": [
+        "hotel_section",
+        "hotel_booking_entry",
+        "hotel_supplier",
+      ],
+      "Visa Application Charges": [
+        "visa_section",
+        "visa_booking_entry",
+        "visa_supplier",
+      ],
+      "Insurance Service": [
+        "insurance_section",
+        "insurance_booking_entry",
+        "insurance_supplier",
+      ],
+      "Car Rental Service": [
+        "car_rental_section",
+        "car_rental_booking_entry",
+        "car_rental_supplier",
+      ],
+    };
+
+    // Unhide sections/tables/suppliers if data exists
+    Object.values(serviceMap).forEach(([section, table, supplier]) => {
+      if ((frm.doc[table] || []).length > 0) {
+        frm.set_df_property(section, "hidden", 0);
+        frm.set_df_property(table, "hidden", 0);
+        if (supplier) {
+          frm.set_df_property(supplier, "hidden", 0);
+        }
+      }
+    });
+
+    // Add Service prompt (only in draft)
     if (frm.doc.docstatus === 0) {
       frm.add_custom_button("Add Service", () => {
         frappe.prompt(
@@ -13,39 +58,6 @@ frappe.ui.form.on("Trip Booking", {
             },
           ],
           (values) => {
-            const serviceMap = {
-              "Flight GDS": [
-                "flight_gds_section",
-                "flight_booking_entry_gds",
-                "flight_gds_supplier",
-              ],
-              "Flight Online Airlines": [
-                "flight_online_section",
-                "flight_booking_entry_online",
-                "flight_online_supplier",
-              ],
-              "Hotel Booking": [
-                "hotel_section",
-                "hotel_booking_entry",
-                "hotel_supplier",
-              ],
-              "Visa Application Charges": [
-                "visa_section",
-                "visa_booking_entry",
-                "visa_supplier",
-              ],
-              "Insurance Service": [
-                "insurance_section",
-                "insurance_booking_entry",
-                "insurance_supplier",
-              ],
-              "Car Rental Service": [
-                "car_rental_section",
-                "car_rental_booking_entry",
-                "car_rental_supplier",
-              ],
-            };
-
             const selected = serviceMap[values.service_type];
             if (!selected) {
               frappe.msgprint("Service not supported.");
@@ -88,7 +100,7 @@ frappe.ui.form.on("Trip Booking", {
 });
 
 function compute_total_amount(frm) {
-  let total = 0;
+  let grand_total = 0;
 
   const tables = [
     "flight_booking_entry_gds",
@@ -100,15 +112,23 @@ function compute_total_amount(frm) {
   ];
 
   tables.forEach((table) => {
+    let table_total = 0;
+
     (frm.doc[table] || []).forEach((row) => {
-      const base = row.supplier_cost_payable || row.net_fare || 0;
+      const supplier_cost = row.supplier_cost_payable || row.net_fare || 0;
       const markup = row.markup || 0;
-      const extra = row.service_fee || row.commission || 0;
-      row.selling_price = base + markup + extra;
-      total += row.selling_price || 0;
+      const commission = row.service_fee || row.commission || 0;
+
+      const row_total = supplier_cost + markup + commission;
+      row.total = row_total;
+      row.selling_price = row_total;
+
+      table_total += row_total;
     });
+
     frm.refresh_field(table);
+    grand_total += table_total;
   });
 
-  frm.set_value("total_amount", total);
+  frm.set_value("total_amount", grand_total);
 }

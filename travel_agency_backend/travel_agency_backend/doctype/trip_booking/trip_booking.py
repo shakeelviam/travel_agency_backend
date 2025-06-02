@@ -4,18 +4,20 @@ from frappe.utils import now_datetime
 
 class TripBooking(Document):
     def validate(self):
-        self.calculate_selling_prices()
+        self.calculate_row_totals()
         self.validate_services()
         self.calculate_total_amount()
         self.clean_unused_services()
 
-    def calculate_selling_prices(self):
+    def calculate_row_totals(self):
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
-                base = row.supplier_cost_payable or row.net_fare or 0
+                supplier_cost = row.supplier_cost_payable or row.net_fare or 0
                 markup = row.markup or 0
-                extra = row.service_fee or row.commission or 0
-                row.selling_price = base + markup + extra
+                commission = row.service_fee or row.commission or 0
+
+                row.total = supplier_cost + markup + commission
+                row.selling_price = row.total
 
     def validate_services(self):
         if not self.selected_services:
@@ -37,7 +39,7 @@ class TripBooking(Document):
         total = 0
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
-                total += row.selling_price or 0
+                total += row.total or 0
         self.total_amount = total
 
     def clean_unused_services(self):
@@ -49,9 +51,9 @@ class TripBooking(Document):
         active = {s.service_category for s in self.selected_services}
         for category in self.get_service_category_mapping().values():
             if category not in active:
-                table_fieldname = self.get_table_fieldname(category)
-                if table_fieldname:
-                    setattr(self, table_fieldname, [])
+                fieldname = self.get_table_fieldname(category)
+                if fieldname:
+                    setattr(self, fieldname, [])
 
     def before_submit(self):
         if not self.selected_services:
@@ -87,12 +89,12 @@ class TripBooking(Document):
                 pi.set_posting_time = 1
 
                 for row in entries:
-                    base = row.supplier_cost_payable or row.net_fare or 0
+                    cost = row.supplier_cost_payable or row.net_fare or 0
                     pi.append("items", {
                         "item_name": f"{row.service_type} - {row.passenger}",
                         "qty": 1,
-                        "rate": base,
-                        "amount": base,
+                        "rate": cost,
+                        "amount": cost,
                         "schedule_date": now_datetime()
                     })
 
@@ -108,16 +110,14 @@ class TripBooking(Document):
         si.is_pos = 0
 
         for table in self.get_all_booking_tables():
-            entries = self.get(table)
-            if entries:
-                for row in entries:
-                    si.append("items", {
-                        "item_name": f"{row.service_type} - {row.passenger}",
-                        "qty": 1,
-                        "rate": row.selling_price or 0,
-                        "amount": row.selling_price or 0,
-                        "schedule_date": now_datetime()
-                    })
+            for row in self.get(table) or []:
+                si.append("items", {
+                    "item_name": f"{row.service_type} - {row.passenger}",
+                    "qty": 1,
+                    "rate": row.total or 0,
+                    "amount": row.total or 0,
+                    "schedule_date": now_datetime()
+                })
 
         si.insert()
         si.submit()
@@ -167,7 +167,6 @@ def remove_service(docname, service_category):
         frappe.throw("Cannot modify submitted document")
 
     doc.selected_services = [s for s in doc.selected_services if s.service_category != service_category]
-
     fieldname = doc.get_table_fieldname(service_category)
     if fieldname and hasattr(doc, fieldname):
         setattr(doc, fieldname, [])

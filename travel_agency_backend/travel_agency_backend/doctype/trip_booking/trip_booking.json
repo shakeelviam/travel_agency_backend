@@ -9,6 +9,7 @@
   "engine": "InnoDB",
   "sort_field": "modified",
   "sort_order": "DESC",
+  "index_web_pages_for_search": 1,
   "field_order": [
     "basic_info_section",
     "naming_series",
@@ -52,27 +53,27 @@
     { "fieldname": "amended_from", "fieldtype": "Link", "label": "Amended From", "options": "Trip Booking", "read_only": 1, "print_hide": 1, "no_copy": 1, "search_index": 1 },
 
     { "fieldname": "hotel_section", "fieldtype": "Section Break", "label": "Hotel Services", "hidden": 1 },
-    { "fieldname": "hotel_supplier", "fieldtype": "Link", "label": "Hotel Supplier", "options": "Supplier" },
+    { "fieldname": "hotel_supplier", "fieldtype": "Link", "label": "Hotel Supplier", "options": "Supplier", "hidden": 1 },
     { "fieldname": "hotel_booking_entry", "fieldtype": "Table", "label": "Hotel Booking Entry", "options": "Hotel Booking Entry", "hidden": 1 },
 
     { "fieldname": "visa_section", "fieldtype": "Section Break", "label": "Visa Services", "hidden": 1 },
-    { "fieldname": "visa_supplier", "fieldtype": "Link", "label": "Visa Supplier", "options": "Supplier" },
+    { "fieldname": "visa_supplier", "fieldtype": "Link", "label": "Visa Supplier", "options": "Supplier", "hidden": 1 },
     { "fieldname": "visa_booking_entry", "fieldtype": "Table", "label": "Visa Booking Entry", "options": "Visa Booking Entry", "hidden": 1 },
 
     { "fieldname": "car_rental_section", "fieldtype": "Section Break", "label": "Car Rental Services", "hidden": 1 },
-    { "fieldname": "car_rental_supplier", "fieldtype": "Link", "label": "Car Rental Supplier", "options": "Supplier" },
+    { "fieldname": "car_rental_supplier", "fieldtype": "Link", "label": "Car Rental Supplier", "options": "Supplier", "hidden": 1 },
     { "fieldname": "car_rental_booking_entry", "fieldtype": "Table", "label": "Car Rental Booking Entry", "options": "Car Rental Booking Entry", "hidden": 1 },
 
     { "fieldname": "flight_gds_section", "fieldtype": "Section Break", "label": "Flight GDS Services", "hidden": 1 },
-    { "fieldname": "flight_gds_supplier", "fieldtype": "Link", "label": "Flight GDS Supplier", "options": "Supplier" },
+    { "fieldname": "flight_gds_supplier", "fieldtype": "Link", "label": "Flight GDS Supplier", "options": "Supplier", "hidden": 1 },
     { "fieldname": "flight_booking_entry_gds", "fieldtype": "Table", "label": "Flight Booking Entry GDS", "options": "Flight Booking Entry GDS", "hidden": 1 },
 
     { "fieldname": "flight_online_section", "fieldtype": "Section Break", "label": "Flight Online Services", "hidden": 1 },
-    { "fieldname": "flight_online_supplier", "fieldtype": "Link", "label": "Flight Online Supplier", "options": "Supplier" },
+    { "fieldname": "flight_online_supplier", "fieldtype": "Link", "label": "Flight Online Supplier", "options": "Supplier", "hidden": 1 },
     { "fieldname": "flight_booking_entry_online", "fieldtype": "Table", "label": "Flight Booking Entry Online", "options": "Flight Booking Entry Online", "hidden": 1 },
 
     { "fieldname": "insurance_section", "fieldtype": "Section Break", "label": "Insurance Services", "hidden": 1 },
-    { "fieldname": "insurance_supplier", "fieldtype": "Link", "label": "Insurance Supplier", "options": "Supplier" },
+    { "fieldname": "insurance_supplier", "fieldtype": "Link", "label": "Insurance Supplier", "options": "Supplier", "hidden": 1 },
     { "fieldname": "insurance_booking_entry", "fieldtype": "Table", "label": "Insurance Booking Entry", "options": "Insurance Booking Entry", "hidden": 1 }
   ],
   "permissions": [
@@ -92,6 +93,5 @@
     }
   ],
   "links": [],
-  "states": [],
-  "index_web_pages_for_search": 1
+  "states": []
 }
