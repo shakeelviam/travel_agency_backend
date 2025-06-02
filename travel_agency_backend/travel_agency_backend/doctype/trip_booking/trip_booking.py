@@ -15,9 +15,8 @@ class TripBooking(Document):
                 supplier_cost = row.supplier_cost_payable or row.net_fare or 0
                 markup = row.markup or 0
                 commission = row.service_fee or row.commission or 0
-
-                row.total = supplier_cost + markup + commission
-                row.selling_price = row.total
+                row.total_amount = supplier_cost + markup + commission
+                row.selling_price = row.total_amount
 
     def validate_services(self):
         if not self.selected_services:
@@ -27,19 +26,18 @@ class TripBooking(Document):
 
         for service in self.selected_services:
             table = self.get_child_table(service.service_category)
-            if table is not None:
-                if not table:
-                    frappe.throw(f"Please add details for {service.service_category} service")
-                for row in table:
-                    cost = getattr(row, "supplier_cost_payable", None) or getattr(row, "net_fare", None)
-                    if cost in (None, 0):
-                        frappe.throw(f"Missing Supplier Cost for passenger '{row.passenger}' in {service.service_category}")
+            if table and not table:
+                frappe.throw(f"Please add details for {service.service_category} service")
+            for row in table or []:
+                cost = getattr(row, "supplier_cost_payable", None) or getattr(row, "net_fare", None)
+                if cost in (None, 0):
+                    frappe.throw(f"Missing Supplier Cost for passenger '{row.passenger}' in {service.service_category}")
 
     def calculate_total_amount(self):
         total = 0
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
-                total += row.total or 0
+                total += row.total_amount or 0
         self.total_amount = total
 
     def clean_unused_services(self):
@@ -58,7 +56,6 @@ class TripBooking(Document):
     def before_submit(self):
         if not self.selected_services:
             frappe.throw("Please add at least one service before submitting")
-
         for service in self.selected_services:
             table = self.get_child_table(service.service_category)
             if table is not None and not table:
@@ -81,7 +78,6 @@ class TripBooking(Document):
         for table, supplier_field in service_map.items():
             supplier = self.get(supplier_field)
             entries = self.get(table)
-
             if supplier and entries:
                 pi = frappe.new_doc("Purchase Invoice")
                 pi.supplier = supplier
@@ -100,7 +96,7 @@ class TripBooking(Document):
 
                 pi.insert()
                 pi.submit()
-                frappe.msgprint(f"Purchase Invoice created for {supplier}")
+                frappe.msgprint(f"✅ Purchase Invoice created for {supplier}")
 
     def create_sales_invoice(self):
         si = frappe.new_doc("Sales Invoice")
@@ -114,14 +110,14 @@ class TripBooking(Document):
                 si.append("items", {
                     "item_name": f"{row.service_type} - {row.passenger}",
                     "qty": 1,
-                    "rate": row.total or 0,
-                    "amount": row.total or 0,
+                    "rate": row.total_amount or 0,
+                    "amount": row.total_amount or 0,
                     "schedule_date": now_datetime()
                 })
 
         si.insert()
         si.submit()
-        frappe.msgprint("Sales Invoice created for this Trip Booking")
+        frappe.msgprint("✅ Sales Invoice created for this Trip Booking")
 
     def get_table_fieldname(self, service_category):
         return {
@@ -172,6 +168,7 @@ def remove_service(docname, service_category):
         setattr(doc, fieldname, [])
 
     doc.save()
+    frappe.msgprint(f"❌ Removed service: {service_category}")
     return True
 
 
