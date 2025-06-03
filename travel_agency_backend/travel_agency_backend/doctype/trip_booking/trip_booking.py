@@ -10,13 +10,14 @@ class TripBooking(Document):
         self.clean_unused_services()
 
     def calculate_row_totals(self):
+        total = 0
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
                 supplier_cost = row.supplier_cost or 0
                 markup = row.markup or 0
-                service_fee = row.service_fee or 0
-                row.total_amount = supplier_cost + markup + service_fee
-                row.selling_price = row.total_amount
+                row.total_amount = supplier_cost + markup
+                total += row.total_amount
+        self.total_amount = total
 
     def validate_services(self):
         if not self.selected_services:

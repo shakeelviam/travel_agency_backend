@@ -7,51 +7,74 @@
   "fields": [
     {
       "fieldname": "passenger",
-      "label": "Passenger",
       "fieldtype": "Link",
       "options": "Passenger",
-      "reqd": 1
+      "reqd": 1,
+      "in_list_view": 1,
+      "label": "Passenger"
     },
     {
       "fieldname": "visa_type",
+      "fieldtype": "Data",
+      "in_list_view": 1,
       "label": "Visa Type",
-      "fieldtype": "Data"
+      "reqd": 1
     },
     {
       "fieldname": "country",
-      "label": "Country",
       "fieldtype": "Link",
-      "options": "Country"
+      "options": "Country",
+      "in_list_view": 1,
+      "label": "Country",
+      "reqd": 1
     },
     {
-  "fieldname": "supplier_cost",
-  "label": "Supplier Cost",
-  "fieldtype": "Currency",
-  "idx": 4,
-  "parentfield": "visa_booking_entry",
-  "parenttype": "Trip Booking",
-  "doctype": "DocField"
-}
-,
+      "fieldname": "application_date",
+      "fieldtype": "Date",
+      "label": "Application Date",
+      "reqd": 1
+    },
+    {
+      "fieldname": "visa_number",
+      "fieldtype": "Data",
+      "label": "Visa Number"
+    },
+    {
+      "fieldname": "supplier_cost",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Supplier Cost",
+      "reqd": 1,
+      "bold": 1
+    },
     {
       "fieldname": "markup",
-      "label": "Markup",
-      "fieldtype": "Currency"
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Markup"
     },
     {
-      "fieldname": "service_fee",
-      "label": "Service Fee",
-      "fieldtype": "Currency"
-    },
-    {
-      "fieldname": "selling_price",
+      "fieldname": "total_amount",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
       "label": "Selling Price",
-      "fieldtype": "Currency"
+      "read_only": 1,
+      "bold": 1
     },
     {
       "fieldname": "remarks",
       "label": "Remarks",
       "fieldtype": "Small Text"
     }
+  ],
+  "field_order": [
+    "passenger",
+    "visa_type",
+    "country",
+    "application_date",
+    "visa_number",
+    "supplier_cost",
+    "markup",
+    "total_amount"
   ]
 }

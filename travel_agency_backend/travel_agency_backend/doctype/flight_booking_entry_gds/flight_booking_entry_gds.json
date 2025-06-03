@@ -10,12 +10,14 @@
   "from_sector",
   "to_sector",
   "return_sector",
+  "flight_no",
+  "departure_datetime",
+  "arrival_datetime",
   "pnr",
   "ticket_number",
   "supplier_cost",
   "markup",
-  "service_fee",
-  "selling_price",
+  "total_amount",
   "remarks"
  ],
  "fields": [
@@ -31,31 +33,54 @@
    "fieldname": "airline",
    "fieldtype": "Link",
    "label": "Airline",
-   "options": "Airline Master"
+   "options": "Airline Master",
+   "reqd": 1
   },
   {
    "fieldname": "trip_type",
    "fieldtype": "Select",
    "label": "Trip Type",
-   "options": "One Way\nReturn"
+   "options": "One Way\nReturn",
+   "reqd": 1
   },
   {
    "fieldname": "from_sector",
    "fieldtype": "Link",
    "label": "From Sector",
-   "options": "Sector Master"
+   "options": "Sector Master",
+   "reqd": 1
   },
   {
    "fieldname": "to_sector",
    "fieldtype": "Link",
    "label": "To Sector",
-   "options": "Sector Master"
+   "options": "Sector Master",
+   "reqd": 1
   },
   {
    "fieldname": "return_sector",
    "fieldtype": "Link",
    "label": "Return To Sector",
    "options": "Sector Master"
+  },
+  {
+   "fieldname": "flight_no",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Flight No",
+   "reqd": 1
+  },
+  {
+   "fieldname": "departure_datetime",
+   "fieldtype": "Datetime",
+   "label": "Departure",
+   "reqd": 1
+  },
+  {
+   "fieldname": "arrival_datetime",
+   "fieldtype": "Datetime",
+   "label": "Arrival",
+   "reqd": 1
   },
   {
    "fieldname": "pnr",
@@ -70,22 +95,24 @@
   {
    "fieldname": "supplier_cost",
    "fieldtype": "Currency",
-   "label": "Supplier Cost"
+   "in_list_view": 1,
+   "label": "Supplier Cost",
+   "reqd": 1,
+   "bold": 1
   },
   {
    "fieldname": "markup",
    "fieldtype": "Currency",
+   "in_list_view": 1,
    "label": "Markup"
   },
   {
-   "fieldname": "service_fee",
+   "fieldname": "total_amount",
    "fieldtype": "Currency",
-   "label": "Service Fee"
-  },
-  {
-   "fieldname": "selling_price",
-   "fieldtype": "Currency",
-   "label": "Selling Price"
+   "in_list_view": 1,
+   "label": "Selling Price",
+   "read_only": 1,
+   "bold": 1
   },
   {
    "fieldname": "remarks",

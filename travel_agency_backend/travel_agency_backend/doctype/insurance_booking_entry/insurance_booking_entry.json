@@ -15,7 +15,6 @@
   "policy_number",
   "supplier_cost",
   "markup",
-  "commission",
   "total_amount"
  ],
  "fields": [
@@ -63,23 +62,22 @@
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Supplier Cost",
-   "reqd": 1
+   "reqd": 1,
+   "bold": 1
   },
   {
    "fieldname": "markup",
    "fieldtype": "Currency",
-   "label": "Markup"
-  },
-  {
-   "fieldname": "commission",
-   "fieldtype": "Currency",
-   "label": "Commission"
+   "label": "Markup",
+   "in_list_view": 1
   },
   {
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
-   "label": "Total Amount"
+   "label": "Selling Price",
+   "read_only": 1,
+   "bold": 1
   }
  ],
  "index_web_pages_for_search": 1,

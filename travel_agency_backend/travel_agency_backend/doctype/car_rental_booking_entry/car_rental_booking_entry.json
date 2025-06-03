@@ -19,38 +19,37 @@
     },
     {
       "fieldname": "rental_date",
+      "fieldtype": "Date",
       "label": "Rental Date",
-      "fieldtype": "Date"
+      "reqd": 1
     },
     {
       "fieldname": "pickup_location",
+      "fieldtype": "Data",
       "label": "Pickup Location",
-      "fieldtype": "Data"
+      "reqd": 1
     },
     {
-  "fieldname": "supplier_cost",
-  "label": "Supplier Cost",
-  "fieldtype": "Currency",
-  "idx": 5,
-  "parentfield": "car_rental_booking_entry",
-  "parenttype": "Trip Booking",
-  "doctype": "DocField"
-}
-,
+      "fieldname": "supplier_cost",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Supplier Cost",
+      "reqd": 1,
+      "bold": 1
+    },
     {
       "fieldname": "markup",
-      "label": "Markup",
-      "fieldtype": "Currency"
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Markup"
     },
     {
-      "fieldname": "service_fee",
-      "label": "Service Fee",
-      "fieldtype": "Currency"
-    },
-    {
-      "fieldname": "selling_price",
+      "fieldname": "total_amount",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
       "label": "Selling Price",
-      "fieldtype": "Currency"
+      "read_only": 1,
+      "bold": 1
     },
     {
       "fieldname": "remarks",
