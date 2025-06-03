@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
  "actions": [],
  "creation": "2025-06-01 14:34:21.504140",
  "doctype": "DocType",
@@ -77,3 +78,92 @@
  "sort_order": "DESC",
  "states": []
 }
+=======
+  "doctype": "DocType",
+  "name": "Hotel Booking Entry",
+  "module": "Travel Agency Backend",
+  "custom": 0,
+  "istable": 1,
+  "fields": [
+    {
+      "fieldname": "passenger",
+      "label": "Passenger",
+      "fieldtype": "Link",
+      "options": "Passenger",
+      "reqd": 1
+    },
+    {
+      "fieldname": "hotel_name",
+      "label": "Hotel Name",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "check_in",
+      "label": "Check In",
+      "fieldtype": "Date"
+    },
+    {
+      "fieldname": "check_out",
+      "label": "Check Out",
+      "fieldtype": "Date"
+    },
+    {
+      "fieldname": "room_type",
+      "fieldtype": "Data",
+      "label": "Room Type"
+    },
+    {
+      "fieldname": "confirmation_number",
+      "fieldtype": "Data",
+      "label": "Confirmation Number"
+    },
+    {
+      "fieldname": "supplier_cost",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Supplier Cost",
+      "reqd": 1,
+      "bold": 1
+    },
+    {
+      "fieldname": "markup",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Markup"
+    },
+    {
+      "fieldname": "total_amount",
+      "fieldtype": "Currency",
+      "in_list_view": 1,
+      "label": "Selling Price",
+      "read_only": 1,
+      "bold": 1
+    },
+    {
+      "fieldname": "remarks",
+      "fieldtype": "Small Text",
+      "label": "Remarks"
+    },
+    {
+      "fieldname": "field_order",
+      "label": "Field Order",
+      "fieldtype": "Table",
+      "options": "Field Order",
+      "fields": [
+        {
+          "fieldname": "field_order",
+          "label": "Field Order",
+          "fieldtype": "Table",
+          "fields": [
+            {
+              "fieldname": "field_order",
+              "label": "Field Order",
+              "fieldtype": "Data"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+>>>>>>> bceab839b8d623e2f4453d81b00d0d8a7a8833c2

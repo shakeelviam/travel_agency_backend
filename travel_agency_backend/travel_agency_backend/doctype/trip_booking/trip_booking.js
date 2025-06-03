@@ -84,19 +84,26 @@ booking_tables.forEach(table => {
     },
     markup: function(frm, cdt, cdn) {
       calculate_row_total(frm, cdt, cdn);
-    },
-    service_fee: function(frm, cdt, cdn) {
-      calculate_row_total(frm, cdt, cdn);
     }
   });
 });
 
 function calculate_row_total(frm, cdt, cdn) {
   const row = locals[cdt][cdn];
-  row.total_amount = (row.supplier_cost || 0) + (row.markup || 0) + (row.service_fee || 0);
-  row.selling_price = row.total_amount;
-  refresh_field(cdt);
+  row.total_amount = (row.supplier_cost || 0) + (row.markup || 0);
+  refresh_field('total_amount', row.name, cdt);
   calculate_totals(frm);
+}
+
+function calculate_totals(frm) {
+  let total = 0;
+  booking_tables.forEach(table => {
+    (frm.doc[table] || []).forEach(row => {
+      total += row.total_amount || 0;
+    });
+  });
+  frm.doc.total_amount = total;
+  refresh_field('total_amount');
 }
 
 function calculate_totals(frm) {
