@@ -30,12 +30,11 @@
    "fieldname": "full_name",
    "fieldtype": "Data",
    "label": "Full Name",
-   "read_only": 0,
+   "read_only": 1,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "search_index": 1,
-   "bold": 1,
-   "reqd": 1
+   "bold": 1
   },
   {
    "fieldname": "personal_information_section",
@@ -51,7 +50,8 @@
   {
    "fieldname": "first_name",
    "fieldtype": "Data",
-   "label": "First Name"
+   "label": "First Name",
+   "reqd": 1
   },
   {
    "fieldname": "second_name",
