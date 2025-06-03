@@ -6,14 +6,20 @@
  "field_order": [
   "passenger",
   "car_type",
-  "rental_date",
-  "pickup_location",
+  "pickup_date",
+  "return_date",
+  "booking_reference_number",
   "supplier_cost",
   "markup",
   "total_amount",
   "remarks"
  ],
  "fields": [
+  {
+   "fieldname": "booking_reference_number",
+   "fieldtype": "Data",
+   "label": "Booking Reference Number"
+  },
   {
    "fieldname": "passenger",
    "fieldtype": "Link",

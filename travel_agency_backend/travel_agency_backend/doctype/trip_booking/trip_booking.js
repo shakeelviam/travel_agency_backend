@@ -89,21 +89,73 @@ booking_tables.forEach(table => {
 });
 
 function calculate_row_total(frm, cdt, cdn) {
-  const row = locals[cdt][cdn];
-  row.total_amount = (row.supplier_cost || 0) + (row.markup || 0);
-  refresh_field('total_amount', row.name, cdt);
-  calculate_totals(frm);
+  try {
+    const row = locals[cdt][cdn];
+    const supplier_cost = flt(row.supplier_cost) || 0;
+    const markup = flt(row.markup) || 0;
+    
+    row.total_amount = supplier_cost + markup;
+    refresh_field('total_amount', row.name, cdt);
+    calculate_totals(frm);
+  } catch (e) {
+    console.error('Error in calculate_row_total:', e);
+    frappe.throw('Error calculating row total. Please check the console.');
+  }
 }
 
-function calculate_totals(frm) {
-  let total = 0;
-  booking_tables.forEach(table => {
-    (frm.doc[table] || []).forEach(row => {
-      total += row.total_amount || 0;
-    });
+// Function to fetch passenger details
+function fetch_passenger_details(frm, cdt, cdn) {
+  const row = locals[cdt][cdn];
+  if (row.passenger) {
+    frappe.db.get_doc('Passenger', row.passenger)
+      .then(doc => {
+        if (doc.full_name) {
+          // Update the passenger field's display with full name
+          $(`.grid-row[data-idx="${row.idx}"] .grid-static-col[data-fieldname="passenger"]`)
+            .text(doc.full_name);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching passenger details:', err);
+      });
+  }
+}
+
+// Add passenger field handlers to all child tables
+const child_tables = [
+  'hotel_booking_entry',
+  'visa_booking_entry', 
+  'car_rental_booking_entry',
+  'flight_booking_entry_gds',
+  'flight_booking_entry_online',
+  'insurance_booking_entry'
+];
+
+child_tables.forEach(table => {
+  frappe.ui.form.on(table, {
+    passenger: function(frm, cdt, cdn) {
+      fetch_passenger_details(frm, cdt, cdn);
+    },
+    form_render: function(frm, cdt, cdn) {
+      fetch_passenger_details(frm, cdt, cdn);
+    }
   });
-  frm.doc.total_amount = total;
-  refresh_field('total_amount');
+});
+
+function calculate_totals(frm) {
+  try {
+    let total = 0;
+    booking_tables.forEach(table => {
+      (frm.doc[table] || []).forEach(row => {
+        total += flt(row.total_amount) || 0;
+      });
+    });
+    frm.doc.total_amount = total;
+    refresh_field('total_amount');
+  } catch (e) {
+    console.error('Error in calculate_totals:', e);
+    frappe.throw('Error calculating total amount. Please check the console.');
+  }
 }
 
 function calculate_totals(frm) {

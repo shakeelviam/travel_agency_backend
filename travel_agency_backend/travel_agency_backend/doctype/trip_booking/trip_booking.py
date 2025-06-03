@@ -8,6 +8,41 @@ class TripBooking(Document):
         self.validate_services()
         self.calculate_total_amount()
         self.clean_unused_services()
+        
+    def on_submit(self):
+        """Create Purchase and Sales Invoices on submit"""
+        try:
+            self.create_purchase_invoices()
+            self.create_sales_invoice()
+            frappe.msgprint(
+                msg='✅ Trip Booking processed successfully!',
+                title='Success',
+                indicator='green'
+            )
+        except Exception as e:
+            frappe.throw(f"Failed to process Trip Booking: {str(e)}")
+            
+    def on_cancel(self):
+        """Cancel linked Purchase and Sales Invoices"""
+        # Cancel Sales Invoice
+        sales_invoices = frappe.get_all(
+            'Sales Invoice',
+            filters={'trip_booking': self.name, 'docstatus': 1}
+        )
+        for si in sales_invoices:
+            doc = frappe.get_doc('Sales Invoice', si.name)
+            doc.cancel()
+            frappe.msgprint(f"Sales Invoice {si.name} cancelled")
+            
+        # Cancel Purchase Invoices
+        purchase_invoices = frappe.get_all(
+            'Purchase Invoice',
+            filters={'trip_booking': self.name, 'docstatus': 1}
+        )
+        for pi in purchase_invoices:
+            doc = frappe.get_doc('Purchase Invoice', pi.name)
+            doc.cancel()
+            frappe.msgprint(f"Purchase Invoice {pi.name} cancelled")
 
     def calculate_row_totals(self):
         total = 0
@@ -67,73 +102,126 @@ class TripBooking(Document):
         self.create_sales_invoice()
 
     def create_purchase_invoices(self):
+        """Create Purchase Invoices for each supplier"""
         service_map = {
-            "flight_booking_entry_gds": "flight_gds_supplier",
-            "flight_booking_entry_online": "flight_online_supplier",
-            "hotel_booking_entry": "hotel_supplier",
-            "visa_booking_entry": "visa_supplier",
-            "car_rental_booking_entry": "car_rental_supplier",
-            "insurance_booking_entry": "insurance_supplier"
+            "flight_booking_entry_gds": ("flight_gds_supplier", "Flight GDS"),
+            "flight_booking_entry_online": ("flight_online_supplier", "Flight Online"),
+            "hotel_booking_entry": ("hotel_supplier", "Hotel"),
+            "visa_booking_entry": ("visa_supplier", "Visa"),
+            "car_rental_booking_entry": ("car_rental_supplier", "Car Rental"),
+            "insurance_booking_entry": ("insurance_supplier", "Insurance")
         }
-
-        for table, supplier_field in service_map.items():
-            supplier = self.get(supplier_field)
-            entries = self.get(table)
-            if supplier and entries:
-                try:
-                    pi = frappe.new_doc("Purchase Invoice")
-                    pi.supplier = supplier
-                    pi.posting_date = self.date_of_issue
-                    pi.set_posting_time = 1
-                    pi.due_date = self.date_of_issue
-                    pi.trip_booking = self.name
-
-                    for row in entries:
-                        cost = row.supplier_cost or 0
-                        if cost > 0:  # Only add items with cost
-                            pi.append("items", {
-                                "item_name": f"{row.service_type} - {row.passenger}",
-                                "qty": 1,
-                                "rate": cost,
-                                "amount": cost
-                            })
-
-                    if pi.items:  # Only create PI if there are items
-                        pi.insert()
-                        pi.submit()
-                        frappe.msgprint(f"✅ Purchase Invoice created for {supplier}")
-                except Exception as e:
-                    frappe.log_error(f"Failed to create Purchase Invoice for {supplier}: {str(e)}")
-                    frappe.throw(f"Failed to create Purchase Invoice for {supplier}. Please check error log.")
-
-    def create_sales_invoice(self):
+        
         try:
-            si = frappe.new_doc("Sales Invoice")
-            si.customer = self.customer
-            si.posting_date = self.date_of_issue
-            si.set_posting_time = 1
-            si.due_date = self.date_of_issue
-            si.trip_booking = self.name
-            si.is_pos = 0
+            supplier_items = {}
 
-            # Add items from all booking tables
+            # Group items by supplier
             for table in self.get_all_booking_tables():
                 for row in self.get(table) or []:
-                    if row.total_amount:  # Only add items with amount
-                        si.append("items", {
-                            "item_name": f"{row.service_type} - {row.passenger}",
-                            "qty": 1,
-                            "rate": row.total_amount,
-                            "amount": row.total_amount
-                        })
+                    if not row.supplier_cost:
+                        continue
+                    
+                    supplier_field, _ = service_map.get(table, (None, None))
+                    if not supplier_field:
+                        continue
+                        
+                    supplier = self.get(supplier_field)
+                    if not supplier:
+                        continue
 
-            if si.items:  # Only create SI if there are items
-                si.insert()
-                si.submit()
-                frappe.msgprint("✅ Sales Invoice created for this Trip Booking")
+                    if supplier not in supplier_items:
+                        supplier_items[supplier] = []
+
+                    item_name = self.get_item_description(row, table)
+                    supplier_items[supplier].append({
+                        'item_name': item_name,
+                        'rate': row.supplier_cost,
+                        'qty': 1
+                    })
+
+            # Create Purchase Invoice for each supplier
+            for supplier, items in supplier_items.items():
+                if not items:
+                    continue
+
+                pi = frappe.get_doc({
+                    'doctype': 'Purchase Invoice',
+                    'supplier': supplier,
+                    'trip_booking': self.name,
+                    'items': items
+                })
+                pi.insert()
+                pi.submit()
+                frappe.msgprint(f"Created Purchase Invoice {pi.name}")
+
+        except Exception as e:
+            frappe.log_error(f"Failed to create Purchase Invoice: {str(e)}")
+            raise
+
+    def get_item_description(self, row, table):
+        """Generate item description based on service type"""
+        passenger_name = frappe.db.get_value('Passenger', row.passenger, 'full_name') or row.passenger
+        
+        if table == 'flight_booking_entry_gds':
+            sector = f"{row.from_sector}-{row.to_sector}"
+            if row.return_date:
+                sector += f"-{row.from_sector}"
+            return f"{passenger_name} {sector} {row.pnr or ''}".strip()
+            
+        elif table == 'flight_booking_entry_online':
+            sector = f"{row.from_sector}-{row.to_sector}"
+            if row.return_date:
+                sector += f"-{row.from_sector}"
+            return f"{passenger_name} {sector} {row.ticket_number or ''}".strip()
+            
+        elif table == 'insurance_booking_entry':
+            return f"{passenger_name} {row.policy_number or ''}".strip()
+            
+        elif table == 'hotel_booking_entry':
+            return f"{passenger_name} {row.booking_reference_number or ''}".strip()
+            
+        elif table == 'car_rental_booking_entry':
+            return f"{passenger_name} {row.booking_reference_number or ''}".strip()
+            
+        elif table == 'visa_booking_entry':
+            return f"{passenger_name} {row.visa_number or ''}".strip()
+            
+        return f"{row.service_type} - {passenger_name}"
+
+    def create_sales_invoice(self):
+        """Create Sales Invoice for customer"""
+        try:
+            if not self.customer:
+                frappe.throw("Customer is required to create Sales Invoice")
+
+            items = []
+            for table in self.get_all_booking_tables():
+                for row in self.get(table) or []:
+                    if not row.total_amount:
+                        continue
+
+                    item_name = self.get_item_description(row, table)
+                    items.append({
+                        'item_name': item_name,
+                        'rate': row.total_amount,
+                        'qty': 1
+                    })
+
+            if not items:
+                return
+
+            si = frappe.get_doc({
+                'doctype': 'Sales Invoice',
+                'customer': self.customer,
+                'trip_booking': self.name,
+                'items': items
+            })
+            si.insert()
+            si.submit()
+            frappe.msgprint(f"Created Sales Invoice {si.name}")
         except Exception as e:
             frappe.log_error(f"Failed to create Sales Invoice: {str(e)}")
-            frappe.throw("Failed to create Sales Invoice. Please check error log.")
+            raise frappe.throw("Failed to create Sales Invoice. Please check error log.")
 
     def get_table_fieldname(self, service_category):
         return {

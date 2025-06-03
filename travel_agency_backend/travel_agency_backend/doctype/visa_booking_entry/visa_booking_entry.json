@@ -6,6 +6,7 @@
  "field_order": [
   "passenger",
   "visa_type",
+  "visa_number",
   "country",
   "supplier_cost",
   "markup",
@@ -13,6 +14,11 @@
   "remarks"
  ],
  "fields": [
+  {
+   "fieldname": "visa_number",
+   "fieldtype": "Data",
+   "label": "Visa Number"
+  },
   {
    "fieldname": "passenger",
    "fieldtype": "Link",
