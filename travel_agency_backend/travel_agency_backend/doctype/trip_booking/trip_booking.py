@@ -12,14 +12,24 @@ class TripBooking(Document):
     def on_submit(self):
         """Create Purchase and Sales Invoices on submit"""
         try:
+            if not self.selected_services:
+                frappe.throw("Please add at least one service before submitting")
+
+            for service in self.selected_services:
+                table = self.get_child_table(service.service_category)
+                if table is not None and not table:
+                    frappe.throw(f"Please add booking details for {service.service_category} service")
+
             self.create_purchase_invoices()
             self.create_sales_invoice()
+            
             frappe.msgprint(
                 msg='✅ Trip Booking processed successfully!',
                 title='Success',
                 indicator='green'
             )
         except Exception as e:
+            frappe.log_error(f"Failed to process Trip Booking: {str(e)}")
             frappe.throw(f"Failed to process Trip Booking: {str(e)}")
             
     def on_cancel(self):
@@ -45,14 +55,17 @@ class TripBooking(Document):
             frappe.msgprint(f"Purchase Invoice {pi.name} cancelled")
 
     def calculate_row_totals(self):
-        total = 0
+        """Calculate total amount for each row and update document total"""
+        self.total_amount = 0
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
-                supplier_cost = row.supplier_cost or 0
-                markup = row.markup or 0
-                row.total_amount = supplier_cost + markup
-                total += row.total_amount
-        self.total_amount = total
+                try:
+                    supplier_cost = float(row.supplier_cost or 0)
+                    markup = float(row.markup or 0)
+                    row.total_amount = supplier_cost + markup
+                    self.total_amount += row.total_amount
+                except (ValueError, TypeError) as e:
+                    frappe.throw(f"Invalid amount in {table} for passenger {row.passenger}: {str(e)}")
 
     def validate_services(self):
         if not self.selected_services:
@@ -70,11 +83,8 @@ class TripBooking(Document):
                     frappe.throw(f"Missing Supplier Cost for passenger '{row.passenger}' in {service.service_category}")
 
     def calculate_total_amount(self):
-        total = 0
-        for table in self.get_all_booking_tables():
-            for row in self.get(table) or []:
-                total += row.total_amount or 0
-        self.total_amount = total
+        """Re-calculate total from all rows (called during validation)"""
+        self.calculate_row_totals()
 
     def clean_unused_services(self):
         if not self.selected_services:
@@ -90,16 +100,8 @@ class TripBooking(Document):
                     setattr(self, fieldname, [])
 
     def before_submit(self):
-        if not self.selected_services:
-            frappe.throw("Please add at least one service before submitting")
-        for service in self.selected_services:
-            table = self.get_child_table(service.service_category)
-            if table is not None and not table:
-                frappe.throw(f"Please add booking details for {service.service_category} service")
-
-    def on_submit(self):
-        self.create_purchase_invoices()
-        self.create_sales_invoice()
+        """Validate before submission"""
+        self.validate()
 
     def create_purchase_invoices(self):
         """Create Purchase Invoices for each supplier"""
