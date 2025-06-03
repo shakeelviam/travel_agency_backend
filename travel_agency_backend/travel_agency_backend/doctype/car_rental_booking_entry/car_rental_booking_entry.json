@@ -1,5 +1,4 @@
 {
-<<<<<<< HEAD
  "actions": [],
  "creation": "2025-06-01 14:34:21.741133",
  "doctype": "DocType",
@@ -11,7 +10,6 @@
   "pickup_location",
   "supplier_cost",
   "markup",
-  "service_fee",
   "total_amount",
   "remarks"
  ],
@@ -50,24 +48,19 @@
    "label": "Markup"
   },
   {
-   "fieldname": "service_fee",
+   "fieldname": "total_amount",
    "fieldtype": "Currency",
-   "label": "Service Fee"
+   "label": "Selling Price"
   },
   {
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
-  },
-  {
-   "fieldname": "total_amount",
-   "fieldtype": "Currency",
-   "label": "Selling Price"
   }
  ],
  "istable": 1,
  "links": [],
- "modified": "2025-06-02 12:28:36.632005",
+ "modified": "2025-06-03 12:50:13.805463",
  "modified_by": "Administrator",
  "module": "Travel Agency Backend",
  "name": "Car Rental Booking Entry",
@@ -77,64 +70,3 @@
  "sort_order": "DESC",
  "states": []
 }
-=======
-  "doctype": "DocType",
-  "name": "Car Rental Booking Entry",
-  "module": "Travel Agency Backend",
-  "custom": 0,
-  "istable": 1,
-  "fields": [
-    {
-      "fieldname": "passenger",
-      "label": "Passenger",
-      "fieldtype": "Link",
-      "options": "Passenger",
-      "reqd": 1
-    },
-    {
-      "fieldname": "car_type",
-      "label": "Car Type",
-      "fieldtype": "Data"
-    },
-    {
-      "fieldname": "rental_date",
-      "fieldtype": "Date",
-      "label": "Rental Date",
-      "reqd": 1
-    },
-    {
-      "fieldname": "pickup_location",
-      "fieldtype": "Data",
-      "label": "Pickup Location",
-      "reqd": 1
-    },
-    {
-      "fieldname": "supplier_cost",
-      "fieldtype": "Currency",
-      "in_list_view": 1,
-      "label": "Supplier Cost",
-      "reqd": 1,
-      "bold": 1
-    },
-    {
-      "fieldname": "markup",
-      "fieldtype": "Currency",
-      "in_list_view": 1,
-      "label": "Markup"
-    },
-    {
-      "fieldname": "total_amount",
-      "fieldtype": "Currency",
-      "in_list_view": 1,
-      "label": "Selling Price",
-      "read_only": 1,
-      "bold": 1
-    },
-    {
-      "fieldname": "remarks",
-      "label": "Remarks",
-      "fieldtype": "Small Text"
-    }
-  ]
-}
->>>>>>> bceab839b8d623e2f4453d81b00d0d8a7a8833c2
