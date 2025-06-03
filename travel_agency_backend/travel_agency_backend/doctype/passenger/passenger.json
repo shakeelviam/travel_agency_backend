@@ -7,31 +7,29 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "personal_information_section",
   "salutation",
   "first_name",
   "second_name",
   "third_name",
   "full_name",
-  "mobile_no",
-  "email",
-  "passport_no",
-  "passport_expiry",
-  "nationality",
+  "column_break_personal",
   "gender",
   "date_of_birth",
+  "nationality",
+  "contact_section",
+  "mobile_no",
+  "email",
+  "passport_section",
   "passport_number",
   "passport_issue_date",
   "passport_expiry_date"
  ],
  "fields": [
   {
-   "fieldname": "full_name",
-   "fieldtype": "Data",
-   "label": "Full Name",
-   "read_only": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1,
-   "search_index": 1
+   "fieldname": "personal_information_section",
+   "fieldtype": "Section Break",
+   "label": "Personal Information"
   },
   {
    "fieldname": "salutation",
@@ -53,6 +51,19 @@
    "fieldname": "third_name",
    "fieldtype": "Data",
    "label": "Third Name"
+  },
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "column_break_personal",
+   "fieldtype": "Column Break"
   },
 
   {
@@ -92,6 +103,16 @@
    "fieldtype": "Data",
    "label": "Mobile No",
    "unique": 1
+  },
+  {
+   "fieldname": "contact_section",
+   "fieldtype": "Section Break",
+   "label": "Contact Information"
+  },
+  {
+   "fieldname": "passport_section",
+   "fieldtype": "Section Break",
+   "label": "Passport Details"
   }
  ],
  "index_web_pages_for_search": 1,
