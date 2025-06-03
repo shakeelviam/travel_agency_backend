@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class FlightBookingEntry(Document):
+class SelectedService(Document):
 	pass
