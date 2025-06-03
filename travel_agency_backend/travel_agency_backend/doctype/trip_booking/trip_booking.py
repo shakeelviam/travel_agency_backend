@@ -66,6 +66,9 @@ class TripBooking(Document):
                     self.total_amount += row.total_amount
                 except (ValueError, TypeError) as e:
                     frappe.throw(f"Invalid amount in {table} for passenger {row.passenger}: {str(e)}")
+                
+                # Update selling price
+                row.selling_price = row.total_amount
 
     def validate_services(self):
         if not self.selected_services:
@@ -120,37 +123,31 @@ class TripBooking(Document):
             # Group items by supplier
             for table in self.get_all_booking_tables():
                 for row in self.get(table) or []:
-                    if not row.supplier_cost:
-                        continue
-                    
-                    supplier_field, _ = service_map.get(table, (None, None))
-                    if not supplier_field:
+                    if not row.supplier or not row.supplier_cost:
                         continue
                         
-                    supplier = self.get(supplier_field)
-                    if not supplier:
-                        continue
-
-                    if supplier not in supplier_items:
-                        supplier_items[supplier] = []
-
-                    item_name = self.get_item_description(row, table)
-                    supplier_items[supplier].append({
-                        'item_name': item_name,
+                    if row.supplier not in suppliers:
+                        suppliers[row.supplier] = []
+                        
+                    item_description = self.get_item_description(row, table)
+                    suppliers[row.supplier].append({
+                        'item_name': item_description,
+                        'description': item_description,
                         'rate': row.supplier_cost,
                         'qty': 1
                     })
-
-            # Create Purchase Invoice for each supplier
-            for supplier, items in supplier_items.items():
-                if not items:
-                    continue
-
+            
+            # Create PI for each supplier
+            for supplier, items in suppliers.items():
                 pi = frappe.get_doc({
                     'doctype': 'Purchase Invoice',
                     'supplier': supplier,
                     'trip_booking': self.name,
-                    'items': items
+                    'items': items,
+                    'update_stock': 0,
+                    'set_posting_time': 1,
+                    'posting_date': self.date_of_issue,
+                    'due_date': self.date_of_issue
                 })
                 pi.insert()
                 pi.submit()
@@ -202,9 +199,10 @@ class TripBooking(Document):
                     if not row.total_amount:
                         continue
 
-                    item_name = self.get_item_description(row, table)
+                    item_description = self.get_item_description(row, table)
                     items.append({
-                        'item_name': item_name,
+                        'item_name': item_description,
+                        'description': item_description,
                         'rate': row.total_amount,
                         'qty': 1
                     })
@@ -216,14 +214,18 @@ class TripBooking(Document):
                 'doctype': 'Sales Invoice',
                 'customer': self.customer,
                 'trip_booking': self.name,
-                'items': items
+                'items': items,
+                'update_stock': 0,
+                'set_posting_time': 1,
+                'posting_date': self.date_of_issue,
+                'due_date': self.date_of_issue
             })
             si.insert()
             si.submit()
             frappe.msgprint(f"Created Sales Invoice {si.name}")
         except Exception as e:
             frappe.log_error(f"Failed to create Sales Invoice: {str(e)}")
-            raise frappe.throw("Failed to create Sales Invoice. Please check error log.")
+            raise
 
     def get_table_fieldname(self, service_category):
         return {
