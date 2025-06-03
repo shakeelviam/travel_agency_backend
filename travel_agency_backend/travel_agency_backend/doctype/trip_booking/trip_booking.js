@@ -63,38 +63,49 @@ frappe.ui.form.on("Trip Booking", {
   },
 
   validate: function (frm) {
-    compute_total_amount(frm);
-  },
+    calculate_totals(frm);
+  }
 });
 
-function compute_total_amount(frm) {
-  let grand_total = 0;
-  const tables = [
-    "flight_booking_entry_gds",
-    "flight_booking_entry_online",
-    "hotel_booking_entry",
-    "visa_booking_entry",
-    "insurance_booking_entry",
-    "car_rental_booking_entry",
-  ];
+// Add handlers for all child tables
+const booking_tables = [
+  "flight_booking_entry_gds",
+  "flight_booking_entry_online",
+  "hotel_booking_entry",
+  "visa_booking_entry",
+  "car_rental_booking_entry",
+  "insurance_booking_entry"
+];
 
-  tables.forEach((table) => {
-    let table_total = 0;
-
-    (frm.doc[table] || []).forEach((row) => {
-      const supplier_cost = row.supplier_cost_payable || row.net_fare || 0;
-      const markup = row.markup || 0;
-      const commission = row.service_fee || row.commission || 0;
-      const row_total = supplier_cost + markup + commission;
-
-      row.total_amount = row_total;
-      row.selling_price = row_total;
-      table_total += row_total;
-    });
-
-    frm.refresh_field(table);
-    grand_total += table_total;
+booking_tables.forEach(table => {
+  frappe.ui.form.on(table, {
+    supplier_cost: function(frm, cdt, cdn) {
+      calculate_row_total(frm, cdt, cdn);
+    },
+    markup: function(frm, cdt, cdn) {
+      calculate_row_total(frm, cdt, cdn);
+    },
+    service_fee: function(frm, cdt, cdn) {
+      calculate_row_total(frm, cdt, cdn);
+    }
   });
+});
 
-  frm.set_value("total_amount", grand_total);
+function calculate_row_total(frm, cdt, cdn) {
+  const row = locals[cdt][cdn];
+  row.total_amount = (row.supplier_cost || 0) + (row.markup || 0) + (row.service_fee || 0);
+  row.selling_price = row.total_amount;
+  refresh_field(cdt);
+  calculate_totals(frm);
+}
+
+function calculate_totals(frm) {
+  let total = 0;
+  booking_tables.forEach(table => {
+    (frm.doc[table] || []).forEach(row => {
+      total += row.total_amount || 0;
+    });
+  });
+  frm.doc.total_amount = total;
+  refresh_field('total_amount');
 }

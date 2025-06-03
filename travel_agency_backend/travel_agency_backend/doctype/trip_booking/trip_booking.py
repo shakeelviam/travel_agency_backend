@@ -12,10 +12,10 @@ class TripBooking(Document):
     def calculate_row_totals(self):
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
-                supplier_cost = row.supplier_cost_payable or row.net_fare or 0
+                supplier_cost = row.supplier_cost or 0
                 markup = row.markup or 0
-                commission = row.service_fee or row.commission or 0
-                row.total_amount = supplier_cost + markup + commission
+                service_fee = row.service_fee or 0
+                row.total_amount = supplier_cost + markup + service_fee
                 row.selling_price = row.total_amount
 
     def validate_services(self):
@@ -79,45 +79,60 @@ class TripBooking(Document):
             supplier = self.get(supplier_field)
             entries = self.get(table)
             if supplier and entries:
-                pi = frappe.new_doc("Purchase Invoice")
-                pi.supplier = supplier
-                pi.due_date = now_datetime()
-                pi.set_posting_time = 1
+                try:
+                    pi = frappe.new_doc("Purchase Invoice")
+                    pi.supplier = supplier
+                    pi.posting_date = self.date_of_issue
+                    pi.set_posting_time = 1
+                    pi.due_date = self.date_of_issue
+                    pi.trip_booking = self.name
 
-                for row in entries:
-                    cost = row.supplier_cost_payable or row.net_fare or 0
-                    pi.append("items", {
-                        "item_name": f"{row.service_type} - {row.passenger}",
-                        "qty": 1,
-                        "rate": cost,
-                        "amount": cost,
-                        "schedule_date": now_datetime()
-                    })
+                    for row in entries:
+                        cost = row.supplier_cost or 0
+                        if cost > 0:  # Only add items with cost
+                            pi.append("items", {
+                                "item_name": f"{row.service_type} - {row.passenger}",
+                                "qty": 1,
+                                "rate": cost,
+                                "amount": cost
+                            })
 
-                pi.insert()
-                pi.submit()
-                frappe.msgprint(f"✅ Purchase Invoice created for {supplier}")
+                    if pi.items:  # Only create PI if there are items
+                        pi.insert()
+                        pi.submit()
+                        frappe.msgprint(f"✅ Purchase Invoice created for {supplier}")
+                except Exception as e:
+                    frappe.log_error(f"Failed to create Purchase Invoice for {supplier}: {str(e)}")
+                    frappe.throw(f"Failed to create Purchase Invoice for {supplier}. Please check error log.")
 
     def create_sales_invoice(self):
-        si = frappe.new_doc("Sales Invoice")
-        si.customer = self.customer
-        si.due_date = now_datetime()
-        si.set_posting_time = 1
-        si.is_pos = 0
+        try:
+            si = frappe.new_doc("Sales Invoice")
+            si.customer = self.customer
+            si.posting_date = self.date_of_issue
+            si.set_posting_time = 1
+            si.due_date = self.date_of_issue
+            si.trip_booking = self.name
+            si.is_pos = 0
 
-        for table in self.get_all_booking_tables():
-            for row in self.get(table) or []:
-                si.append("items", {
-                    "item_name": f"{row.service_type} - {row.passenger}",
-                    "qty": 1,
-                    "rate": row.total_amount or 0,
-                    "amount": row.total_amount or 0,
-                    "schedule_date": now_datetime()
-                })
+            # Add items from all booking tables
+            for table in self.get_all_booking_tables():
+                for row in self.get(table) or []:
+                    if row.total_amount:  # Only add items with amount
+                        si.append("items", {
+                            "item_name": f"{row.service_type} - {row.passenger}",
+                            "qty": 1,
+                            "rate": row.total_amount,
+                            "amount": row.total_amount
+                        })
 
-        si.insert()
-        si.submit()
-        frappe.msgprint("✅ Sales Invoice created for this Trip Booking")
+            if si.items:  # Only create SI if there are items
+                si.insert()
+                si.submit()
+                frappe.msgprint("✅ Sales Invoice created for this Trip Booking")
+        except Exception as e:
+            frappe.log_error(f"Failed to create Sales Invoice: {str(e)}")
+            frappe.throw("Failed to create Sales Invoice. Please check error log.")
 
     def get_table_fieldname(self, service_category):
         return {
