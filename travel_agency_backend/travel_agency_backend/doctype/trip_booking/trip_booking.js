@@ -95,11 +95,14 @@ function calculate_row_total(frm, cdt, cdn) {
     const markup = flt(row.markup) || 0;
     
     row.total_amount = supplier_cost + markup;
-    refresh_field('total_amount', row.name, cdt);
+    row.selling_price = row.total_amount;
+    
+    refresh_field('total_amount', row.name, row.parentfield);
+    refresh_field('selling_price', row.name, row.parentfield);
+    
     calculate_totals(frm);
   } catch (e) {
     console.error('Error in calculate_row_total:', e);
-    frappe.throw('Error calculating row total. Please check the console.');
   }
 }
 
@@ -143,28 +146,20 @@ child_tables.forEach(table => {
 });
 
 function calculate_totals(frm) {
-  try {
-    let total = 0;
-    booking_tables.forEach(table => {
-      (frm.doc[table] || []).forEach(row => {
-        total += flt(row.total_amount) || 0;
-      });
-    });
-    frm.doc.total_amount = total;
-    refresh_field('total_amount');
-  } catch (e) {
-    console.error('Error in calculate_totals:', e);
-    frappe.throw('Error calculating total amount. Please check the console.');
-  }
-}
-
-function calculate_totals(frm) {
   let total = 0;
+  
   booking_tables.forEach(table => {
     (frm.doc[table] || []).forEach(row => {
-      total += row.total_amount || 0;
+      if (row.supplier_cost) {
+        const supplier_cost = flt(row.supplier_cost);
+        const markup = flt(row.markup || 0);
+        row.total_amount = supplier_cost + markup;
+        row.selling_price = row.total_amount;
+        total += row.total_amount;
+      }
     });
+    frm.refresh_field(table);
   });
-  frm.doc.total_amount = total;
-  refresh_field('total_amount');
+  
+  frm.set_value('total_amount', total);
 }
