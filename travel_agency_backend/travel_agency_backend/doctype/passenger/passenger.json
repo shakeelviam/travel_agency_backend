@@ -7,13 +7,13 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "personal_information_section",
   "full_name",
-  "column_break_personal",
+  "personal_information_section",
   "salutation",
   "first_name",
   "second_name",
   "third_name",
+  "column_break_personal",
   "gender",
   "date_of_birth",
   "nationality",
@@ -30,13 +30,12 @@
    "fieldname": "full_name",
    "fieldtype": "Data",
    "label": "Full Name",
-   "read_only": 1,
+   "read_only": 0,
    "in_list_view": 1,
    "in_standard_filter": 1,
    "search_index": 1,
    "bold": 1,
-   "reqd": 1,
-   "fetch_from": "first_name"
+   "reqd": 1
   },
   {
    "fieldname": "personal_information_section",
