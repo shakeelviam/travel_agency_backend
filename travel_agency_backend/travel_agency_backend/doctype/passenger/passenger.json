@@ -13,14 +13,26 @@
   "third_name",
   "full_name",
   "mobile_no",
+  "email",
+  "passport_no",
+  "passport_expiry",
+  "nationality",
   "gender",
   "date_of_birth",
-  "nationality",
   "passport_number",
   "passport_issue_date",
   "passport_expiry_date"
  ],
  "fields": [
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "label": "Full Name",
+   "read_only": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
   {
    "fieldname": "salutation",
    "fieldtype": "Link",
