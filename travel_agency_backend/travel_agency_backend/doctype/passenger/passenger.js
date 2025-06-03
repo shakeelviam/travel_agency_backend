@@ -3,12 +3,10 @@
 
 frappe.ui.form.on("Passenger", {
 	refresh(frm) {
-		// Filter out disabled salutations
+		// Set query for salutation field
 		frm.set_query("salutation", function() {
 			return {
-				filters: {
-					'disabled': 0
-				}
+				doctype: "Salutation"
 			};
 		});
 	}
