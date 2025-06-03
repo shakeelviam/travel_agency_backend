@@ -60,15 +60,29 @@ class TripBooking(Document):
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
                 try:
-                    supplier_cost = float(row.supplier_cost or 0)
+                    # Validate required fields
+                    if not row.supplier:
+                        frappe.throw(f"Supplier is required for {table}")
+                    if not row.supplier_cost:
+                        frappe.throw(f"Supplier Cost is required for {table}")
+                    if not row.passenger:
+                        frappe.throw(f"Passenger is required for {table}")
+                    
+                    # Convert amounts to float
+                    supplier_cost = float(row.supplier_cost)
                     markup = float(row.markup or 0)
+                    
+                    # Calculate total and selling price
                     row.total_amount = supplier_cost + markup
+                    row.selling_price = row.total_amount
+                    
+                    # Update document total
                     self.total_amount += row.total_amount
-                except (ValueError, TypeError) as e:
-                    frappe.throw(f"Invalid amount in {table} for passenger {row.passenger}: {str(e)}")
-                
-                # Update selling price
-                row.selling_price = row.total_amount
+                    
+                except ValueError:
+                    frappe.throw(f"Invalid amount format in {table} for passenger {row.passenger}")
+                except Exception as e:
+                    frappe.throw(f"Error calculating totals: {str(e)}")
 
     def validate_services(self):
         if not self.selected_services:
