@@ -9,8 +9,5 @@ frappe.ui.form.on("Passenger", {
 				doctype: "Salutation"
 			};
 		});
-
-		// Show full name field
-		frm.set_df_property('full_name', 'hidden', 0);
 	}
 });

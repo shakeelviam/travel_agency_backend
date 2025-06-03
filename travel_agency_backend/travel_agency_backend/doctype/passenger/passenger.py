@@ -6,16 +6,12 @@ from frappe.model.document import Document
 
 class Passenger(Document):
     def validate(self):
-        """Calculate full name from parts"""
-        # Validate required fields
+        """Validate required fields"""
         if not self.first_name:
             frappe.throw("First Name is required")
-            
-        # Calculate full name
-        self.update_full_name()
-    
-    def update_full_name(self):
-        """Update full name from parts"""
+
+    def before_save(self):
+        """Calculate full name before saving"""
         parts = []
         if self.salutation:
             parts.append(self.salutation)
@@ -27,7 +23,3 @@ class Passenger(Document):
             parts.append(self.third_name)
             
         self.full_name = " ".join(filter(None, parts))
-        
-    def on_update(self):
-        """Update full name on any field change"""
-        self.update_full_name()
