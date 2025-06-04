@@ -2,7 +2,7 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import now_datetime
+from frappe.utils import now_datetime, today
 
 class TripBooking(Document):
     def validate(self):
@@ -24,56 +24,69 @@ class TripBooking(Document):
             frappe.throw(f"Failed to process Trip Booking submission: {str(e)}")
             
     def on_cancel(self):
-        """Cancel linked Purchase and Sales Invoices"""
-        # Cancel Sales Invoice
-        sales_invoices = frappe.get_all(
-            'Sales Invoice',
-            filters={'trip_booking': self.name, 'docstatus': 1}
-        )
-        for si in sales_invoices:
-            doc = frappe.get_doc('Sales Invoice', si.name)
-            doc.cancel()
-            frappe.msgprint(f"Sales Invoice {si.name} cancelled")
-            
-        # Cancel Purchase Invoices
-        purchase_invoices = frappe.get_all(
-            'Purchase Invoice',
-            filters={'trip_booking': self.name, 'docstatus': 1}
-        )
-        for pi in purchase_invoices:
-            doc = frappe.get_doc('Purchase Invoice', pi.name)
-            doc.cancel()
-            frappe.msgprint(f"Purchase Invoice {pi.name} cancelled")
+        """Cancel linked Sales and Purchase Invoices."""
+        if self.sales_invoice_id:
+            try:
+                si_doc = frappe.get_doc('Sales Invoice', self.sales_invoice_id)
+                if si_doc.docstatus == 1: # Submitted
+                    si_doc.cancel()
+                    frappe.msgprint(f"Sales Invoice {self.sales_invoice_id} cancelled.")
+                elif si_doc.docstatus == 0: # Draft
+                    frappe.delete_doc('Sales Invoice', self.sales_invoice_id, ignore_permissions=True, force=True)
+                    frappe.msgprint(f"Draft Sales Invoice {self.sales_invoice_id} deleted.")
+                self.db_set("sales_invoice_id", None) # Clear the link
+            except frappe.DoesNotExistError:
+                frappe.msgprint(f"Sales Invoice {self.sales_invoice_id} not found. Link cleared.", indicator='orange')
+                self.db_set("sales_invoice_id", None)
+            except Exception as e:
+                frappe.log_error(frappe.get_traceback(), f"Error cancelling/deleting Sales Invoice {self.sales_invoice_id}")
+                frappe.msgprint(f"Could not cancel/delete Sales Invoice {self.sales_invoice_id}: {str(e)}", indicator='orange')
+
+        if self.purchase_invoice_ids:
+            pi_ids = [pi_id.strip() for pi_id in self.purchase_invoice_ids.split(',') if pi_id.strip()]
+            for pi_id in pi_ids:
+                try:
+                    pi_doc = frappe.get_doc('Purchase Invoice', pi_id)
+                    if pi_doc.docstatus == 1: # Submitted
+                        pi_doc.cancel()
+                        frappe.msgprint(f"Purchase Invoice {pi_id} cancelled.")
+                    elif pi_doc.docstatus == 0: # Draft
+                        frappe.delete_doc('Purchase Invoice', pi_id, ignore_permissions=True, force=True)
+                        frappe.msgprint(f"Draft Purchase Invoice {pi_id} deleted.")
+                except Exception as e:
+                    frappe.log_error(frappe.get_traceback(), f"Error cancelling/deleting Purchase Invoice {pi_id}")
+                    frappe.msgprint(f"Could not cancel/delete Purchase Invoice {pi_id}: {str(e)}", indicator='orange')
+        
+        self.db_set('status', 'Cancelled')
+        frappe.msgprint("Trip Booking cancelled and associated invoices handled.", indicator="red")
 
     def calculate_row_totals(self):
-        """Calculate total amount for each row and update document total"""
-        self.total_amount = 0
-        for table in self.get_all_booking_tables():
-            for row in self.get(table) or []:
+        """Calculate total amount for each row in each booking table and update document total."""
+        current_doc_total = 0
+        for table_fieldname in self.get_all_booking_tables(): 
+            service_label = self.get_label_for_table(table_fieldname)
+            for row_idx, row in enumerate(self.get(table_fieldname) or []):
                 try:
-                    # Validate required fields
                     if not row.supplier:
-                        frappe.throw(f"Supplier is required for {table}")
-                    if not row.supplier_cost:
-                        frappe.throw(f"Supplier Cost is required for {table}")
+                        frappe.throw(f"Supplier is required for {service_label} (Row {row_idx + 1})")
+                    if row.supplier_cost is None: 
+                        frappe.throw(f"Supplier Cost is required for {service_label} (Row {row_idx + 1})")
                     if not row.passenger:
-                        frappe.throw(f"Passenger is required for {table}")
+                        frappe.throw(f"Passenger is required for {service_label} (Row {row_idx + 1})")
                     
-                    # Convert amounts to float
                     supplier_cost = float(row.supplier_cost)
                     markup = float(row.markup or 0)
                     
-                    # Calculate total and selling price
                     row.total_amount = supplier_cost + markup
-                    row.selling_price = row.total_amount
+                    row.selling_price = row.total_amount 
                     
-                    # Update document total
-                    self.total_amount += row.total_amount
+                    current_doc_total += row.total_amount
                     
                 except ValueError:
-                    frappe.throw(f"Invalid amount format in {table} for passenger {row.passenger}")
+                    frappe.throw(f"Invalid amount format in {service_label} (Row {row_idx + 1}) for passenger {row.passenger}")
                 except Exception as e:
-                    frappe.throw(f"Error calculating totals: {str(e)}")
+                    frappe.throw(f"Error calculating totals for {service_label} (Row {row_idx + 1}): {str(e)}")
+        self.total_amount = current_doc_total
 
 @frappe.whitelist()
 def make_sales_invoice_from_trip(trip_booking_name):
