@@ -5,6 +5,29 @@ from frappe.model.document import Document
 from frappe.utils import now_datetime, today
 
 class TripBooking(Document):
+    def get_all_booking_tables(self):
+        """Return a list of all booking table fieldnames"""
+        return [
+            'hotel_booking_entry',
+            'visa_booking_entry',
+            'car_rental_booking_entry',
+            'flight_booking_entry_gds',
+            'flight_booking_entry_online',
+            'insurance_booking_entry'
+        ]
+    
+    def get_label_for_table(self, table_fieldname):
+        """Return a human-readable label for a table fieldname"""
+        labels = {
+            'hotel_booking_entry': 'Hotel Booking',
+            'visa_booking_entry': 'Visa Booking',
+            'car_rental_booking_entry': 'Car Rental',
+            'flight_booking_entry_gds': 'Flight Booking (GDS)',
+            'flight_booking_entry_online': 'Flight Booking (Online)',
+            'insurance_booking_entry': 'Insurance Booking'
+        }
+        return labels.get(table_fieldname, table_fieldname.replace('_', ' ').title())
+    
     def validate(self):
         self.calculate_row_totals()
         self.validate_services()
