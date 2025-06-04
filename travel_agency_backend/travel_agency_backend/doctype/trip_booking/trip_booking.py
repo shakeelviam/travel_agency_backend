@@ -86,18 +86,15 @@ class TripBooking(Document):
     def calculate_row_totals(self):
         """Calculate total amount for each row in each booking table and update document total."""
         current_doc_total = 0
-        booking_tables = ['hotel_booking_entry', 'visa_booking_entry', 'car_rental_booking_entry',
-                        'flight_booking_entry_gds', 'flight_booking_entry_online', 'insurance_booking_entry']
-        
-        for table in booking_tables:
-            for row in self.get(table) or []:
-                if hasattr(row, 'supplier_cost') and hasattr(row, 'markup'):
+        for table_fieldname in ['hotel_booking_entry', 'visa_booking_entry', 'car_rental_booking_entry',
+                              'flight_booking_entry_gds', 'flight_booking_entry_online', 'insurance_booking_entry']:
+            for row in self.get(table_fieldname) or []:
+                if hasattr(row, 'supplier_cost'):
                     supplier_cost = float(row.supplier_cost or 0)
                     markup = float(row.markup or 0)
                     row.total_amount = supplier_cost + markup
                     row.selling_price = row.total_amount
                     current_doc_total += row.total_amount
-        
         self.total_amount = current_doc_total
 
 @frappe.whitelist()
