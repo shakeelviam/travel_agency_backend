@@ -86,29 +86,18 @@ class TripBooking(Document):
     def calculate_row_totals(self):
         """Calculate total amount for each row in each booking table and update document total."""
         current_doc_total = 0
-        for table_fieldname in self.get_all_booking_tables(): 
-            service_label = self.get_label_for_table(table_fieldname)
-            for row_idx, row in enumerate(self.get(table_fieldname) or []):
-                try:
-                    if not row.supplier:
-                        frappe.throw(f"Supplier is required for {service_label} (Row {row_idx + 1})")
-                    if row.supplier_cost is None: 
-                        frappe.throw(f"Supplier Cost is required for {service_label} (Row {row_idx + 1})")
-                    if not row.passenger:
-                        frappe.throw(f"Passenger is required for {service_label} (Row {row_idx + 1})")
-                    
-                    supplier_cost = float(row.supplier_cost)
+        booking_tables = ['hotel_booking_entry', 'visa_booking_entry', 'car_rental_booking_entry',
+                        'flight_booking_entry_gds', 'flight_booking_entry_online', 'insurance_booking_entry']
+        
+        for table in booking_tables:
+            for row in self.get(table) or []:
+                if hasattr(row, 'supplier_cost') and hasattr(row, 'markup'):
+                    supplier_cost = float(row.supplier_cost or 0)
                     markup = float(row.markup or 0)
-                    
                     row.total_amount = supplier_cost + markup
-                    row.selling_price = row.total_amount 
-                    
+                    row.selling_price = row.total_amount
                     current_doc_total += row.total_amount
-                    
-                except ValueError:
-                    frappe.throw(f"Invalid amount format in {service_label} (Row {row_idx + 1}) for passenger {row.passenger}")
-                except Exception as e:
-                    frappe.throw(f"Error calculating totals for {service_label} (Row {row_idx + 1}): {str(e)}")
+        
         self.total_amount = current_doc_total
 
 @frappe.whitelist()
