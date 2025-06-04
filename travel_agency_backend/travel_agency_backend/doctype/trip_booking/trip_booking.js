@@ -42,27 +42,44 @@ frappe.ui.form.on("Trip Booking", {
             }
           ],
           (values) => {
+            console.log("Dialog values:", values); // Debug: Check values from prompt
             const selected = serviceMap[values.service_type];
             if (!selected) {
               frappe.msgprint("Service not supported.");
               return;
             }
 
-            const [section, table, supplier_field] = selected;
+            const [section, table, supplier_field_on_parent] = selected;
+
+            // Set the supplier on the PARENT document
+            if (supplier_field_on_parent && values.supplier) {
+              frm.set_value(supplier_field_on_parent, values.supplier);
+            } else if (supplier_field_on_parent && !values.supplier) {
+              // Clear the parent supplier field if no supplier was selected (e.g., if reqd:0 for supplier)
+              frm.set_value(supplier_field_on_parent, null);
+            }
+
             frm.set_df_property(section, "hidden", 0);
             frm.set_df_property(table, "hidden", 0);
-            if (supplier_field) frm.set_df_property(supplier_field, "hidden", 0);
-            frm.refresh_fields([section, table, supplier_field]);
+            if (supplier_field_on_parent) frm.set_df_property(supplier_field_on_parent, "hidden", 0);
+            // It's good to refresh the specific supplier field on parent as well
+            let fields_to_refresh = [section, table];
+            if (supplier_field_on_parent) fields_to_refresh.push(supplier_field_on_parent);
+            frm.refresh_fields(fields_to_refresh);
 
             const exists = (frm.doc[table] || []).some(
               (row) => row.service_type === values.service_type
             );
 
             if (!exists) {
-              frm.add_child(table, { 
-                service_type: values.service_type,
-                supplier: values.supplier // Set supplier from dialog
-              });
+              // Add only service_type to the child table row, or other fields that belong in the child row.
+              // Supplier is now set on the parent.
+              let child_row_data = { 
+                service_type: values.service_type
+                // Add other child-specific fields here if necessary
+              };
+              console.log("Adding child row with data:", child_row_data, "to table:", table); // Debug
+              frm.add_child(table, child_row_data);
               frm.refresh_field(table);
               frm.scroll_to_field(table);
             } else {
@@ -149,6 +166,7 @@ booking_tables.forEach(table => {
 });
 
 function calculate_row_total(frm, cdt, cdn) {
+  console.log("calculate_row_total called for:", cdt, cdn); // Debug
   try {
     const row = locals[cdt][cdn];
     const supplier_cost = flt(row.supplier_cost) || 0;
@@ -206,6 +224,7 @@ child_tables.forEach(table => {
 });
 
 function calculate_totals(frm) {
+  console.log("calculate_totals called for form."); // Debug
   let total = 0;
   
   booking_tables.forEach(table => {
