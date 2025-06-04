@@ -3,6 +3,7 @@
 import frappe
 from frappe.model.document import Document
 from frappe.utils import now_datetime, today
+from frappe.model.mapper import get_mapped_doc
 
 class TripBooking(Document):
     def get_all_booking_tables(self):
@@ -34,6 +35,26 @@ class TripBooking(Document):
         self.calculate_total_amount()
         self.clean_unused_services()
         
+    def validate_services(self):
+        """Validate that at least one service is selected"""
+        has_services = False
+        for table in self.get_all_booking_tables():
+            if self.get(table):
+                has_services = True
+                break
+        if not has_services:
+            frappe.throw("At least one service must be added to the Trip Booking")
+
+    def calculate_total_amount(self):
+        """Update total amount from all service tables"""
+        self.total_amount = sum((row.total_amount or 0) for table in self.get_all_booking_tables() for row in self.get(table) or [])
+
+    def clean_unused_services(self):
+        """Remove empty service tables"""
+        for table in self.get_all_booking_tables():
+            if not self.get(table):
+                self.set(table, [])
+
     def on_submit(self):
         """Create Purchase and Sales Invoices on submit"""
         try:
