@@ -95,7 +95,7 @@ frappe.ui.form.on("Trip Booking", {
     if (frm.doc.docstatus === 1) { 
         frm.add_custom_button(__('Sales Invoice'), function() {
             frappe.call({
-                method: "travel_agency_backend.doctype.trip_booking.trip_booking.make_sales_invoice_from_trip",
+                method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_sales_invoice_from_trip",
                 args: {
                     trip_booking_name: frm.doc.name
                 },
@@ -111,7 +111,7 @@ frappe.ui.form.on("Trip Booking", {
 
         frm.add_custom_button(__('Purchase Invoice(s)'), function() {
             frappe.call({
-                method: "travel_agency_backend.doctype.trip_booking.trip_booking.make_purchase_invoices_from_trip",
+                method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_purchase_invoices_from_trip",
                 args: {
                     trip_booking_name: frm.doc.name
                 },

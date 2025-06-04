@@ -157,6 +157,7 @@ def make_purchase_invoices_from_trip(trip_booking_name):
         }
         
         try:
+            suppliers = {}
             supplier_items = {}
 
             # Group items by supplier
