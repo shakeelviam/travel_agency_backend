@@ -1,5 +1,6 @@
 # In your local project directory: /home/shakeel/travel_agency_backend
 
+import frappe
 from frappe.model.document import Document
 from frappe.utils import now_datetime
 
