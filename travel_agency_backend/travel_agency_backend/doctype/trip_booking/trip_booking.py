@@ -75,39 +75,23 @@ class TripBooking(Document):
 
 @frappe.whitelist()
 def make_sales_invoice_from_trip(trip_booking_name):
-    doc = frappe.get_doc("Trip Booking", trip_booking_name)
-    if doc.docstatus != 1:
-        frappe.throw("Trip Booking must be submitted to create a Sales Invoice.")
-    if doc.sales_invoice_id:
-        frappe.msgprint(f"Sales Invoice {doc.sales_invoice_id} already exists for this Trip Booking.")
-        return frappe.get_doc("Sales Invoice", doc.sales_invoice_id)
-    
-    try:
-        sales_invoice = doc.create_sales_invoice() # Assuming create_sales_invoice returns the SI doc
-        doc.db_set("sales_invoice_id", sales_invoice.name) # Make sure you have this field
-        frappe.msgprint(f"Sales Invoice {sales_invoice.name} created successfully.")
-        return sales_invoice
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback())
-        frappe.throw(f"Failed to create Sales Invoice: {str(e)}")
+    frappe.msgprint(f"DEBUG: Called make_sales_invoice_from_trip with {trip_booking_name}")
+    # Simulate some processing if needed for testing client-side callbacks
+    # For now, just return a simple success message
+    if not frappe.db.exists("Trip Booking", trip_booking_name):
+        frappe.throw(f"Trip Booking {trip_booking_name} not found.")
+    # Potentially add a dummy sales_invoice_id to the Trip Booking for testing UI updates
+    # frappe.db.set_value("Trip Booking", trip_booking_name, "sales_invoice_id", "DUMMY-SINV-001")
+    return {"status": "ok_sales", "message": f"Successfully called make_sales_invoice_from_trip for {trip_booking_name}", "sales_invoice_id": "DUMMY-SINV-001"}
 
 @frappe.whitelist()
 def make_purchase_invoices_from_trip(trip_booking_name):
-    doc = frappe.get_doc("Trip Booking", trip_booking_name)
-    if doc.docstatus != 1:
-        frappe.throw("Trip Booking must be submitted to create Purchase Invoices.")
-    
-    # Check if PIs are already created (you might need a more robust check or a flag)
-    # For now, let's assume we can re-trigger or it handles duplicates gracefully
-
-    try:
-        created_pis = doc.create_purchase_invoices() # Assuming this returns a list of PI names or docs
-        # Logic to link PIs back to Trip Booking if needed, e.g., storing in a child table or text field
-        # Example: doc.db_set("purchase_invoice_references", ",".join(created_pis))
-        return {"invoices_created": created_pis, "message": f"Purchase Invoices process initiated."}
-    except Exception as e:
-        frappe.log_error(frappe.get_traceback())
-        frappe.throw(f"Failed to create Purchase Invoices: {str(e)}")
+    frappe.msgprint(f"DEBUG: Called make_purchase_invoices_from_trip with {trip_booking_name}")
+    if not frappe.db.exists("Trip Booking", trip_booking_name):
+        frappe.throw(f"Trip Booking {trip_booking_name} not found.")
+    # Simulate creation of multiple PIs
+    # frappe.db.set_value("Trip Booking", trip_booking_name, "purchase_invoice_references", "DUMMY-PINV-001,DUMMY-PINV-002")
+    return {"status": "ok_purchase", "message": f"Successfully called make_purchase_invoices_from_trip for {trip_booking_name}", "invoices_created": ["DUMMY-PINV-001", "DUMMY-PINV-002"]}
 
     def validate_services(self):
         if not self.selected_services:
