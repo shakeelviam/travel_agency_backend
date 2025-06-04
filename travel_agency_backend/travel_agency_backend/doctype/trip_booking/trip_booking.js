@@ -26,7 +26,6 @@ frappe.ui.form.on("Trip Booking", {
       frm.add_custom_button("Add Service", () => {
         frappe.prompt(
           [
-            [
             {
               fieldname: "service_type",
               label: "Select Service",
