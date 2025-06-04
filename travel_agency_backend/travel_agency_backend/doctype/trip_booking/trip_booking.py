@@ -3,6 +3,16 @@ from frappe.model.document import Document
 from frappe.utils import now_datetime
 
 class TripBooking(Document):
+    def get_all_booking_tables(self):
+        return [
+            'hotel_booking_entry',
+            'visa_booking_entry',
+            'car_rental_booking_entry',
+            'flight_booking_entry_gds',
+            'flight_booking_entry_online',
+            'insurance_booking_entry'
+        ]
+
     def validate(self):
         self.calculate_row_totals()
         self.validate_services()
