@@ -3,58 +3,14 @@
 import frappe
 from frappe.model.document import Document
 from frappe.utils import now_datetime, today
-from frappe.model.mapper import get_mapped_doc
 
 class TripBooking(Document):
-    def get_all_booking_tables(self):
-        """Return a list of all booking table fieldnames"""
-        return [
-            'hotel_booking_entry',
-            'visa_booking_entry',
-            'car_rental_booking_entry',
-            'flight_booking_entry_gds',
-            'flight_booking_entry_online',
-            'insurance_booking_entry'
-        ]
-    
-    def get_label_for_table(self, table_fieldname):
-        """Return a human-readable label for a table fieldname"""
-        labels = {
-            'hotel_booking_entry': 'Hotel Booking',
-            'visa_booking_entry': 'Visa Booking',
-            'car_rental_booking_entry': 'Car Rental',
-            'flight_booking_entry_gds': 'Flight Booking (GDS)',
-            'flight_booking_entry_online': 'Flight Booking (Online)',
-            'insurance_booking_entry': 'Insurance Booking'
-        }
-        return labels.get(table_fieldname, table_fieldname.replace('_', ' ').title())
-    
     def validate(self):
         self.calculate_row_totals()
         self.validate_services()
         self.calculate_total_amount()
         self.clean_unused_services()
         
-    def validate_services(self):
-        """Validate that at least one service is selected"""
-        has_services = False
-        for table in self.get_all_booking_tables():
-            if self.get(table):
-                has_services = True
-                break
-        if not has_services:
-            frappe.throw("At least one service must be added to the Trip Booking")
-
-    def calculate_total_amount(self):
-        """Update total amount from all service tables"""
-        self.total_amount = sum((row.total_amount or 0) for table in self.get_all_booking_tables() for row in self.get(table) or [])
-
-    def clean_unused_services(self):
-        """Remove empty service tables"""
-        for table in self.get_all_booking_tables():
-            if not self.get(table):
-                self.set(table, [])
-
     def on_submit(self):
         """Create Purchase and Sales Invoices on submit"""
         try:
@@ -107,18 +63,29 @@ class TripBooking(Document):
     def calculate_row_totals(self):
         """Calculate total amount for each row in each booking table and update document total."""
         current_doc_total = 0
-        booking_tables = ['hotel_booking_entry', 'visa_booking_entry', 'car_rental_booking_entry',
-                         'flight_booking_entry_gds', 'flight_booking_entry_online', 'insurance_booking_entry']
-        
-        for table in booking_tables:
-            for row in self.get(table) or []:
-                if hasattr(row, 'supplier_cost'):
-                    supplier_cost = float(row.supplier_cost or 0)
+        for table_fieldname in self.get_all_booking_tables(): 
+            service_label = self.get_label_for_table(table_fieldname)
+            for row_idx, row in enumerate(self.get(table_fieldname) or []):
+                try:
+                    if not row.supplier:
+                        frappe.throw(f"Supplier is required for {service_label} (Row {row_idx + 1})")
+                    if row.supplier_cost is None: 
+                        frappe.throw(f"Supplier Cost is required for {service_label} (Row {row_idx + 1})")
+                    if not row.passenger:
+                        frappe.throw(f"Passenger is required for {service_label} (Row {row_idx + 1})")
+                    
+                    supplier_cost = float(row.supplier_cost)
                     markup = float(row.markup or 0)
+                    
                     row.total_amount = supplier_cost + markup
-                    row.selling_price = row.total_amount
+                    row.selling_price = row.total_amount 
+                    
                     current_doc_total += row.total_amount
-        
+                    
+                except ValueError:
+                    frappe.throw(f"Invalid amount format in {service_label} (Row {row_idx + 1}) for passenger {row.passenger}")
+                except Exception as e:
+                    frappe.throw(f"Error calculating totals for {service_label} (Row {row_idx + 1}): {str(e)}")
         self.total_amount = current_doc_total
 
 @frappe.whitelist()
