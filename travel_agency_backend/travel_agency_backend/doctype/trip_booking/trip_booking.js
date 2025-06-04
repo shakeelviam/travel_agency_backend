@@ -95,7 +95,7 @@ frappe.ui.form.on("Trip Booking", {
     if (frm.doc.docstatus === 1) { 
         frm.add_custom_button(__('Sales Invoice'), function() {
             frappe.call({
-                method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_sales_invoice_from_trip",
+                method: "travel_agency_backend.doctype.trip_booking.trip_booking.make_sales_invoice_from_trip",
                 args: {
                     trip_booking_name: frm.doc.name
                 },
@@ -111,7 +111,7 @@ frappe.ui.form.on("Trip Booking", {
 
         frm.add_custom_button(__('Purchase Invoice(s)'), function() {
             frappe.call({
-                method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_purchase_invoices_from_trip",
+                method: "travel_agency_backend.doctype.trip_booking.trip_booking.make_purchase_invoices_from_trip",
                 args: {
                     trip_booking_name: frm.doc.name
                 },
@@ -145,6 +145,15 @@ frappe.ui.form.on("Trip Booking", {
 // });
 
 // Add handlers for all child tables
+const child_doctype_map = {
+  "flight_booking_entry_gds": "Flight Booking Entry GDS",
+  "flight_booking_entry_online": "Flight Booking Entry Online",
+  "hotel_booking_entry": "Hotel Booking Entry",
+  "visa_booking_entry": "Visa Booking Entry",
+  "car_rental_booking_entry": "Car Rental Booking Entry",
+  "insurance_booking_entry": "Insurance Booking Entry"
+};
+
 const booking_tables = [
   "flight_booking_entry_gds",
   "flight_booking_entry_online",
@@ -154,8 +163,10 @@ const booking_tables = [
   "insurance_booking_entry"
 ];
 
-booking_tables.forEach(table => {
-  frappe.ui.form.on(table, {
+// Iterate over the map to use actual Child DocType names for event handlers
+Object.keys(child_doctype_map).forEach(table_fieldname => {
+  const child_doctype_name = child_doctype_map[table_fieldname];
+  frappe.ui.form.on(child_doctype_name, {
     supplier_cost: function(frm, cdt, cdn) {
       calculate_row_total(frm, cdt, cdn);
     },
