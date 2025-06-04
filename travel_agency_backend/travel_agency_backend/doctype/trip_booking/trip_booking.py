@@ -183,17 +183,17 @@ def make_purchase_invoices_from_trip(trip_booking_name):
                         suppliers[row.supplier] = []
                         
                     item_description = self.get_item_description(row, table)
-                    # Use Purchase/Cost Account as both expense and payable account since that's what we have
-                    cost_account = None
+                    # Get expense account from Service Type
+                    expense_account = None
                     if hasattr(row, 'service_type'):
-                        cost_account = frappe.db.get_value('Service Type', row.service_type, 'purchase_cost_account')
+                        expense_account = frappe.db.get_value('Service Type', row.service_type, 'service_expense_account')
 
                     suppliers[row.supplier].append({
                         'item_name': item_description,
                         'description': item_description,
                         'rate': row.supplier_cost,
                         'qty': 1,
-                        'expense_account': cost_account # Using purchase_cost_account as expense account
+                        'expense_account': expense_account # Using dedicated expense account
                     })
             
             created_pi_names = []
