@@ -12,25 +12,14 @@ class TripBooking(Document):
     def on_submit(self):
         """Create Purchase and Sales Invoices on submit"""
         try:
-            if not self.selected_services:
-                frappe.throw("Please add at least one service before submitting")
-
-            for service in self.selected_services:
-                table = self.get_child_table(service.service_category)
-                if table is not None and not table:
-                    frappe.throw(f"Please add booking details for {service.service_category} service")
-
-            self.create_purchase_invoices()
-            self.create_sales_invoice()
-            
-            frappe.msgprint(
-                msg='✅ Trip Booking processed successfully!',
-                title='Success',
-                indicator='green'
-            )
+            self.validate_services()
+            # self.create_purchase_invoices() # Disabled for manual creation
+            # self.create_sales_invoice()   # Disabled for manual creation
+            self.db_set('status', 'Submitted') # Ensure status is set if not handled by workflow
+            frappe.msgprint(msg='✅ Trip Booking submitted successfully! Use the "Create" button to make invoices.', title='Success', indicator='green')
         except Exception as e:
-            frappe.log_error(f"Failed to process Trip Booking: {str(e)}")
-            frappe.throw(f"Failed to process Trip Booking: {str(e)}")
+            frappe.log_error(frappe.get_traceback())
+            frappe.throw(f"Failed to process Trip Booking submission: {str(e)}")
             
     def on_cancel(self):
         """Cancel linked Purchase and Sales Invoices"""
@@ -83,6 +72,42 @@ class TripBooking(Document):
                     frappe.throw(f"Invalid amount format in {table} for passenger {row.passenger}")
                 except Exception as e:
                     frappe.throw(f"Error calculating totals: {str(e)}")
+
+@frappe.whitelist()
+def make_sales_invoice_from_trip(trip_booking_name):
+    doc = frappe.get_doc("Trip Booking", trip_booking_name)
+    if doc.docstatus != 1:
+        frappe.throw("Trip Booking must be submitted to create a Sales Invoice.")
+    if doc.sales_invoice_id:
+        frappe.msgprint(f"Sales Invoice {doc.sales_invoice_id} already exists for this Trip Booking.")
+        return frappe.get_doc("Sales Invoice", doc.sales_invoice_id)
+    
+    try:
+        sales_invoice = doc.create_sales_invoice() # Assuming create_sales_invoice returns the SI doc
+        doc.db_set("sales_invoice_id", sales_invoice.name) # Make sure you have this field
+        frappe.msgprint(f"Sales Invoice {sales_invoice.name} created successfully.")
+        return sales_invoice
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback())
+        frappe.throw(f"Failed to create Sales Invoice: {str(e)}")
+
+@frappe.whitelist()
+def make_purchase_invoices_from_trip(trip_booking_name):
+    doc = frappe.get_doc("Trip Booking", trip_booking_name)
+    if doc.docstatus != 1:
+        frappe.throw("Trip Booking must be submitted to create Purchase Invoices.")
+    
+    # Check if PIs are already created (you might need a more robust check or a flag)
+    # For now, let's assume we can re-trigger or it handles duplicates gracefully
+
+    try:
+        created_pis = doc.create_purchase_invoices() # Assuming this returns a list of PI names or docs
+        # Logic to link PIs back to Trip Booking if needed, e.g., storing in a child table or text field
+        # Example: doc.db_set("purchase_invoice_references", ",".join(created_pis))
+        return {"invoices_created": created_pis, "message": f"Purchase Invoices process initiated."}
+    except Exception as e:
+        frappe.log_error(frappe.get_traceback())
+        frappe.throw(f"Failed to create Purchase Invoices: {str(e)}")
 
     def validate_services(self):
         if not self.selected_services:

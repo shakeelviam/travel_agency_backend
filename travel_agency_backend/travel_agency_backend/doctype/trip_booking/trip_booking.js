@@ -1,5 +1,8 @@
 frappe.ui.form.on("Trip Booking", {
   refresh: function (frm) {
+    // Clear existing custom buttons to avoid duplicates on refresh
+    frm.clear_custom_buttons(); // More robust way to clear all custom buttons
+
     const serviceMap = {
       "Flight GDS": ["flight_gds_section", "flight_booking_entry_gds", "flight_gds_supplier"],
       "Flight Online Airlines": ["flight_online_section", "flight_booking_entry_online", "flight_online_supplier"],
@@ -23,6 +26,7 @@ frappe.ui.form.on("Trip Booking", {
       frm.add_custom_button("Add Service", () => {
         frappe.prompt(
           [
+            [
             {
               fieldname: "service_type",
               label: "Select Service",
@@ -30,6 +34,13 @@ frappe.ui.form.on("Trip Booking", {
               options: "Service Type",
               reqd: 1,
             },
+            {
+              fieldname: "supplier",
+              label: "Select Supplier",
+              fieldtype: "Link",
+              options: "Supplier", // Assuming 'Supplier' is your supplier DocType
+              reqd: 1, // Make it required if necessary
+            }
           ],
           (values) => {
             const selected = serviceMap[values.service_type];
@@ -49,7 +60,10 @@ frappe.ui.form.on("Trip Booking", {
             );
 
             if (!exists) {
-              frm.add_child(table, { service_type: values.service_type });
+              frm.add_child(table, { 
+                service_type: values.service_type,
+                supplier: values.supplier // Set supplier from dialog
+              });
               frm.refresh_field(table);
               frm.scroll_to_field(table);
             } else {
@@ -60,12 +74,59 @@ frappe.ui.form.on("Trip Booking", {
         );
       });
     }
+
+    // Add Create Invoice buttons if submitted
+    if (frm.doc.docstatus === 1) { 
+        frm.add_custom_button(__('Sales Invoice'), function() {
+            frappe.call({
+                method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_sales_invoice_from_trip",
+                args: {
+                    trip_booking_name: frm.doc.name
+                },
+                callback: function(r) {
+                    if (r.message && r.message.name) {
+                        frappe.set_route("Form", "Sales Invoice", r.message.name);
+                    } else if (r.exc) {
+                        frappe.msgprint({title: __('Error'), indicator: 'red', message: __('Failed to create Sales Invoice.')});
+                    }
+                }
+            });
+        }, __("Create"));
+
+        frm.add_custom_button(__('Purchase Invoice(s)'), function() {
+            frappe.call({
+                method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_purchase_invoices_from_trip",
+                args: {
+                    trip_booking_name: frm.doc.name
+                },
+                callback: function(r) {
+                    if (r.message && r.message.invoices_created && r.message.invoices_created.length) {
+                       frappe.msgprint({title: __('Success'), indicator: 'green', message: __('Purchase Invoices created: ') + r.message.invoices_created.join(", ")});
+                    } else if (r.message && r.message.message) {
+                        frappe.msgprint(r.message.message);
+                    } else if (r.exc) {
+                        frappe.msgprint({title: __('Error'), indicator: 'red', message: __('Failed to create Purchase Invoice(s).')});
+                    }
+                }
+            });
+        }, __("Create"));
+    }
   },
 
   validate: function (frm) {
-    calculate_totals(frm);
+    calculate_totals(frm); // This is good for client-side UI update before save
+  },
+  after_save: function(frm) {
+    // Potentially refresh or check status after save if needed
+    // The create buttons logic is now part of the main refresh handler below
   }
+  // IMPORTANT: The main refresh handler continues below and includes the create button logic.
 });
+
+// The following is now integrated into the main refresh handler above.
+// frappe.ui.form.on("Trip Booking", {
+//     refresh: function(frm) { ... }
+// });
 
 // Add handlers for all child tables
 const booking_tables = [
@@ -97,8 +158,8 @@ function calculate_row_total(frm, cdt, cdn) {
     row.total_amount = supplier_cost + markup;
     row.selling_price = row.total_amount;
     
-    refresh_field('total_amount', row.name, row.parentfield);
-    refresh_field('selling_price', row.name, row.parentfield);
+    frm.refresh_field('total_amount', row.name, row.parentfield);
+    frm.refresh_field('selling_price', row.name, row.parentfield);
     
     calculate_totals(frm);
   } catch (e) {
