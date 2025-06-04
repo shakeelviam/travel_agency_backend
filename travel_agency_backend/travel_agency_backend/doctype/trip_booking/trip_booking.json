@@ -13,6 +13,8 @@
   "date_of_issue",
   "column_break_1",
   "total_amount",
+  "sales_invoice_id",
+  "purchase_invoice_ids",
   "amended_from",
   "hotel_section",
   "selected_services",
@@ -71,6 +73,23 @@
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "label": "Total Amount",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sales_invoice_id",
+   "fieldtype": "Link",
+   "label": "Sales Invoice",
+   "options": "Sales Invoice",
+   "no_copy": 1,
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "purchase_invoice_ids",
+   "fieldtype": "Text",
+   "label": "Purchase Invoices",
+   "no_copy": 1,
+   "print_hide": 1,
    "read_only": 1
   },
   {

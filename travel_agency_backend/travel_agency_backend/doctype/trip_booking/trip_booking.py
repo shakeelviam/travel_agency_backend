@@ -1,4 +1,5 @@
-import frappe
+# In your local project directory: /home/shakeel/travel_agency_backend
+
 from frappe.model.document import Document
 from frappe.utils import now_datetime
 
@@ -96,17 +97,23 @@ def make_purchase_invoices_from_trip(trip_booking_name):
     doc = frappe.get_doc("Trip Booking", trip_booking_name)
     if doc.docstatus != 1:
         frappe.throw("Trip Booking must be submitted to create Purchase Invoices.")
-    
-    # Check if PIs are already created (you might need a more robust check or a flag)
-    # For now, let's assume we can re-trigger or it handles duplicates gracefully
+
+    if doc.purchase_invoice_ids:
+        frappe.msgprint(f"Purchase Invoices already seem to be created: {doc.purchase_invoice_ids}")
+        # Optionally, you could return here or offer to recreate. For now, we proceed.
 
     try:
-        created_pis = doc.create_purchase_invoices() # Assuming this returns a list of PI names or docs
-        # Logic to link PIs back to Trip Booking if needed, e.g., storing in a child table or text field
-        # Example: doc.db_set("purchase_invoice_references", ",".join(created_pis))
-        return {"invoices_created": created_pis, "message": f"Purchase Invoices process initiated."}
+        created_pis_names = doc.create_purchase_invoices()
+        if created_pis_names:
+            doc.db_set("purchase_invoice_ids", ",".join(created_pis_names))
+            doc.save() # Explicitly save the doc after db_set if not done elsewhere
+            frappe.msgprint(f"Purchase Invoices created: {', '.join(created_pis_names)}")
+        else:
+            frappe.msgprint("No Purchase Invoices were created (perhaps no valid items or suppliers).")
+        return {"invoices_created": created_pis_names, "message": "Purchase Invoices process completed."}
     except Exception as e:
-        frappe.log_error(frappe.get_traceback())
+        # The error should be logged in create_purchase_invoices if it originates there
+        # frappe.log_error(frappe.get_traceback()) # Redundant if logged in create_purchase_invoices
         frappe.throw(f"Failed to create Purchase Invoices: {str(e)}")
 
     def validate_services(self):
@@ -146,7 +153,7 @@ def make_purchase_invoices_from_trip(trip_booking_name):
         self.validate()
 
     def create_purchase_invoices(self):
-        """Create Purchase Invoices for each supplier"""
+        """Create Purchase Invoices for each supplier and return their names"""
         service_map = {
             "flight_booking_entry_gds": ("flight_gds_supplier", "Flight GDS"),
             "flight_booking_entry_online": ("flight_online_supplier", "Flight Online"),
@@ -177,25 +184,70 @@ def make_purchase_invoices_from_trip(trip_booking_name):
                         'qty': 1
                     })
             
+            created_pi_names = []
             # Create PI for each supplier
             for supplier, items in suppliers.items():
                 pi = frappe.get_doc({
                     'doctype': 'Purchase Invoice',
                     'supplier': supplier,
-                    'trip_booking': self.name,
+                    'custom_trip_booking': self.name, # Link back to Trip Booking
                     'items': items,
                     'update_stock': 0,
                     'set_posting_time': 1,
                     'posting_date': self.date_of_issue,
                     'due_date': self.date_of_issue
                 })
-                pi.insert()
+                pi.insert(ignore_permissions=True)
                 pi.submit()
+                created_pi_names.append(pi.name)
                 frappe.msgprint(f"Created Purchase Invoice {pi.name}")
+            
+            return created_pi_names
 
         except Exception as e:
-            frappe.log_error(f"Failed to create Purchase Invoice: {str(e)}")
+            frappe.log_error(f"Failed to create Purchase Invoice: {str(e)}\n{frappe.get_traceback()}")
             raise
+
+    def create_sales_invoice(self):
+        """Create a single Sales Invoice for the customer for all services."""
+        items = []
+        for table_fieldname in self.get_all_booking_tables():
+            for row in self.get(table_fieldname) or []:
+                # Ensure selling_price exists and is a valid number
+                selling_price = 0
+                try:
+                    selling_price = float(row.selling_price if row.selling_price is not None else 0)
+                except ValueError:
+                    frappe.throw(f"Invalid selling price for passenger {row.passenger_name or row.passenger} in {table_fieldname}.")
+
+                if selling_price > 0:
+                    item_description = self.get_item_description(row, table_fieldname)
+                    passenger_name_field = getattr(row, 'passenger_name', getattr(row, 'passenger', 'N/A'))
+                    items.append({
+                        "item_name": item_description, # Ensure this item exists or is created
+                        "description": f"{item_description} for {passenger_name_field}",
+                        "rate": selling_price,
+                        "qty": 1,
+                        # Add other necessary SI item fields if required by your setup
+                    })
+        
+        if not items:
+            frappe.msgprint("No items with a valid selling price found to create Sales Invoice.")
+            return None # Or raise an error if an SI must always be created
+
+        si = frappe.get_doc({
+            "doctype": "Sales Invoice",
+            "customer": self.customer,
+            "custom_trip_booking": self.name, # Link back to Trip Booking
+            "items": items,
+            "set_posting_time": 1,
+            "posting_date": self.date_of_issue,
+            "due_date": self.date_of_issue,
+            # Add any other mandatory fields for Sales Invoice
+        })
+        si.insert(ignore_permissions=True)
+        si.submit()
+        return si # Return the Sales Invoice document
 
     def get_item_description(self, row, table):
         """Generate item description based on service type"""
