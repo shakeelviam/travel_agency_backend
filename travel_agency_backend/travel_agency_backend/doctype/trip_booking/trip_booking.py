@@ -26,9 +26,27 @@ class TripBooking(Document):
     def calculate_row_totals(self):
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
-                supplier_cost = row.supplier_cost_payable or row.net_fare or 0
-                markup = row.markup or 0
-                commission = row.service_fee or row.commission or 0
+                # Handle different field names for supplier cost across different child tables
+                supplier_cost = 0
+                if hasattr(row, 'supplier_cost_payable'):
+                    supplier_cost = row.supplier_cost_payable or 0
+                elif hasattr(row, 'net_fare'):
+                    supplier_cost = row.net_fare or 0
+                elif hasattr(row, 'supplier_cost'):
+                    supplier_cost = row.supplier_cost or 0
+                
+                # Handle different field names for markup
+                markup = 0
+                if hasattr(row, 'markup'):
+                    markup = row.markup or 0
+                
+                # Handle different field names for commission/service fee
+                commission = 0
+                if hasattr(row, 'service_fee'):
+                    commission = row.service_fee or 0
+                elif hasattr(row, 'commission'):
+                    commission = row.commission or 0
+                
                 row.total_amount = supplier_cost + markup + commission
                 row.selling_price = row.total_amount
 
@@ -271,7 +289,15 @@ def make_purchase_invoices_from_trip(source_name):
                 expense_account = frappe.db.get_value('Service Type', entries[0].service_type, 'service_expense_account')
             
             for row in entries:
-                cost = row.supplier_cost_payable or row.net_fare or row.supplier_cost or 0
+                # Handle different field names for supplier cost
+                cost = 0
+                if hasattr(row, 'supplier_cost_payable'):
+                    cost = row.supplier_cost_payable or 0
+                elif hasattr(row, 'net_fare'):
+                    cost = row.net_fare or 0
+                elif hasattr(row, 'supplier_cost'):
+                    cost = row.supplier_cost or 0
+                
                 pi.append("items", {
                     "item_name": f"{row.service_type} - {row.passenger}",
                     "description": f"{row.service_type} for {row.passenger}",
