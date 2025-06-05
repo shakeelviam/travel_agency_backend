@@ -172,6 +172,14 @@ class TripBooking(Document):
                 pi.due_date = now_datetime()
                 pi.set_posting_time = 1
 
+                expense_account = None
+                if entries and hasattr(entries[0], 'service_type'):
+                    expense_account = frappe.db.get_value(
+                        'Service Type',
+                        entries[0].service_type,
+                        'service_expense_account'
+                    )
+
                 for row in entries:
                     cost = self.get_supplier_cost(row)
                     pi.append("items", {
@@ -179,7 +187,8 @@ class TripBooking(Document):
                         "qty": 1,
                         "rate": cost,
                         "amount": cost,
-                        "schedule_date": now_datetime()
+                        "schedule_date": now_datetime(),
+                        "expense_account": expense_account
                     })
 
                 pi.insert()
