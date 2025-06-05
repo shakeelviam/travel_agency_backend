@@ -3,7 +3,8 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import now_datetime
+from frappe.model.mapper import get_mapped_doc
+from frappe.utils import now_datetime, nowdate
 
 class TripBooking(Document):
     def get_all_booking_tables(self):
@@ -195,3 +196,97 @@ def get_service_category_mapping():
         "Car Rental Service": "Car Rental",
         "Insurance Service": "Insurance"
     }
+
+
+@frappe.whitelist()
+def make_sales_invoice_from_trip(source_name, target_doc=None):
+    """Create Sales Invoice from Trip Booking following ERPNext convention"""
+    def set_missing_values(source, target):
+        # Set customer, posting date, etc.
+        target.customer = source.customer
+        target.due_date = nowdate()
+        target.posting_date = nowdate()
+        target.set_posting_time = 1
+        target.trip_booking = source.name
+        
+        # Add items from all booking tables
+        for table in source.get_all_booking_tables():
+            for row in source.get(table) or []:
+                target.append("items", {
+                    "item_name": f"{row.service_type} - {row.passenger}",
+                    "description": f"{row.service_type} for {row.passenger}",
+                    "qty": 1,
+                    "rate": row.total_amount or 0,
+                    "amount": row.total_amount or 0
+                })
+        
+        # Calculate taxes and totals
+        target.run_method("set_missing_values")
+        target.run_method("calculate_taxes_and_totals")
+    
+    doclist = get_mapped_doc("Trip Booking", source_name, {
+        "Trip Booking": {
+            "doctype": "Sales Invoice",
+            "validation": {
+                "docstatus": ["=", 1]
+            }
+        }
+    }, target_doc, set_missing_values)
+    
+    return doclist
+
+
+@frappe.whitelist()
+def make_purchase_invoices_from_trip(source_name):
+    """Create Purchase Invoices from Trip Booking"""
+    doc = frappe.get_doc("Trip Booking", source_name)
+    if doc.docstatus != 1:
+        frappe.throw("Trip Booking must be submitted before creating Purchase Invoices")
+    
+    service_map = {
+        "flight_booking_entry_gds": "flight_gds_supplier",
+        "flight_booking_entry_online": "flight_online_supplier",
+        "hotel_booking_entry": "hotel_supplier",
+        "visa_booking_entry": "visa_supplier",
+        "car_rental_booking_entry": "car_rental_supplier",
+        "insurance_booking_entry": "insurance_supplier"
+    }
+    
+    created_invoices = []
+    
+    for table, supplier_field in service_map.items():
+        supplier = doc.get(supplier_field)
+        entries = doc.get(table)
+        if supplier and entries:
+            pi = frappe.new_doc("Purchase Invoice")
+            pi.supplier = supplier
+            pi.posting_date = nowdate()
+            pi.due_date = nowdate()
+            pi.set_posting_time = 1
+            pi.trip_booking = doc.name
+            
+            # Get expense account from Service Type if available
+            expense_account = None
+            if entries and hasattr(entries[0], 'service_type'):
+                expense_account = frappe.db.get_value('Service Type', entries[0].service_type, 'service_expense_account')
+            
+            for row in entries:
+                cost = row.supplier_cost_payable or row.net_fare or row.supplier_cost or 0
+                pi.append("items", {
+                    "item_name": f"{row.service_type} - {row.passenger}",
+                    "description": f"{row.service_type} for {row.passenger}",
+                    "qty": 1,
+                    "rate": cost,
+                    "amount": cost,
+                    "expense_account": expense_account
+                })
+            
+            pi.run_method("set_missing_values")
+            pi.insert()
+            created_invoices.append({
+                "name": pi.name,
+                "supplier": supplier,
+                "amount": pi.grand_total
+            })
+    
+    return created_invoices

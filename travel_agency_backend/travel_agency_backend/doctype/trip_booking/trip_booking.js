@@ -92,40 +92,37 @@ frappe.ui.form.on("Trip Booking", {
     }
 
     // Add Create Invoice buttons if submitted
-    if (frm.doc.docstatus === 1) { 
+    if (frm.doc.docstatus === 1) {
         frm.add_custom_button(__('Sales Invoice'), function() {
-            frappe.call({
+            frappe.model.open_mapped_doc({
                 method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_sales_invoice_from_trip",
-                args: {
-                    trip_booking_name: frm.doc.name
-                },
-                callback: function(r) {
-                    if (r.message && r.message.name) {
-                        frappe.set_route("Form", "Sales Invoice", r.message.name);
-                    } else if (r.exc) {
-                        frappe.msgprint({title: __('Error'), indicator: 'red', message: __('Failed to create Sales Invoice.')});
-                    }
-                }
+                frm: frm
             });
-        }, __("Create"));
-
-        frm.add_custom_button(__('Purchase Invoice(s)'), function() {
+        }, __('Create'));
+        
+        frm.add_custom_button(__('Purchase Invoices'), function() {
             frappe.call({
                 method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_purchase_invoices_from_trip",
                 args: {
-                    trip_booking_name: frm.doc.name
+                    source_name: frm.doc.name
                 },
                 callback: function(r) {
-                    if (r.message && r.message.invoices_created && r.message.invoices_created.length) {
-                       frappe.msgprint({title: __('Success'), indicator: 'green', message: __('Purchase Invoices created: ') + r.message.invoices_created.join(", ")});
-                    } else if (r.message && r.message.message) {
-                        frappe.msgprint(r.message.message);
-                    } else if (r.exc) {
-                        frappe.msgprint({title: __('Error'), indicator: 'red', message: __('Failed to create Purchase Invoice(s).')});
+                    if (r.message && r.message.length) {
+                        frappe.msgprint({
+                            title: __('Purchase Invoices Created'),
+                            message: __('Created {0} Purchase Invoice(s)', [r.message.length]),
+                            indicator: 'green'
+                        });
+                    } else {
+                        frappe.msgprint({
+                            title: __('No Invoices Created'),
+                            message: __('No Purchase Invoices were created. Please check supplier and cost details.'),
+                            indicator: 'orange'
+                        });
                     }
                 }
             });
-        }, __("Create"));
+        }, __('Create'));
     }
   },
 
