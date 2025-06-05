@@ -7,9 +7,13 @@
  "engine": "InnoDB",
  "field_order": [
   "service_type",
+  "item_code",
+  "is_service_item",
   "net_fare_account",
   "income_account",
-  "service_expense_account"
+  "service_expense_account",
+  "sales_account",
+  "purchase_account"
  ],
  "fields": [
   {
@@ -19,6 +23,18 @@
    "label": "Service Type",
    "reqd": 1,
    "unique": 1
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Default Item",
+   "options": "Item"
+  },
+  {
+   "fieldname": "is_service_item",
+   "fieldtype": "Check",
+   "label": "Is Service Item",
+   "default": 1
   },
   {
    "fieldname": "net_fare_account",
@@ -43,6 +59,20 @@
    "label": "Service Expense Account",
    "options": "Account",
    "reqd": 1
+  },
+  {
+   "fieldname": "sales_account",
+   "fieldtype": "Link", 
+   "label": "Sales Account",
+   "options": "Account",
+   "description": "If not specified, income_account will be used"
+  },
+  {
+   "fieldname": "purchase_account",
+   "fieldtype": "Link",
+   "label": "Purchase Account", 
+   "options": "Account",
+   "description": "If not specified, net_fare_account will be used"
   }
  ],
  "index_web_pages_for_search": 1,

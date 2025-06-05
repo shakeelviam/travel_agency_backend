@@ -183,6 +183,12 @@ doctype_js = {
 
 # ignore_links_on_delete = ["Communication", "ToDo"]
 
+# Install and Migration hooks
+# -----------------------------------------------------------
+
+after_install = "travel_agency_backend.travel_agency_backend.custom_fields.setup_custom_fields"
+after_migrate = "travel_agency_backend.travel_agency_backend.custom_fields.setup_custom_fields"
+
 # Request Events
 # ----------------
 # before_request = ["travel_agency_backend.utils.before_request"]
