@@ -156,9 +156,9 @@ class TripBooking(Document):
             
         # Validate that each selected service has booking details
         for service in self.selected_services:
-            table = self.get_child_table(service.service_category)
-            if table and not self.get(table):
-                frappe.throw(f"Please add booking details for {service.service_category} service")
+            table_fieldname = self.get_child_table(service.service_category)
+            if table_fieldname and not self.get(table_fieldname):
+                frappe.throw(_("Please add booking details for {0} service").format(service.service_category))
 
     def on_submit(self):
         self.create_purchase_invoices()
@@ -350,8 +350,8 @@ class TripBooking(Document):
         }
 
     def get_child_table(self, category):
-        fieldname = self.get_table_fieldname(category)
-        return getattr(self, fieldname, None) if fieldname else None
+        # Just return the fieldname, not the actual table data
+        return self.get_table_fieldname(category)
 
 
 @frappe.whitelist()
