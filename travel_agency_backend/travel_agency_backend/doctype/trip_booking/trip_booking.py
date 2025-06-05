@@ -18,10 +18,29 @@ class TripBooking(Document):
         ]
 
     def validate(self):
-        self.calculate_row_totals()
+        # First check if we need to auto-populate selected services
+        has_bookings = any(self.get(table) for table in self.get_all_booking_tables())
+        if not self.selected_services and has_bookings:
+            # Auto-populate selected services based on existing bookings
+            for table in self.get_all_booking_tables():
+                if self.get(table):
+                    # Get the service category from the first row's service_type
+                    rows = self.get(table)
+                    if rows and hasattr(rows[0], 'service_type'):
+                        service_type = rows[0].service_type
+                        # Add to selected services if not already there
+                        if not any(s.service_category == service_type for s in self.selected_services):
+                            self.append('selected_services', {
+                                'service_category': service_type
+                            })
+        
+        # Now clean unused services (but not if we have bookings without selected services)
+        if not (not self.selected_services and has_bookings):
+            self.clean_unused_services()
+            
         self.validate_services()
+        self.calculate_row_totals()
         self.calculate_total_amount()
-        self.clean_unused_services()
 
     def calculate_row_totals(self):
         for table in self.get_all_booking_tables():
@@ -51,25 +70,7 @@ class TripBooking(Document):
                 row.selling_price = row.total_amount
 
     def validate_services(self):
-        # Check if any booking tables have entries
-        has_bookings = any(self.get(table) for table in self.get_all_booking_tables())
-        
-        # If there are no selected services but bookings exist, auto-populate selected_services
-        if not self.selected_services and has_bookings:
-            # Auto-populate selected services based on existing bookings
-            for table in self.get_all_booking_tables():
-                if self.get(table):
-                    # Get the service category from the first row's service_type
-                    rows = self.get(table)
-                    if rows and hasattr(rows[0], 'service_type'):
-                        service_type = rows[0].service_type
-                        # Add to selected services if not already there
-                        if not any(s.service_category == service_type for s in self.selected_services):
-                            self.append('selected_services', {
-                                'service_category': service_type
-                            })
-        
-        # Skip further validation if no selected services
+        # Skip validation if no selected services
         if not self.selected_services:
             return
             
@@ -100,11 +101,17 @@ class TripBooking(Document):
         self.total_amount = total
 
     def clean_unused_services(self):
+        # Don't clear tables if there are no selected services but there are entries
+        # This prevents data loss when saving without selected services
+        has_bookings = any(self.get(table) for table in self.get_all_booking_tables())
+        if not self.selected_services and has_bookings:
+            return
+            
+        # If no selected services and no bookings, clear all tables
         if not self.selected_services:
-            for table in self.get_all_booking_tables():
-                setattr(self, table, [])
             return
 
+        # Only clear tables for services not selected
         active = {s.service_category for s in self.selected_services}
         for category in self.get_service_category_mapping().values():
             if category not in active:
