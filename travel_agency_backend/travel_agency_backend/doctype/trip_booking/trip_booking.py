@@ -17,6 +17,17 @@ class TripBooking(Document):
             'insurance_booking_entry'
         ]
 
+    @staticmethod
+    def get_supplier_cost(row):
+        """Safely return the supplier cost for any booking entry."""
+        if hasattr(row, "supplier_cost_payable"):
+            return row.supplier_cost_payable or 0
+        if hasattr(row, "net_fare"):
+            return row.net_fare or 0
+        if hasattr(row, "supplier_cost"):
+            return row.supplier_cost or 0
+        return 0
+
     def validate(self):
         # Auto-populate selected services if we have bookings
         has_bookings = any(self.get(table) for table in self.get_all_booking_tables())
@@ -48,13 +59,7 @@ class TripBooking(Document):
         for table in self.get_all_booking_tables():
             for row in self.get(table) or []:
                 # Handle different field names for supplier cost across different child tables
-                supplier_cost = 0
-                if hasattr(row, 'supplier_cost_payable'):
-                    supplier_cost = row.supplier_cost_payable or 0
-                elif hasattr(row, 'net_fare'):
-                    supplier_cost = row.net_fare or 0
-                elif hasattr(row, 'supplier_cost'):
-                    supplier_cost = row.supplier_cost or 0
+                supplier_cost = self.get_supplier_cost(row)
                 
                 # Handle different field names for markup
                 markup = 0
@@ -83,17 +88,11 @@ class TripBooking(Document):
                 frappe.throw(f"Please add details for {service.service_category} service")
             
             for row in self.get(table) or []:
-                # Check for supplier cost using hasattr to be safe
-                has_cost = False
-                if hasattr(row, 'supplier_cost_payable') and row.supplier_cost_payable:
-                    has_cost = True
-                elif hasattr(row, 'net_fare') and row.net_fare:
-                    has_cost = True
-                elif hasattr(row, 'supplier_cost') and row.supplier_cost:
-                    has_cost = True
-                    
-                if not has_cost:
-                    frappe.throw(f"Missing Supplier Cost for passenger '{row.passenger}' in {service.service_category}")
+                # Ensure each row has a supplier cost
+                if not self.get_supplier_cost(row):
+                    frappe.throw(
+                        f"Missing Supplier Cost for passenger '{row.passenger}' in {service.service_category}"
+                    )
 
     def calculate_total_amount(self):
         total = 0
@@ -173,14 +172,23 @@ class TripBooking(Document):
                 pi.due_date = now_datetime()
                 pi.set_posting_time = 1
 
+                expense_account = None
+                if entries and hasattr(entries[0], 'service_type'):
+                    expense_account = frappe.db.get_value(
+                        'Service Type',
+                        entries[0].service_type,
+                        'service_expense_account'
+                    )
+
                 for row in entries:
-                    cost = row.supplier_cost_payable or row.net_fare or 0
+                    cost = self.get_supplier_cost(row)
                     pi.append("items", {
                         "item_name": f"{row.service_type} - {row.passenger}",
                         "qty": 1,
                         "rate": cost,
                         "amount": cost,
-                        "schedule_date": now_datetime()
+                        "schedule_date": now_datetime(),
+                        "expense_account": expense_account
                     })
 
                 pi.insert()
@@ -357,13 +365,7 @@ def make_purchase_invoices_from_trip(source_name):
             
             for row in entries:
                 # Handle different field names for supplier cost
-                cost = 0
-                if hasattr(row, 'supplier_cost_payable'):
-                    cost = row.supplier_cost_payable or 0
-                elif hasattr(row, 'net_fare'):
-                    cost = row.net_fare or 0
-                elif hasattr(row, 'supplier_cost'):
-                    cost = row.supplier_cost or 0
+                cost = TripBooking.get_supplier_cost(row)
                 
                 pi.append("items", {
                     "item_name": f"{row.service_type} - {row.passenger}",
