@@ -197,6 +197,16 @@ class TripBooking(Document):
             "car_rental_booking_entry",
             "insurance_booking_entry"
         ]
+        
+    def get_service_category_mapping(self):
+        return {
+            "Flight GDS": "Flight GDS",
+            "Flight Online Airlines": "Flight Online Airlines",
+            "Hotel Booking": "Hotel",
+            "Visa Application Charges": "Visa",
+            "Car Rental Service": "Car Rental",
+            "Insurance Service": "Insurance"
+        }
 
     def get_child_table(self, category):
         fieldname = self.get_table_fieldname(category)
