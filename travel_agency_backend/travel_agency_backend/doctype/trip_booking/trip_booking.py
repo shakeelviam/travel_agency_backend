@@ -18,9 +18,9 @@ class TripBooking(Document):
         ]
 
     def validate(self):
-        # First check if we need to auto-populate selected services
+        # Auto-populate selected services if we have bookings
         has_bookings = any(self.get(table) for table in self.get_all_booking_tables())
-        if not self.selected_services and has_bookings:
+        if has_bookings:
             # Auto-populate selected services based on existing bookings
             for table in self.get_all_booking_tables():
                 if self.get(table):
@@ -34,11 +34,13 @@ class TripBooking(Document):
                                 'service_category': service_type
                             })
         
-        # Now clean unused services (but not if we have bookings without selected services)
-        if not (not self.selected_services and has_bookings):
-            self.clean_unused_services()
+        # IMPORTANT: Do NOT clean any tables - preserve all data
+        # Skip the clean_unused_services call entirely
+        
+        # Only validate if we're submitting
+        if self.docstatus == 1:
+            self.validate_services()
             
-        self.validate_services()
         self.calculate_row_totals()
         self.calculate_total_amount()
 
@@ -120,11 +122,32 @@ class TripBooking(Document):
                     setattr(self, fieldname, [])
 
     def before_submit(self):
+        # Check if any booking tables have entries
+        has_bookings = any(self.get(table) for table in self.get_all_booking_tables())
+        
+        # Auto-populate selected services if needed before submission
+        if has_bookings and not self.selected_services:
+            # Auto-populate selected services based on existing bookings
+            for table in self.get_all_booking_tables():
+                if self.get(table):
+                    # Get the service category from the first row's service_type
+                    rows = self.get(table)
+                    if rows and hasattr(rows[0], 'service_type'):
+                        service_type = rows[0].service_type
+                        # Add to selected services if not already there
+                        if not any(s.service_category == service_type for s in self.selected_services):
+                            self.append('selected_services', {
+                                'service_category': service_type
+                            })
+        
+        # After auto-populating, check if we still have no selected services
         if not self.selected_services:
             frappe.throw("Please add at least one service before submitting")
+            
+        # Validate that each selected service has booking details
         for service in self.selected_services:
             table = self.get_child_table(service.service_category)
-            if table is not None and not table:
+            if table and not self.get(table):
                 frappe.throw(f"Please add booking details for {service.service_category} service")
 
     def on_submit(self):
