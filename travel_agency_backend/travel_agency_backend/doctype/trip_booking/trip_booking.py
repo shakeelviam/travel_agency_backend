@@ -51,18 +51,45 @@ class TripBooking(Document):
                 row.selling_price = row.total_amount
 
     def validate_services(self):
+        # Check if any booking tables have entries
+        has_bookings = any(self.get(table) for table in self.get_all_booking_tables())
+        
+        # If there are no selected services but bookings exist, auto-populate selected_services
+        if not self.selected_services and has_bookings:
+            # Auto-populate selected services based on existing bookings
+            for table in self.get_all_booking_tables():
+                if self.get(table):
+                    # Get the service category from the first row's service_type
+                    rows = self.get(table)
+                    if rows and hasattr(rows[0], 'service_type'):
+                        service_type = rows[0].service_type
+                        # Add to selected services if not already there
+                        if not any(s.service_category == service_type for s in self.selected_services):
+                            self.append('selected_services', {
+                                'service_category': service_type
+                            })
+        
+        # Skip further validation if no selected services
         if not self.selected_services:
-            if any(self.get(table) for table in self.get_all_booking_tables()):
-                frappe.throw("Service selection missing, but bookings exist")
             return
-
+            
+        # Validate each selected service
         for service in self.selected_services:
             table = self.get_child_table(service.service_category)
-            if table and not table:
+            if table and not self.get(table):
                 frappe.throw(f"Please add details for {service.service_category} service")
-            for row in table or []:
-                cost = getattr(row, "supplier_cost_payable", None) or getattr(row, "net_fare", None)
-                if cost in (None, 0):
+            
+            for row in self.get(table) or []:
+                # Check for supplier cost using hasattr to be safe
+                has_cost = False
+                if hasattr(row, 'supplier_cost_payable') and row.supplier_cost_payable:
+                    has_cost = True
+                elif hasattr(row, 'net_fare') and row.net_fare:
+                    has_cost = True
+                elif hasattr(row, 'supplier_cost') and row.supplier_cost:
+                    has_cost = True
+                    
+                if not has_cost:
                     frappe.throw(f"Missing Supplier Cost for passenger '{row.passenger}' in {service.service_category}")
 
     def calculate_total_amount(self):
