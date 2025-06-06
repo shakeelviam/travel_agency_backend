@@ -4,20 +4,27 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "applicant_section",
   "passenger",
+  "visa_details_section",
   "visa_type",
   "visa_number",
+  "column_break_visa",
   "country",
+  "validity_dates",
+  "pricing_section",
   "supplier_cost",
   "markup",
+  "column_break_pricing",
   "total_amount",
+  "notes_section",
   "remarks"
  ],
  "fields": [
   {
-   "fieldname": "visa_number",
-   "fieldtype": "Data",
-   "label": "Visa Number"
+   "fieldname": "applicant_section",
+   "fieldtype": "Section Break",
+   "label": "Applicant Information"
   },
   {
    "fieldname": "passenger",
@@ -28,15 +35,49 @@
    "reqd": 1
   },
   {
+   "fieldname": "visa_details_section",
+   "fieldtype": "Section Break",
+   "label": "Visa Details"
+  },
+  {
    "fieldname": "visa_type",
    "fieldtype": "Data",
    "label": "Visa Type"
+  },
+  {
+   "fieldname": "visa_number",
+   "fieldtype": "Data",
+   "label": "Visa Number"
+  },
+  {
+   "fieldname": "column_break_visa",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "country",
    "fieldtype": "Link",
    "label": "Country",
    "options": "Country"
+  },
+  {
+   "fieldname": "validity_dates",
+   "fieldtype": "Section Break",
+   "label": "Validity Period"
+  },
+  {
+   "fieldname": "valid_from",
+   "fieldtype": "Date",
+   "label": "Valid From"
+  },
+  {
+   "fieldname": "valid_until",
+   "fieldtype": "Date",
+   "label": "Valid Until"
+  },
+  {
+   "fieldname": "pricing_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing Details"
   },
   {
    "fieldname": "supplier_cost",
@@ -49,10 +90,19 @@
    "label": "Markup"
   },
   {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "label": "Selling Price",
    "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
   },
   {
    "fieldname": "remarks",
