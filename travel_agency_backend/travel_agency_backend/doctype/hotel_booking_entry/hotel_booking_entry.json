@@ -4,21 +4,28 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "guest_section",
   "passenger",
+  "hotel_details_section",
   "hotel_name",
+  "column_break_hotel",
   "check_in",
   "check_out",
+  "booking_section",
   "booking_reference_number",
+  "pricing_section",
   "supplier_cost",
   "markup",
+  "column_break_pricing",
   "total_amount",
+  "notes_section",
   "remarks"
  ],
  "fields": [
   {
-   "fieldname": "booking_reference_number",
-   "fieldtype": "Data",
-   "label": "Booking Reference Number"
+   "fieldname": "guest_section",
+   "fieldtype": "Section Break",
+   "label": "Guest Information"
   },
   {
    "fieldname": "passenger",
@@ -29,9 +36,18 @@
    "reqd": 1
   },
   {
+   "fieldname": "hotel_details_section",
+   "fieldtype": "Section Break",
+   "label": "Hotel Details"
+  },
+  {
    "fieldname": "hotel_name",
    "fieldtype": "Data",
    "label": "Hotel Name"
+  },
+  {
+   "fieldname": "column_break_hotel",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "check_in",
@@ -44,6 +60,21 @@
    "label": "Check Out"
   },
   {
+   "fieldname": "booking_section",
+   "fieldtype": "Section Break",
+   "label": "Booking Information"
+  },
+  {
+   "fieldname": "booking_reference_number",
+   "fieldtype": "Data",
+   "label": "Booking Reference Number"
+  },
+  {
+   "fieldname": "pricing_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing Details"
+  },
+  {
    "fieldname": "supplier_cost",
    "fieldtype": "Currency",
    "label": "Supplier Cost"
@@ -54,10 +85,19 @@
    "label": "Markup"
   },
   {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "label": "Selling Price",
    "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
   },
   {
    "fieldname": "remarks",
