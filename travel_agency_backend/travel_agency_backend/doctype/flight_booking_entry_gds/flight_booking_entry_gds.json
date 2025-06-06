@@ -4,20 +4,35 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "passenger_section",
   "passenger",
+  "flight_details_section",
   "airline",
   "trip_type",
+  "column_break_flight",
   "from_sector",
   "to_sector",
   "return_sector",
+  "ticket_details_section",
   "pnr",
   "ticket_number",
+  "column_break_ticket",
+  "travel_date",
+  "return_date",
+  "pricing_section",
   "supplier_cost",
   "markup",
+  "column_break_pricing",
   "total_amount",
+  "notes_section",
   "remarks"
  ],
  "fields": [
+  {
+   "fieldname": "passenger_section",
+   "fieldtype": "Section Break",
+   "label": "Passenger Information"
+  },
   {
    "fieldname": "passenger",
    "fieldtype": "Link",
@@ -25,6 +40,11 @@
    "label": "Passenger",
    "options": "Passenger",
    "reqd": 1
+  },
+  {
+   "fieldname": "flight_details_section",
+   "fieldtype": "Section Break",
+   "label": "Flight Details"
   },
   {
    "fieldname": "airline",
@@ -37,6 +57,10 @@
    "fieldtype": "Select",
    "label": "Trip Type",
    "options": "One Way\nReturn"
+  },
+  {
+   "fieldname": "column_break_flight",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "from_sector",
@@ -57,6 +81,11 @@
    "options": "Sector Master"
   },
   {
+   "fieldname": "ticket_details_section",
+   "fieldtype": "Section Break",
+   "label": "Ticket Details"
+  },
+  {
    "fieldname": "pnr",
    "fieldtype": "Data",
    "label": "PNR"
@@ -65,6 +94,25 @@
    "fieldname": "ticket_number",
    "fieldtype": "Data",
    "label": "Ticket Number"
+  },
+  {
+   "fieldname": "column_break_ticket",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "travel_date",
+   "fieldtype": "Date",
+   "label": "Travel Date"
+  },
+  {
+   "fieldname": "return_date",
+   "fieldtype": "Date",
+   "label": "Return Date"
+  },
+  {
+   "fieldname": "pricing_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing Details"
   },
   {
    "fieldname": "supplier_cost",
@@ -77,10 +125,19 @@
    "label": "Markup"
   },
   {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "label": "Selling Price",
    "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
   },
   {
    "fieldname": "remarks",
