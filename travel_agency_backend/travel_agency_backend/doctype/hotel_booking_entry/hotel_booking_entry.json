@@ -6,6 +6,7 @@
  "field_order": [
   "guest_section",
   "passenger",
+  "passenger_name",
   "hotel_details_section",
   "hotel_name",
   "column_break_hotel",
@@ -34,6 +35,13 @@
    "label": "Passenger",
    "options": "Passenger",
    "reqd": 1
+  },
+  {
+   "fieldname": "passenger_name",
+   "fieldtype": "Data",
+   "label": "Passenger Name",
+   "fetch_from": "passenger.full_name",
+   "read_only": 1
   },
   {
    "fieldname": "hotel_details_section",

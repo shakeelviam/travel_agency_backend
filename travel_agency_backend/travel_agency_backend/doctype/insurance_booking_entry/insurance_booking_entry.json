@@ -7,17 +7,51 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
-  "service_type",
+  "passenger_section",
   "passenger",
+  "passenger_name",
+  "insurance_details_section",
+  "service_type",
   "insurance_type",
+  "column_break_insurance",
+  "policy_number",
+  "validity_section",
   "valid_from",
   "valid_to",
-  "policy_number",
+  "pricing_section",
   "supplier_cost",
   "markup",
-  "total_amount"
+  "column_break_pricing",
+  "total_amount",
+  "notes_section",
+  "remarks"
  ],
  "fields": [
+  {
+   "fieldname": "passenger_section",
+   "fieldtype": "Section Break",
+   "label": "Passenger Information"
+  },
+  {
+   "fieldname": "passenger",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Passenger",
+   "options": "Passenger",
+   "reqd": 1
+  },
+  {
+   "fieldname": "passenger_name",
+   "fieldtype": "Data",
+   "label": "Passenger Name",
+   "fetch_from": "passenger.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "insurance_details_section",
+   "fieldtype": "Section Break",
+   "label": "Insurance Details"
+  },
   {
    "default": "Insurance Service",
    "fieldname": "service_type",
@@ -43,6 +77,20 @@
    "reqd": 1
   },
   {
+   "fieldname": "column_break_insurance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "policy_number",
+   "fieldtype": "Data",
+   "label": "Policy Number"
+  },
+  {
+   "fieldname": "validity_section",
+   "fieldtype": "Section Break",
+   "label": "Validity Period"
+  },
+  {
    "fieldname": "valid_from",
    "fieldtype": "Date",
    "label": "Valid From"
@@ -53,9 +101,9 @@
    "label": "Valid To"
   },
   {
-   "fieldname": "policy_number",
-   "fieldtype": "Data",
-   "label": "Policy Number"
+   "fieldname": "pricing_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing Details"
   },
   {
    "fieldname": "supplier_cost",
@@ -70,11 +118,25 @@
    "label": "Markup"
   },
   {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "total_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "Selling Price",
    "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
   }
  ],
  "index_web_pages_for_search": 1,

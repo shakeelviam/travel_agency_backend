@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:mobile_no",
+ "autoname": "format:{mobile_no} - {full_name}",
  "creation": "2025-05-31 17:36:24.603842",
  "doctype": "DocType",
  "editable_grid": 1,

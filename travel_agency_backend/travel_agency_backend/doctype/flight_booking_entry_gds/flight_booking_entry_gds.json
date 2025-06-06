@@ -6,6 +6,7 @@
  "field_order": [
   "passenger_section",
   "passenger",
+  "passenger_name",
   "flight_details_section",
   "airline",
   "trip_type",
@@ -40,6 +41,13 @@
    "label": "Passenger",
    "options": "Passenger",
    "reqd": 1
+  },
+  {
+   "fieldname": "passenger_name",
+   "fieldtype": "Data",
+   "label": "Passenger Name",
+   "fetch_from": "passenger.full_name",
+   "read_only": 1
   },
   {
    "fieldname": "flight_details_section",

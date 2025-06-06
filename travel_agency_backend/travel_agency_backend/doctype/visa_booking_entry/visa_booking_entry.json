@@ -6,6 +6,7 @@
  "field_order": [
   "applicant_section",
   "passenger",
+  "passenger_name",
   "visa_details_section",
   "visa_type",
   "visa_number",
@@ -33,6 +34,13 @@
    "label": "Passenger",
    "options": "Passenger",
    "reqd": 1
+  },
+  {
+   "fieldname": "passenger_name",
+   "fieldtype": "Data",
+   "label": "Passenger Name",
+   "fetch_from": "passenger.full_name",
+   "read_only": 1
   },
   {
    "fieldname": "visa_details_section",
