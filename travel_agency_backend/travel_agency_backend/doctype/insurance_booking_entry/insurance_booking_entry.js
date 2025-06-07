@@ -1,3 +1,6 @@
+// Import flt function for number handling
+const flt = frappe.utils.flt;
+
 frappe.ui.form.on('Insurance Booking Entry', {
     supplier_cost: function(frm, cdt, cdn) {
         calculate_total(frm, cdt, cdn);
@@ -34,6 +37,13 @@ frappe.ui.form.on('Insurance Booking Entry', {
 
 function calculate_total(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
-    row.total_amount = (row.supplier_cost || 0) + (row.markup || 0) + (row.service_fee || 0);
-    refresh_field('total_amount', row.name, 'insurance_booking_entry');
+    const supplier_cost = flt(row.supplier_cost) || 0;
+    const markup = flt(row.markup) || 0;
+    const service_fee = flt(row.service_fee) || 0;
+    
+    // Calculate total amount
+    const total_amount = supplier_cost + markup + service_fee;
+    
+    // Update the total amount field using frappe.model.set_value for proper UI update
+    frappe.model.set_value(cdt, cdn, 'total_amount', total_amount);
 }
