@@ -357,11 +357,34 @@ function create_flight_booking(flight) {
 		
 		doc.origin = firstSegment.departure.iataCode;
 		doc.destination = lastSegment.arrival.iataCode;
-		doc.departure_date = frappe.datetime.user_to_str(new Date(firstSegment.departure.at));
+		// Format departure date properly to avoid Moment.js warnings
+		try {
+			let departureDate = new Date(firstSegment.departure.at);
+			if (!isNaN(departureDate.getTime())) {
+				// Format as YYYY-MM-DD (format Frappe expects)
+				let formatted = departureDate.getFullYear() + '-' + 
+						((departureDate.getMonth() + 1).toString().padStart(2, '0')) + '-' + 
+						departureDate.getDate().toString().padStart(2, '0');
+				doc.departure_date = formatted;
+			}
+		} catch (e) {
+			console.error('Error formatting departure date:', e);
+		}
 		
 		if (flight.itineraries.length > 1) {
 			let return_segment = flight.itineraries[1].segments[0];
-			doc.return_date = frappe.datetime.user_to_str(new Date(return_segment.departure.at));
+			try {
+				let returnDate = new Date(return_segment.departure.at);
+				if (!isNaN(returnDate.getTime())) {
+					// Format as YYYY-MM-DD (format Frappe expects)
+					let formatted = returnDate.getFullYear() + '-' + 
+							((returnDate.getMonth() + 1).toString().padStart(2, '0')) + '-' + 
+							returnDate.getDate().toString().padStart(2, '0');
+					doc.return_date = formatted;
+				}
+			} catch (e) {
+				console.error('Error formatting return date:', e);
+			}
 		}
 		
 		// Set pricing
@@ -375,18 +398,60 @@ function create_flight_booking(flight) {
 
 // Helper functions for date/time formatting
 function formatDateTime(dateTimeStr) {
-	let date = new Date(dateTimeStr);
-	return frappe.datetime.str_to_user(date, true);
+	if (!dateTimeStr) return '';
+	
+	// Convert ISO string to Frappe format (YYYY-MM-DD HH:MM:SS)
+	try {
+		let date = new Date(dateTimeStr);
+		if (isNaN(date.getTime())) return dateTimeStr; // Return original if invalid
+		
+		// Format date as YYYY-MM-DD HH:MM:SS first (format Frappe expects)
+		let formatted = date.getFullYear() + '-' + 
+					((date.getMonth() + 1).toString().padStart(2, '0')) + '-' + 
+					date.getDate().toString().padStart(2, '0') + ' ' + 
+					date.getHours().toString().padStart(2, '0') + ':' + 
+					date.getMinutes().toString().padStart(2, '0') + ':' + 
+					date.getSeconds().toString().padStart(2, '0');
+		
+		// Now convert to user format
+		return frappe.datetime.str_to_user(formatted, true);
+	} catch (e) {
+		console.error('Date formatting error:', e);
+		return dateTimeStr; // Return original if error
+	}
 }
 
 function formatDate(dateTimeStr) {
-	let date = new Date(dateTimeStr);
-	return frappe.datetime.str_to_user(date);
+	if (!dateTimeStr) return '';
+	
+	try {
+		let date = new Date(dateTimeStr);
+		if (isNaN(date.getTime())) return dateTimeStr; // Return original if invalid
+		
+		// Format as YYYY-MM-DD (format Frappe expects)
+		let formatted = date.getFullYear() + '-' + 
+					((date.getMonth() + 1).toString().padStart(2, '0')) + '-' + 
+					date.getDate().toString().padStart(2, '0');
+		
+		return frappe.datetime.str_to_user(formatted);
+	} catch (e) {
+		console.error('Date formatting error:', e);
+		return dateTimeStr; // Return original if error
+	}
 }
 
 function formatTime(dateTimeStr) {
-	let date = new Date(dateTimeStr);
-	let hours = date.getHours().toString().padStart(2, '0');
-	let minutes = date.getMinutes().toString().padStart(2, '0');
-	return `${hours}:${minutes}`;
+	if (!dateTimeStr) return '';
+	
+	try {
+		let date = new Date(dateTimeStr);
+		if (isNaN(date.getTime())) return ''; // Return empty if invalid
+		
+		let hours = date.getHours().toString().padStart(2, '0');
+		let minutes = date.getMinutes().toString().padStart(2, '0');
+		return `${hours}:${minutes}`;
+	} catch (e) {
+		console.error('Time formatting error:', e);
+		return ''; // Return empty if error
+	}
 }
