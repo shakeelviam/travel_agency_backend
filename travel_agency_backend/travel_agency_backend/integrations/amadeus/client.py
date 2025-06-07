@@ -133,77 +133,76 @@ class AmadeusClient:
         Returns:
             dict: Flight search results
         """
+        # Using the simpler GET endpoint for Flight Offers Search
         url = f"{self.base_url}/v2/shopping/flight-offers"
         
-        # Build request payload
-        payload = {
+        # Build query parameters according to Amadeus documentation
+        params = {
+            "originLocationCode": origin,
+            "destinationLocationCode": destination,
+            "departureDate": departure_date,
+            "adults": adults,
             "currencyCode": "USD",
-            "originDestinations": [
-                {
-                    "id": "1",
-                    "originLocationCode": origin,
-                    "destinationLocationCode": destination,
-                    "departureDateTimeRange": {
-                        "date": departure_date
-                    }
-                }
-            ],
-            "travelers": [],
-            "sources": ["GDS"],
-            "searchCriteria": {
-                "maxFlightOffers": 20,
-                "flightFilters": {
-                    "cabinRestrictions": [
-                        {
-                            "cabin": travel_class,
-                            "coverage": "MOST_SEGMENTS",
-                            "originDestinationIds": ["1"]
-                        }
-                    ]
-                }
-            }
+            "max": 20  # Maximum number of offers to return
         }
         
-        # Add return flight if return_date is provided
+        # Add optional parameters
         if return_date:
-            payload["originDestinations"].append({
-                "id": "2",
-                "originLocationCode": destination,
-                "destinationLocationCode": origin,
-                "departureDateTimeRange": {
-                    "date": return_date
-                }
-            })
-            payload["searchCriteria"]["flightFilters"]["cabinRestrictions"][0]["originDestinationIds"].append("2")
-        
-        # Add travelers
-        for i in range(adults):
-            payload["travelers"].append({
-                "id": str(i + 1),
-                "travelerType": "ADULT"
-            })
+            params["returnDate"] = return_date
             
-        for i in range(children):
-            payload["travelers"].append({
-                "id": str(adults + i + 1),
-                "travelerType": "CHILD"
-            })
+        if children and int(children) > 0:
+            params["children"] = children
             
-        for i in range(infants):
-            payload["travelers"].append({
-                "id": str(adults + children + i + 1),
-                "travelerType": "INFANT"
-            })
+        if infants and int(infants) > 0:
+            params["infants"] = infants
+            
+        if travel_class and travel_class != "ECONOMY":
+            params["travelClass"] = travel_class
         
         try:
             headers = self.get_headers()
-            response = requests.post(url, headers=headers, json=payload)
+            
+            # Log the request for debugging
+            frappe.log_error(
+                f"Amadeus Flight Search Request:\n"
+                f"URL: {url}\n"
+                f"Parameters: {params}", 
+                "Amadeus API Flight Search"
+            )
+            
+            # Make GET request with query parameters
+            response = requests.get(url, headers=headers, params=params)
+            
+            # Log the response for debugging
+            frappe.log_error(
+                f"Amadeus Flight Search Response:\n"
+                f"Status code: {response.status_code}\n"
+                f"Response body preview: {response.text[:300]}...", 
+                "Amadeus API Flight Search Response"
+            )
+            
             response.raise_for_status()
             
             return response.json()
+        except requests.exceptions.HTTPError as e:
+            error_msg = f"Amadeus Flight Search HTTP Error: {str(e)}"
+            if hasattr(e, 'response'):
+                error_msg += f"\nStatus code: {e.response.status_code}"
+                try:
+                    error_data = e.response.json()
+                    if 'errors' in error_data and len(error_data['errors']) > 0:
+                        error_msg += f"\nError details: {error_data['errors'][0].get('detail', 'Unknown error')}"
+                except:
+                    error_msg += f"\nResponse text: {e.response.text[:200]}"
+            
+            frappe.log_error(error_msg, "Amadeus API Flight Search Error")
+            frappe.throw(_(f"Failed to search flights: {error_msg}"))
         except requests.exceptions.RequestException as e:
             frappe.log_error(f"Amadeus Flight Search Error: {str(e)}", "Amadeus API")
-            frappe.throw(_("Failed to search flights. Please try again later."))
+            frappe.throw(_("Failed to search flights. Please check your network connection and try again later."))
+        except Exception as e:
+            frappe.log_error(f"Unexpected error during flight search: {str(e)}", "Amadeus API")
+            frappe.throw(_(f"An unexpected error occurred: {str(e)}"))
     
     def get_flight_price(self, flight_offer):
         """
@@ -226,13 +225,47 @@ class AmadeusClient:
         
         try:
             headers = self.get_headers()
+            
+            # Log the request for debugging
+            frappe.log_error(
+                f"Amadeus Flight Price Request:\n"
+                f"URL: {url}\n"
+                f"Payload: {json.dumps(payload)[:300]}...", 
+                "Amadeus API Flight Price"
+            )
+            
             response = requests.post(url, headers=headers, json=payload)
+            
+            # Log the response for debugging
+            frappe.log_error(
+                f"Amadeus Flight Price Response:\n"
+                f"Status code: {response.status_code}\n"
+                f"Response body preview: {response.text[:300]}...", 
+                "Amadeus API Flight Price Response"
+            )
+            
             response.raise_for_status()
             
             return response.json()
+        except requests.exceptions.HTTPError as e:
+            error_msg = f"Amadeus Flight Price HTTP Error: {str(e)}"
+            if hasattr(e, 'response'):
+                error_msg += f"\nStatus code: {e.response.status_code}"
+                try:
+                    error_data = e.response.json()
+                    if 'errors' in error_data and len(error_data['errors']) > 0:
+                        error_msg += f"\nError details: {error_data['errors'][0].get('detail', 'Unknown error')}"
+                except:
+                    error_msg += f"\nResponse text: {e.response.text[:200]}"
+            
+            frappe.log_error(error_msg, "Amadeus API Flight Price Error")
+            frappe.throw(_(f"Failed to get flight price: {error_msg}"))
         except requests.exceptions.RequestException as e:
             frappe.log_error(f"Amadeus Flight Price Error: {str(e)}", "Amadeus API")
-            frappe.throw(_("Failed to get flight price. Please try again later."))
+            frappe.throw(_("Failed to get flight price. Please check your network connection and try again later."))
+        except Exception as e:
+            frappe.log_error(f"Unexpected error during flight price retrieval: {str(e)}", "Amadeus API")
+            frappe.throw(_(f"An unexpected error occurred: {str(e)}"))
     
     def get_airport_info(self, airport_code):
         """
