@@ -198,18 +198,30 @@ class TripBooking(Document):
                 if not has_costs:
                     continue
                 
-                # Create purchase invoice
-                pi = frappe.new_doc("Purchase Invoice")
-                pi.supplier = supplier
-                pi.posting_date = nowdate()
-                pi.due_date = nowdate()
-                pi.set_posting_time = 1
-                pi.trip_booking = self.name
-                
-                # Get expense account and item code from Service Type if available
-                expense_account = None
-                item_code = None
-                if entries and hasattr(entries[0], 'service_type'):
+                if not supplier_entries.get(supplier):
+                    pi = frappe.new_doc('Purchase Invoice')
+                    pi.supplier = supplier
+                    company = frappe.defaults.get_user_default("company")
+                    pi.company = company
+                    pi.currency = frappe.get_cached_value("Company", company, "default_currency") if company else "USD"
+                    pi.posting_date = nowdate()
+                    pi.due_date = nowdate()
+                    pi.set_posting_time = 1
+                    pi.trip_booking = self.name
+                    
+                    # Get expense account and item code from Service Type if available
+                    expense_account = None
+                    item_code = None
+                    if entries and hasattr(entries[0], 'service_type'):
+                        service_type = entries[0].service_type
+                        expense_account = frappe.db.get_value('Service Type', service_type, 'purchase_account') or \
+                                        frappe.db.get_value('Service Type', service_type, 'service_expense_account')
+                        item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
+                    
+                    supplier_entries[supplier] = pi
+                else:
+                    pi = supplier_entries[supplier]
+                    
                     service_type = entries[0].service_type
                     expense_account = frappe.db.get_value('Service Type', service_type, 'purchase_account') or \
                                     frappe.db.get_value('Service Type', service_type, 'service_expense_account')
@@ -412,8 +424,8 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         si.set_posting_time = 1
         si.trip_booking = source.name
         
-        # Get currency from company defaults if not available in Trip Booking
-        company = source.company or frappe.defaults.get_user_default("company")
+        # Get currency from company defaults
+        company = frappe.defaults.get_user_default("company")
         si.currency = frappe.get_cached_value("Company", company, "default_currency") if company else "USD"
         
         # Map table names to default service types for entries without service_type field
@@ -672,7 +684,12 @@ def make_purchase_invoices_from_trip(source_name):
                 # Create new Purchase Invoice
                 pi = frappe.new_doc("Purchase Invoice")
                 pi.supplier = supplier
-                pi.currency = doc.currency
+                
+                # Get company and currency from defaults
+                company = frappe.defaults.get_user_default("company")
+                pi.company = company
+                pi.currency = frappe.get_cached_value("Company", company, "default_currency") if company else "USD"
+                
                 pi.posting_date = nowdate()
                 pi.set_posting_time = 1
                 pi.trip_booking = doc.name
