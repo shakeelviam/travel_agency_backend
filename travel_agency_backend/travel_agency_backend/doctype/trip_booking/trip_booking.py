@@ -456,11 +456,18 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 
                 # Only add items with amount > 0
                 if total_amount > 0:
-                    # Create invoice item
+                    # Create invoice item with full description to make it clear
+                    # what service this item represents
+                    description = f"{row.service_type} for {row.passenger}"
+                    if hasattr(row, 'pnr') and row.pnr:
+                        description += f" (PNR: {row.pnr})"
+                    if hasattr(row, 'booking_reference') and row.booking_reference:
+                        description += f" (Ref: {row.booking_reference})"
+                    
                     item = {
                         "item_code": item_code,
                         "item_name": f"{row.service_type} - {row.passenger}",
-                        "description": f"{row.service_type} for {row.passenger}",
+                        "description": description,
                         "qty": 1,
                         "rate": total_amount,
                         "amount": total_amount,
@@ -497,95 +504,121 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
 
 @frappe.whitelist()
 def make_purchase_invoices_from_trip(source_name):
-    """Create Purchase Invoices from Trip Booking"""
+    """Create Purchase Invoices from Trip Booking - one per supplier with all services"""
     doc = frappe.get_doc("Trip Booking", source_name)
     if doc.docstatus != 1:
         frappe.throw("Trip Booking must be submitted before creating Purchase Invoices")
     
-    # Use centralized configuration for service mapping
-    service_map = {}
+    # First, collect all suppliers and their service entries
+    supplier_services = {}
+    
+    # Loop through all service types in the configuration
     for service_type, config in TripBookingConfig.SERVICES.items():
-        service_map[config['table']] = config['supplier_field']
-    
-    created_invoices = []
-    
-    for table, supplier_field in service_map.items():
-        supplier = doc.get(supplier_field)
-        entries = doc.get(table)
+        table = config['table']
+        supplier_field = config['supplier_field']
+        entries = doc.get(table) or []
         
-        # Debug logging to identify issues
-        if entries and not supplier:
-            frappe.msgprint(f"Warning: Entries found for {table} but no supplier specified in {supplier_field}")
-            continue
-            
         if not entries:
             continue
             
-        if supplier and entries:
-            pi = frappe.new_doc("Purchase Invoice")
-            pi.supplier = supplier
-            pi.posting_date = nowdate()
-            pi.due_date = nowdate()
-            pi.set_posting_time = 1
-            pi.trip_booking = doc.name
-            pi.currency = doc.currency  # Use the same currency as Trip Booking
+        supplier = doc.get(supplier_field)
+        
+        # Skip if no supplier specified
+        if not supplier:
+            frappe.msgprint(f"Warning: Entries found for {service_type} but no supplier specified in {supplier_field}")
+            continue
+        
+        # Initialize dict for this supplier if not exists
+        if supplier not in supplier_services:
+            supplier_services[supplier] = []
             
-            # Get expense account and item code from Service Type if available
-            expense_account = None
-            item_code = None
-            if entries and hasattr(entries[0], 'service_type'):
-                service_type = entries[0].service_type
-                expense_account = frappe.db.get_value('Service Type', service_type, 'purchase_account') or \
-                                  frappe.db.get_value('Service Type', service_type, 'service_expense_account')
-                item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
+        # Add all entries for this service type to the supplier's list
+        for row in entries:
+            if hasattr(row, 'service_type') and row.service_type:
+                # Store the service config with the row for later use
+                entry_data = {
+                    'row': row,
+                    'service_config': config,
+                    'service_type': service_type,
+                    'table': table
+                }
+                supplier_services[supplier].append(entry_data)
+    
+    created_invoices = []
+    
+    # Create one PI per supplier including all their services
+    for supplier, services in supplier_services.items():
+        if not services:
+            continue
             
-            has_items = False
-            for row in entries:
-                # Skip rows without service_type
-                if not hasattr(row, 'service_type') or not row.service_type:
-                    continue
-                    
-                # Use TripBookingConfig to determine cost fields
-                cost = 0
-                service_config = TripBookingConfig.get_service_config(row.service_type)
-                if service_config:
-                    for cost_field in service_config.get('cost_fields', []):
-                        if hasattr(row, cost_field) and getattr(row, cost_field):
-                            cost = flt(getattr(row, cost_field))
-                            break
+        pi = frappe.new_doc("Purchase Invoice")
+        pi.supplier = supplier
+        pi.posting_date = nowdate()
+        pi.due_date = nowdate()
+        pi.set_posting_time = 1
+        pi.trip_booking = doc.name
+        pi.currency = doc.currency
+        
+        has_items = False
+        
+        # Process each service entry for this supplier
+        for entry in services:
+            row = entry['row']
+            service_config = entry['service_config']
+            service_type = entry['service_type']
+            
+            # Get expense account and item code from Service Type
+            expense_account = frappe.db.get_value('Service Type', service_type, 'purchase_account') or \
+                              frappe.db.get_value('Service Type', service_type, 'service_expense_account')
+            item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
+            
+            # Calculate cost using service configuration
+            cost = 0
+            for cost_field in service_config.get('cost_fields', []):
+                if hasattr(row, cost_field) and getattr(row, cost_field):
+                    cost = flt(getattr(row, cost_field))
+                    break
+            
+            # Only add items with cost > 0
+            if cost > 0:
+                has_items = True
                 
-                # Only add items with cost > 0
-                if cost > 0:
-                    has_items = True
-                    pi.append("items", {
-                        "item_code": item_code,
-                        "item_name": f"{row.service_type} - {row.passenger}",
-                        "description": f"{row.service_type} for {row.passenger}",
-                        "qty": 1,
-                        "rate": cost,
-                        "amount": cost,
-                        "expense_account": expense_account,
-                        # Custom fields for traceability
-                        "passenger": row.passenger,
-                        "service_type": row.service_type,
-                        "trip_booking": doc.name
-                    })
-            
-            # Only create invoice if it has items
-            if has_items:
-                pi.run_method("set_missing_values")
-                pi.insert()
-                created_invoices.append({
-                    "name": pi.name,
-                    "supplier": supplier,
-                    "amount": pi.grand_total
+                # Create more detailed description
+                description = f"{service_type} for {row.passenger}"
+                if hasattr(row, 'pnr') and row.pnr:
+                    description += f" (PNR: {row.pnr})"
+                if hasattr(row, 'booking_reference') and row.booking_reference:
+                    description += f" (Ref: {row.booking_reference})"
+                
+                pi.append("items", {
+                    "item_code": item_code,
+                    "item_name": f"{service_type} - {row.passenger}",
+                    "description": description,
+                    "qty": 1,
+                    "rate": cost,
+                    "amount": cost,
+                    "expense_account": expense_account,
+                    # Custom fields for traceability
+                    "passenger": row.passenger,
+                    "service_type": row.service_type if hasattr(row, 'service_type') else service_type,
+                    "trip_booking": doc.name
                 })
-            else:
-                frappe.msgprint(f"No valid items with costs found for {table} with supplier {supplier}")
+        
+        # Only create invoice if it has items
+        if has_items:
+            pi.run_method("set_missing_values")
+            pi.insert()
+            created_invoices.append({
+                "name": pi.name,
+                "supplier": supplier,
+                "amount": pi.grand_total
+            })
+        else:
+            frappe.msgprint(f"No valid items with costs found for supplier {supplier}")
     
     if not created_invoices:
         frappe.msgprint("No Purchase Invoices were created. Please check if suppliers are specified and entries have costs.")
+    else:
+        frappe.msgprint(f"Created {len(created_invoices)} Purchase Invoices successfully.")
         
-    return created_invoices
-    
     return created_invoices
