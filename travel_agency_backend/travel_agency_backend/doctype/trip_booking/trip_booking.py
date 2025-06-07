@@ -411,16 +411,12 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         # Debug counter to track items added
         items_added = 0
         
-        # Add items from all booking tables using TripBookingConfig
         # Map table names to default service types for entries without service_type field
-        # Creating this mapping dynamically from TripBookingConfig
         table_to_service_type_map = {}
         for service_type, config in TripBookingConfig.SERVICES.items():
             table_name = config.get('table')
             if table_name:
                 table_to_service_type_map[table_name] = service_type
-                
-        frappe.msgprint(f"Service type mapping: {table_to_service_type_map}")
         
         for table in source.get_all_booking_tables():
             table_entries = source.get(table) or []
@@ -538,7 +534,6 @@ def make_purchase_invoices_from_trip(source_name):
         frappe.throw("Trip Booking must be submitted before creating Purchase Invoices")
     
     # Map table names to default service types for entries without service_type field
-    # Creating this mapping dynamically from TripBookingConfig
     table_to_service_type_map = {}
     for service_type, config in TripBookingConfig.SERVICES.items():
         table_name = config.get('table')
@@ -548,39 +543,56 @@ def make_purchase_invoices_from_trip(source_name):
     # First, collect all suppliers and their service entries
     supplier_services = {}
     
-    # Loop through all service types in the configuration
-    for service_type, config in TripBookingConfig.SERVICES.items():
-        table = config['table']
-        supplier_field = config['supplier_field']
+    # Process all booking tables
+    for table in doc.get_all_booking_tables():
         entries = doc.get(table) or []
-        
         if not entries:
             continue
             
-        supplier = doc.get(supplier_field)
-        
-        # Skip if no supplier specified
-        if not supplier:
-            frappe.msgprint(f"Warning: Entries found for {service_type} but no supplier specified in {supplier_field}")
+        # Get the service type from mapping
+        service_type = table_to_service_type_map.get(table)
+        if not service_type:
+            continue
+            
+        # Get service config
+        service_config = TripBookingConfig.get_service_config(service_type)
+        if not service_config:
             continue
         
-        # Initialize dict for this supplier if not exists
-        if supplier not in supplier_services:
-            supplier_services[supplier] = []
+        # Get supplier field from config
+        supplier_field = service_config.get('supplier_field')
+        if not supplier_field:
+            continue
             
-        # Add all entries for this service type to the supplier's list
+        # Get the main supplier for this service type
+        main_supplier = doc.get(supplier_field)
+        
+        # Process each entry
         for row in entries:
-            # Use the identified service_type from the entry or from the mapping
-            entry_service_type = None
+            # Use entry-specific supplier if available, otherwise use main supplier
+            # This is critical for handling multiple suppliers within a service type
+            supplier = None
+            if hasattr(row, 'supplier') and row.supplier:
+                supplier = row.supplier
+            else:
+                supplier = main_supplier
+                
+            if not supplier:
+                continue
+                
+            # Determine service type - either from the row or from mapping
+            entry_service_type = service_type
             if hasattr(row, 'service_type') and row.service_type:
                 entry_service_type = row.service_type
-            else:
-                entry_service_type = service_type
+                
+            # Initialize dict for this supplier if not exists
+            if supplier not in supplier_services:
+                supplier_services[supplier] = []
                 
             # Store the service config with the row for later use
             entry_data = {
                 'row': row,
-                'service_config': config,
+                'service_config': service_config,
                 'service_type': entry_service_type,
                 'table': table
             }
@@ -614,12 +626,16 @@ def make_purchase_invoices_from_trip(source_name):
                               frappe.db.get_value('Service Type', service_type, 'service_expense_account')
             item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
             
-            # Calculate cost using service configuration
+            # Calculate cost using service configuration - for Purchase Invoices we only want the supplier cost
             cost = 0
+            # Try each cost field until we find one that exists and has a value
             for cost_field in service_config.get('cost_fields', []):
                 if hasattr(row, cost_field) and getattr(row, cost_field):
                     cost = flt(getattr(row, cost_field))
-                    break
+                    # For Purchase Invoices, we typically want 'supplier_cost' not 'total_amount'
+                    # We prioritize 'supplier_cost' or similar fields
+                    if 'supplier' in cost_field.lower():
+                        break
             
             # Only add items with cost > 0
             if cost > 0:
