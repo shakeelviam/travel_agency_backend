@@ -196,17 +196,20 @@ function calculate_row_total(frm, cdt, cdn) {
 function fetch_passenger_details(frm, cdt, cdn) {
   const row = locals[cdt][cdn];
   if (row.passenger) {
-    frappe.db.get_doc('Passenger', row.passenger)
-      .then(doc => {
-        if (doc.full_name) {
-          // Update the passenger field's display with full name
-          $(`.grid-row[data-idx="${row.idx}"] .grid-static-col[data-fieldname="passenger"]`)
-            .text(doc.full_name);
-        }
-      })
-      .catch(err => {
-        console.error('Error fetching passenger details:', err);
-      });
+    frappe.db.get_value('Passenger', row.passenger, 'full_name', function(r) {
+      if (r && r.full_name) {
+        // Set the passenger_name field directly
+        frappe.model.set_value(cdt, cdn, 'passenger_name', r.full_name);
+        
+        // Also update the display in the grid
+        setTimeout(function() {
+          const grid_row = cur_frm.get_field(row.parentfield).grid.grid_rows_by_docname[cdn];
+          if (grid_row) {
+            grid_row.refresh();
+          }
+        }, 100);
+      }
+    });
   }
 }
 

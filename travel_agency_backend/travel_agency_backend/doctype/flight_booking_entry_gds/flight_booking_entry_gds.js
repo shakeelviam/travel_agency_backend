@@ -2,27 +2,54 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on('Flight Booking Entry GDS', {
-    trip_type: function(frm) {
+    trip_type: function(frm, cdt, cdn) {
+        const row = locals[cdt][cdn];
         // Show/hide return sector based on trip type
-        if (frm.doc.trip_type === 'One Way') {
-            frm.set_df_property('return_sector', 'hidden', 1);
-            frm.set_df_property('return_date', 'hidden', 1);
-            frm.set_value('return_sector', '');
-            frm.set_value('return_date', '');
-        } else if (frm.doc.trip_type === 'Return') {
-            frm.set_df_property('return_sector', 'hidden', 0);
-            frm.set_df_property('return_date', 'hidden', 0);
+        if (row.trip_type === 'One Way') {
+            // For grid forms, we need to use the grid_row API
+            const grid_row = cur_frm.fields_dict.flight_booking_entry_gds.grid.grid_rows_by_docname[cdn];
+            if (grid_row) {
+                grid_row.toggle_editable('return_sector', false);
+                grid_row.toggle_display('return_sector', false);
+                grid_row.toggle_editable('return_date', false);
+                grid_row.toggle_display('return_date', false);
+                frappe.model.set_value(cdt, cdn, 'return_sector', '');
+                frappe.model.set_value(cdt, cdn, 'return_date', '');
+            }
+        } else if (row.trip_type === 'Return') {
+            const grid_row = cur_frm.fields_dict.flight_booking_entry_gds.grid.grid_rows_by_docname[cdn];
+            if (grid_row) {
+                grid_row.toggle_editable('return_sector', true);
+                grid_row.toggle_display('return_sector', true);
+                grid_row.toggle_editable('return_date', true);
+                grid_row.toggle_display('return_date', true);
+            }
         }
     },
     
-    refresh: function(frm) {
-        // Apply the conditional display on refresh as well
-        if (frm.doc.trip_type === 'One Way') {
-            frm.set_df_property('return_sector', 'hidden', 1);
-            frm.set_df_property('return_date', 'hidden', 1);
-        } else if (frm.doc.trip_type === 'Return') {
-            frm.set_df_property('return_sector', 'hidden', 0);
-            frm.set_df_property('return_date', 'hidden', 0);
+    form_render: function(frm, cdt, cdn) {
+        // This runs when the row form is rendered
+        const row = locals[cdt][cdn];
+        if (row.trip_type === 'One Way') {
+            const grid_row = cur_frm.fields_dict.flight_booking_entry_gds.grid.grid_rows_by_docname[cdn];
+            if (grid_row) {
+                grid_row.toggle_editable('return_sector', false);
+                grid_row.toggle_display('return_sector', false);
+                grid_row.toggle_editable('return_date', false);
+                grid_row.toggle_display('return_date', false);
+            }
+        }
+    },
+    
+    passenger: function(frm, cdt, cdn) {
+        // Fetch passenger name when passenger is selected
+        const row = locals[cdt][cdn];
+        if (row.passenger) {
+            frappe.db.get_value('Passenger', row.passenger, 'full_name', function(r) {
+                if (r && r.full_name) {
+                    frappe.model.set_value(cdt, cdn, 'passenger_name', r.full_name);
+                }
+            });
         }
     }
 });

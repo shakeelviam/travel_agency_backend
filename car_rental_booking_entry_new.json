@@ -1,0 +1,139 @@
+{
+ "actions": [],
+ "creation": "2025-06-01 14:34:21.741133",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "passenger_section",
+  "passenger",
+  "passenger_name",
+  "vehicle_details_section",
+  "car_type",
+  "booking_details_section",
+  "pickup_date",
+  "pickup_location",
+  "column_break_booking",
+  "return_date",
+  "drop_location",
+  "booking_reference_number",
+  "pricing_section",
+  "supplier_cost",
+  "markup",
+  "column_break_pricing",
+  "total_amount",
+  "notes_section",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "passenger_section",
+   "fieldtype": "Section Break",
+   "label": "Passenger Information"
+  },
+  {
+   "fieldname": "passenger",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Passenger",
+   "options": "Passenger",
+   "reqd": 1
+  },
+  {
+   "fieldname": "passenger_name",
+   "fieldtype": "Data",
+   "label": "Passenger Name",
+   "fetch_from": "passenger.full_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vehicle_details_section",
+   "fieldtype": "Section Break",
+   "label": "Vehicle Details"
+  },
+  {
+   "fieldname": "car_type",
+   "fieldtype": "Data",
+   "label": "Car Type"
+  },
+  {
+   "fieldname": "booking_details_section",
+   "fieldtype": "Section Break",
+   "label": "Booking Details"
+  },
+  {
+   "fieldname": "pickup_date",
+   "fieldtype": "Date",
+   "label": "Pickup Date"
+  },
+  {
+   "fieldname": "pickup_location",
+   "fieldtype": "Data",
+   "label": "Pickup Location"
+  },
+  {
+   "fieldname": "column_break_booking",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "return_date",
+   "fieldtype": "Date",
+   "label": "Return Date"
+  },
+  {
+   "fieldname": "drop_location",
+   "fieldtype": "Data",
+   "label": "Drop Location"
+  },
+  {
+   "fieldname": "booking_reference_number",
+   "fieldtype": "Data",
+   "label": "Booking Reference Number"
+  },
+  {
+   "fieldname": "pricing_section",
+   "fieldtype": "Section Break",
+   "label": "Pricing Details"
+  },
+  {
+   "fieldname": "supplier_cost",
+   "fieldtype": "Currency",
+   "label": "Supplier Cost"
+  },
+  {
+   "fieldname": "markup",
+   "fieldtype": "Currency",
+   "label": "Markup"
+  },
+  {
+   "fieldname": "column_break_pricing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Selling Price",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2025-06-03 12:50:13.805463",
+ "modified_by": "Administrator",
+ "module": "Travel Agency Backend",
+ "name": "Car Rental Booking Entry",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

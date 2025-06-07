@@ -1,13 +1,7 @@
-frappe.ui.form.on('Insurance Booking Entry', {
-    supplier_cost: function(frm, cdt, cdn) {
-        calculate_total(frm, cdt, cdn);
-    },
-    markup: function(frm, cdt, cdn) {
-        calculate_total(frm, cdt, cdn);
-    },
-    service_fee: function(frm, cdt, cdn) {
-        calculate_total(frm, cdt, cdn);
-    },
+// Copyright (c) 2025, Shakeel Mohammed Viam and contributors
+// For license information, please see license.txt
+
+frappe.ui.form.on('Visa Booking Entry', {
     passenger: function(frm, cdt, cdn) {
         // Fetch passenger name when passenger is selected
         const row = locals[cdt][cdn];
@@ -19,6 +13,7 @@ frappe.ui.form.on('Insurance Booking Entry', {
             });
         }
     },
+    
     form_render: function(frm, cdt, cdn) {
         // Fetch passenger name when form is rendered
         const row = locals[cdt][cdn];
@@ -31,9 +26,3 @@ frappe.ui.form.on('Insurance Booking Entry', {
         }
     }
 });
-
-function calculate_total(frm, cdt, cdn) {
-    const row = locals[cdt][cdn];
-    row.total_amount = (row.supplier_cost || 0) + (row.markup || 0) + (row.service_fee || 0);
-    refresh_field('total_amount', row.name, 'insurance_booking_entry');
-}

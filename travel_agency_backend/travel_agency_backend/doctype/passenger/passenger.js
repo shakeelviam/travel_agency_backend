@@ -24,6 +24,16 @@ frappe.ui.form.on("Passenger", {
 	
 	third_name(frm) {
 		updateFullName(frm);
+	},
+	
+	validate(frm) {
+		// Ensure full_name is updated before saving
+		updateFullName(frm);
+	},
+	
+	before_save(frm) {
+		// Ensure full_name is updated before saving
+		updateFullName(frm);
 	}
 });
 
@@ -34,9 +44,14 @@ function updateFullName(frm) {
 	let thirdName = frm.doc.third_name || "";
 	
 	// Combine names, filtering out empty values
-	let names = [firstName, secondName, thirdName].filter(name => name.trim() !== "");
+	let names = [firstName, secondName, thirdName].filter(name => name && name.trim() !== "");
 	let fullName = names.join(" ");
 	
 	// Set the full name field
-	frm.set_value("full_name", fullName);
+	frm.set_value("full_name", fullName || "Unnamed");
+	
+	// Force refresh the form to update the display
+	setTimeout(() => {
+		frm.refresh_field("full_name");
+	}, 100);
 }
