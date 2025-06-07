@@ -397,7 +397,7 @@ def get_service_category_mapping():
 
 
 @frappe.whitelist()
-def make_sales_invoice(source_name):
+def make_sales_invoice_from_trip(source_name, target_doc=None):
     """Create a Sales Invoice from Trip Booking"""
     source = frappe.get_doc("Trip Booking", source_name)
     if source.docstatus != 1:
@@ -535,10 +535,7 @@ def make_sales_invoice(source_name):
         frappe.throw(_(f"Error creating Sales Invoice: {str(e)}"))
 
 
-@frappe.whitelist()
-def make_sales_invoice_from_trip(source_name, target_doc=None):
-    """Legacy function for compatibility, calls the new implementation"""
-    return make_sales_invoice(source_name)
+
 
 
 @frappe.whitelist()
