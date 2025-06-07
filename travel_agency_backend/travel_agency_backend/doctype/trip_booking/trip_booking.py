@@ -411,7 +411,10 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         si.due_date = nowdate()
         si.set_posting_time = 1
         si.trip_booking = source.name
-        si.currency = source.currency
+        
+        # Get currency from company defaults if not available in Trip Booking
+        company = source.company or frappe.defaults.get_user_default("company")
+        si.currency = frappe.get_cached_value("Company", company, "default_currency") if company else "USD"
         
         # Map table names to default service types for entries without service_type field
         table_to_service_type_map = {}
