@@ -412,11 +412,15 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         items_added = 0
         
         # Add items from all booking tables using TripBookingConfig
-        # Map table names to default service types for tables without service_type field
-        table_to_service_type_map = {
-            "car_rental_booking_entry": "Car Rental Service",
-            # Add other mappings as needed
-        }
+        # Map table names to default service types for entries without service_type field
+        # Creating this mapping dynamically from TripBookingConfig
+        table_to_service_type_map = {}
+        for service_type, config in TripBookingConfig.SERVICES.items():
+            table_name = config.get('table')
+            if table_name:
+                table_to_service_type_map[table_name] = service_type
+                
+        frappe.msgprint(f"Service type mapping: {table_to_service_type_map}")
         
         for table in source.get_all_booking_tables():
             table_entries = source.get(table) or []
@@ -533,11 +537,13 @@ def make_purchase_invoices_from_trip(source_name):
     if doc.docstatus != 1:
         frappe.throw("Trip Booking must be submitted before creating Purchase Invoices")
     
-    # Map table names to default service types for tables without service_type field
-    table_to_service_type_map = {
-        "car_rental_booking_entry": "Car Rental Service",
-        # Add other mappings as needed
-    }
+    # Map table names to default service types for entries without service_type field
+    # Creating this mapping dynamically from TripBookingConfig
+    table_to_service_type_map = {}
+    for service_type, config in TripBookingConfig.SERVICES.items():
+        table_name = config.get('table')
+        if table_name:
+            table_to_service_type_map[table_name] = service_type
     
     # First, collect all suppliers and their service entries
     supplier_services = {}
