@@ -5,6 +5,13 @@ frappe.ui.form.on('Amadeus Settings', {
 	refresh: function(frm) {
 		frm.add_custom_button(__('Test Connection'), function() {
 			frm.save();
+			// Show a message that we're testing the connection
+			frappe.msgprint({
+				title: __('Testing Connection'),
+				indicator: 'blue',
+				message: __('Testing connection to Amadeus API. This may take a moment...')
+			});
+			
 			frappe.call({
 				method: 'travel_agency_backend.travel_agency_backend.api.amadeus.test_amadeus_connection',
 				callback: function(r) {
@@ -12,13 +19,22 @@ frappe.ui.form.on('Amadeus Settings', {
 						frappe.msgprint({
 							title: __('Success'),
 							indicator: 'green',
-							message: r.message.message
+							message: __(r.message.message)
 						});
 					} else {
+						let errorMsg = r.message ? r.message.message : __('Failed to connect to Amadeus API');
+						
+						// Check if this might be an API key activation delay issue
+						if (errorMsg.includes("401") || errorMsg.includes("unauthorized") || 
+							errorMsg.toLowerCase().includes("invalid")) {
+							errorMsg += "\n\nNOTE: New API keys may take up to 30 minutes to activate. " +
+										" If you just created these credentials, please wait and try again later.";
+						}
+						
 						frappe.msgprint({
-							title: __('Failed'),
+							title: __('Error'),
 							indicator: 'red',
-							message: r.message ? r.message.message : __('Failed to connect to Amadeus API')
+							message: __(errorMsg)
 						});
 					}
 				}

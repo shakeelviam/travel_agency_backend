@@ -3,6 +3,7 @@
 # For license information, please see license.txt
 
 import frappe
+import requests
 from frappe import _
 from frappe.utils import nowdate
 from travel_agency_backend.travel_agency_backend.integrations.amadeus.client import AmadeusClient
@@ -109,8 +110,23 @@ def test_amadeus_connection():
         dict: Connection status
     """
     try:
+        # Get API credentials from settings
+        api_key = frappe.db.get_single_value("Amadeus Settings", "api_key")
+        api_secret = frappe.db.get_single_value("Amadeus Settings", "api_secret")
+        
+        # Validate credentials
+        if not api_key or not api_secret:
+            return {
+                "success": False,
+                "message": _("API credentials are missing. Please enter both API Key and API Secret.")
+            }
+            
         # Initialize Amadeus client
-        client = AmadeusClient()
+        client = AmadeusClient(api_key=api_key, api_secret=api_secret)
+        
+        # Print debug info
+        debug_info = f"Testing connection with API Key: {api_key[:5]}...{api_key[-4:] if len(api_key) > 9 else ''}"
+        frappe.msgprint(debug_info)
         
         # Authenticate
         token = client.authenticate()
@@ -128,11 +144,37 @@ def test_amadeus_connection():
         else:
             return {
                 "success": False,
-                "message": _("Failed to authenticate with Amadeus API")
+                "message": _("Failed to authenticate with Amadeus API. No token received.")
             }
-    except Exception as e:
-        frappe.log_error(f"Amadeus Connection Test Error: {str(e)}", "Amadeus API")
+    except requests.exceptions.HTTPError as e:
+        error_msg = f"HTTP Error: {e}"
+        if hasattr(e, 'response'):
+            error_msg += f"\nStatus code: {e.response.status_code}"
+            try:
+                error_data = e.response.json()
+                if 'error_description' in error_data:
+                    error_msg += f"\nError details: {error_data['error_description']}"
+                elif 'errors' in error_data and len(error_data['errors']) > 0:
+                    error_msg += f"\nError details: {error_data['errors'][0].get('detail', 'Unknown error')}"
+            except:
+                error_msg += f"\nResponse text: {e.response.text[:200]}"
+        
+        frappe.log_error(error_msg, "Amadeus API Connection Test")
         return {
             "success": False,
-            "message": str(e)
+            "message": error_msg
+        }
+    except requests.exceptions.RequestException as e:
+        error_msg = f"Request Error: {str(e)}"
+        frappe.log_error(error_msg, "Amadeus API Connection Test")
+        return {
+            "success": False,
+            "message": error_msg
+        }
+    except Exception as e:
+        error_msg = f"Unexpected Error: {str(e)}"
+        frappe.log_error(error_msg, "Amadeus API Connection Test")
+        return {
+            "success": False,
+            "message": error_msg
         }

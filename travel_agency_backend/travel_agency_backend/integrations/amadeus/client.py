@@ -23,7 +23,8 @@ class AmadeusClient:
         If api_key and api_secret are not provided, they will be fetched from
         Frappe DocType settings.
         """
-        self.base_url = "https://test.api.amadeus.com" # Using test environment
+        # Using test environment - exact URL as specified in Amadeus developer portal
+        self.base_url = "https://test.api.amadeus.com"
         self.token = None
         self.token_expiry = None
         
@@ -52,18 +53,55 @@ class AmadeusClient:
             "client_secret": self.api_secret
         }
         
+        # Log authentication attempt
+        frappe.log_error(
+            f"Attempting Amadeus authentication with URL: {url}\n"
+            f"API Key: {self.api_key[:5]}...{self.api_key[-4:] if len(self.api_key) > 9 else ''}\n"
+            f"Environment: {self.base_url}", 
+            "Amadeus API Authentication Attempt"
+        )
+        
         try:
             response = requests.post(url, headers=headers, data=data)
+            
+            # Log the full response for debugging
+            frappe.log_error(
+                f"Amadeus authentication response:\n"
+                f"Status code: {response.status_code}\n"
+                f"Response body: {response.text}", 
+                "Amadeus API Response"
+            )
+            
             response.raise_for_status()
             
             result = response.json()
             self.token = result.get("access_token")
             self.token_expiry = datetime.now().timestamp() + result.get("expires_in", 1800)
             
+            # Log successful authentication
+            frappe.log_error(
+                f"Amadeus authentication successful. Token received.", 
+                "Amadeus API Success"
+            )
+            
             return self.token
+        except requests.exceptions.HTTPError as e:
+            # Handle HTTP errors (like 401 Unauthorized)
+            frappe.log_error(
+                f"Amadeus Authentication HTTP Error: {str(e)}\n"
+                f"Status code: {e.response.status_code if hasattr(e, 'response') else 'N/A'}\n"
+                f"Response body: {e.response.text if hasattr(e, 'response') else 'N/A'}", 
+                "Amadeus API Error"
+            )
+            frappe.throw(_(f"Failed to authenticate with Amadeus API: {e.response.json().get('error_description') if hasattr(e, 'response') and hasattr(e.response, 'json') else str(e)}. Please check your credentials."))
         except requests.exceptions.RequestException as e:
+            # Handle other request exceptions (like connection errors)
             frappe.log_error(f"Amadeus Authentication Error: {str(e)}", "Amadeus API")
-            frappe.throw(_("Failed to authenticate with Amadeus API. Please check your credentials."))
+            frappe.throw(_(f"Failed to connect to Amadeus API: {str(e)}. Please check your network connection."))
+        except Exception as e:
+            # Handle any other unexpected errors
+            frappe.log_error(f"Unexpected error during Amadeus authentication: {str(e)}", "Amadeus API")
+            frappe.throw(_(f"An unexpected error occurred: {str(e)}"))
     
     def get_headers(self):
         """
