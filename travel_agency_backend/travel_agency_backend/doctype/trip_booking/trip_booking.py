@@ -406,10 +406,22 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         target.posting_date = nowdate()
         target.set_posting_time = 1
         target.trip_booking = source.name
+        target.currency = source.currency  # Use the same currency as Trip Booking
+        
+        # Debug counter to track items added
+        items_added = 0
         
         # Add items from all booking tables using TripBookingConfig
         for table in source.get_all_booking_tables():
-            for row in source.get(table) or []:
+            table_entries = source.get(table) or []
+            if table_entries:
+                frappe.msgprint(f"Processing {len(table_entries)} entries from {table}")
+            
+            for row in table_entries:
+                # Skip rows without service_type
+                if not hasattr(row, 'service_type') or not row.service_type:
+                    continue
+                    
                 # Get service configuration
                 service_config = TripBookingConfig.get_service_config(row.service_type)
                 
@@ -419,25 +431,54 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                                 frappe.db.get_value('Service Type', row.service_type, 'income_account')
                 
                 # Calculate total amount using service_config
-                total_amount = flt(row.total_amount or 0)
+                total_amount = 0
                 
-                # Create invoice item
-                item = {
-                    "item_code": item_code,
-                    "item_name": f"{row.service_type} - {row.passenger}",
-                    "description": f"{row.service_type} for {row.passenger}",
-                    "qty": 1,
-                    "rate": total_amount,
-                    "amount": total_amount,
-                    "income_account": income_account,
-                    # Custom fields for traceability
-                    "passenger": row.passenger,
-                    "service_type": row.service_type,
-                    "trip_booking": source.name
-                }
+                # First try to get total_amount directly
+                if hasattr(row, 'total_amount') and row.total_amount:
+                    total_amount = flt(row.total_amount)
+                else:
+                    # If no total_amount, calculate from components
+                    if service_config:
+                        # Add cost fields
+                        for cost_field in service_config.get('cost_fields', []):
+                            if hasattr(row, cost_field) and getattr(row, cost_field):
+                                total_amount += flt(getattr(row, cost_field))
+                        
+                        # Add markup
+                        markup_field = service_config.get('markup_field')
+                        if markup_field and hasattr(row, markup_field) and getattr(row, markup_field):
+                            total_amount += flt(getattr(row, markup_field))
+                        
+                        # Add commission/service fee
+                        commission_field = service_config.get('commission_field')
+                        if commission_field and hasattr(row, commission_field) and getattr(row, commission_field):
+                            total_amount += flt(getattr(row, commission_field))
                 
-                target.append("items", item)
+                # Only add items with amount > 0
+                if total_amount > 0:
+                    # Create invoice item
+                    item = {
+                        "item_code": item_code,
+                        "item_name": f"{row.service_type} - {row.passenger}",
+                        "description": f"{row.service_type} for {row.passenger}",
+                        "qty": 1,
+                        "rate": total_amount,
+                        "amount": total_amount,
+                        "income_account": income_account,
+                        # Custom fields for traceability
+                        "passenger": row.passenger,
+                        "service_type": row.service_type,
+                        "trip_booking": source.name
+                    }
+                    
+                    target.append("items", item)
+                    items_added += 1
         
+        if items_added == 0:
+            frappe.msgprint("No items were added to the Sales Invoice. Please check if services have valid amounts.")
+        else:
+            frappe.msgprint(f"Added {items_added} items to the Sales Invoice.")
+            
         # Calculate taxes and totals
         target.run_method("set_missing_values")
         target.run_method("calculate_taxes_and_totals")
@@ -471,6 +512,15 @@ def make_purchase_invoices_from_trip(source_name):
     for table, supplier_field in service_map.items():
         supplier = doc.get(supplier_field)
         entries = doc.get(table)
+        
+        # Debug logging to identify issues
+        if entries and not supplier:
+            frappe.msgprint(f"Warning: Entries found for {table} but no supplier specified in {supplier_field}")
+            continue
+            
+        if not entries:
+            continue
+            
         if supplier and entries:
             pi = frappe.new_doc("Purchase Invoice")
             pi.supplier = supplier
@@ -478,6 +528,7 @@ def make_purchase_invoices_from_trip(source_name):
             pi.due_date = nowdate()
             pi.set_posting_time = 1
             pi.trip_booking = doc.name
+            pi.currency = doc.currency  # Use the same currency as Trip Booking
             
             # Get expense account and item code from Service Type if available
             expense_account = None
@@ -488,7 +539,12 @@ def make_purchase_invoices_from_trip(source_name):
                                   frappe.db.get_value('Service Type', service_type, 'service_expense_account')
                 item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
             
+            has_items = False
             for row in entries:
+                # Skip rows without service_type
+                if not hasattr(row, 'service_type') or not row.service_type:
+                    continue
+                    
                 # Use TripBookingConfig to determine cost fields
                 cost = 0
                 service_config = TripBookingConfig.get_service_config(row.service_type)
@@ -498,26 +554,38 @@ def make_purchase_invoices_from_trip(source_name):
                             cost = flt(getattr(row, cost_field))
                             break
                 
-                pi.append("items", {
-                    "item_code": item_code,
-                    "item_name": f"{row.service_type} - {row.passenger}",
-                    "description": f"{row.service_type} for {row.passenger}",
-                    "qty": 1,
-                    "rate": cost,
-                    "amount": cost,
-                    "expense_account": expense_account,
-                    # Custom fields for traceability
-                    "passenger": row.passenger,
-                    "service_type": row.service_type,
-                    "trip_booking": doc.name
-                })
+                # Only add items with cost > 0
+                if cost > 0:
+                    has_items = True
+                    pi.append("items", {
+                        "item_code": item_code,
+                        "item_name": f"{row.service_type} - {row.passenger}",
+                        "description": f"{row.service_type} for {row.passenger}",
+                        "qty": 1,
+                        "rate": cost,
+                        "amount": cost,
+                        "expense_account": expense_account,
+                        # Custom fields for traceability
+                        "passenger": row.passenger,
+                        "service_type": row.service_type,
+                        "trip_booking": doc.name
+                    })
             
-            pi.run_method("set_missing_values")
-            pi.insert()
-            created_invoices.append({
-                "name": pi.name,
-                "supplier": supplier,
-                "amount": pi.grand_total
-            })
+            # Only create invoice if it has items
+            if has_items:
+                pi.run_method("set_missing_values")
+                pi.insert()
+                created_invoices.append({
+                    "name": pi.name,
+                    "supplier": supplier,
+                    "amount": pi.grand_total
+                })
+            else:
+                frappe.msgprint(f"No valid items with costs found for {table} with supplier {supplier}")
+    
+    if not created_invoices:
+        frappe.msgprint("No Purchase Invoices were created. Please check if suppliers are specified and entries have costs.")
+        
+    return created_invoices
     
     return created_invoices

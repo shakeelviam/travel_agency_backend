@@ -8,32 +8,56 @@ frappe.ui.form.on('Flight Booking Entry Online', {
     trip_type: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
         // Show/hide return sector based on trip type
+        
+        // Get the grid row using the grid_rows object
+        const grid_rows = cur_frm.fields_dict[row.parentfield].grid.grid_rows;
+        let grid_row;
+        
+        // Find the grid row by docname
+        for (let i=0; i<grid_rows.length; i++) {
+            if (grid_rows[i].doc.name === cdn) {
+                grid_row = grid_rows[i];
+                break;
+            }
+        }
+        
+        if (!grid_row) return;
+        
         if (row.trip_type === 'One Way') {
-            // For grid forms, we need to use the grid_row API
-            const grid_row = frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
-            if (grid_row) {
-                grid_row.toggle_editable('return_sector', false);
-                grid_row.toggle_display('return_sector', false);
-                grid_row.toggle_editable('return_date', false);
-                grid_row.toggle_display('return_date', false);
-                frappe.model.set_value(cdt, cdn, 'return_sector', '');
-                frappe.model.set_value(cdt, cdn, 'return_date', '');
-            }
+            // Hide return fields for One Way trips
+            grid_row.toggle_editable('return_sector', false);
+            grid_row.toggle_display('return_sector', false);
+            grid_row.toggle_editable('return_date', false);
+            grid_row.toggle_display('return_date', false);
+            
+            // Clear return values
+            frappe.model.set_value(cdt, cdn, 'return_sector', '');
+            frappe.model.set_value(cdt, cdn, 'return_date', '');
         } else if (row.trip_type === 'Return') {
-            const grid_row = frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
-            if (grid_row) {
-                grid_row.toggle_editable('return_sector', true);
-                grid_row.toggle_display('return_sector', true);
-                grid_row.toggle_editable('return_date', true);
-                grid_row.toggle_display('return_date', true);
-            }
+            // Show return fields for Return trips
+            grid_row.toggle_editable('return_sector', true);
+            grid_row.toggle_display('return_sector', true);
+            grid_row.toggle_editable('return_date', true);
+            grid_row.toggle_display('return_date', true);
         }
     },
     
     form_render: function(frm, cdt, cdn) {
         // This runs when the row form is rendered
         const row = locals[cdt][cdn];
-        const grid_row = frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
+        
+        // Get the grid row using the grid_rows object
+        const grid_rows = cur_frm.fields_dict[row.parentfield].grid.grid_rows;
+        let grid_row;
+        
+        // Find the grid row by docname
+        for (let i=0; i<grid_rows.length; i++) {
+            if (grid_rows[i].doc.name === cdn) {
+                grid_row = grid_rows[i];
+                break;
+            }
+        }
+        
         if (!grid_row) return;
         
         if (row.trip_type === 'One Way') {

@@ -8,8 +8,18 @@ frappe.ui.form.on('Flight Booking Entry GDS', {
     trip_type: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
         
-        // Get the grid row - use the correct parent field
-        const grid_row = frm.fields_dict.flight_booking_entry_gds.grid.grid_rows_by_docname[cdn];
+        // Get the grid row using the grid_rows object
+        const grid_rows = cur_frm.fields_dict[row.parentfield].grid.grid_rows;
+        let grid_row;
+        
+        // Find the grid row by docname
+        for (let i=0; i<grid_rows.length; i++) {
+            if (grid_rows[i].doc.name === cdn) {
+                grid_row = grid_rows[i];
+                break;
+            }
+        }
+        
         if (!grid_row) return;
         
         // Toggle return_sector and return_date fields based on trip_type
@@ -37,8 +47,18 @@ frappe.ui.form.on('Flight Booking Entry GDS', {
         
         // Apply the same logic on form render
         if (row) {
-            // Get the grid row - use the correct parent field
-            const grid_row = frm.fields_dict.flight_booking_entry_gds.grid.grid_rows_by_docname[cdn];
+            // Get the grid row using the grid_rows object
+            const grid_rows = cur_frm.fields_dict[row.parentfield].grid.grid_rows;
+            let grid_row;
+            
+            // Find the grid row by docname
+            for (let i=0; i<grid_rows.length; i++) {
+                if (grid_rows[i].doc.name === cdn) {
+                    grid_row = grid_rows[i];
+                    break;
+                }
+            }
+            
             if (!grid_row) return;
             
             // Toggle return_sector and return_date fields based on trip_type
