@@ -49,8 +49,10 @@ def search_flights(origin, destination, departure_date, return_date=None, adults
         
         return results
     except Exception as e:
-        frappe.log_error(f"Amadeus Flight Search Error: {str(e)}", "Amadeus API")
-        return {"error": str(e)}
+        # Use short title and limit error message length
+        error_msg = str(e)[:100] if str(e) else "Unknown error"
+        frappe.log_error(f"API error: {error_msg}", "Flight API")
+        return {"error": error_msg}
 
 @frappe.whitelist()
 def get_flight_price(flight_offer):
@@ -75,8 +77,10 @@ def get_flight_price(flight_offer):
         
         return results
     except Exception as e:
-        frappe.log_error(f"Amadeus Flight Price Error: {str(e)}", "Amadeus API")
-        return {"error": str(e)}
+        # Use short title and limit error message length
+        error_msg = str(e)[:100] if str(e) else "Unknown error"
+        frappe.log_error(f"Price error: {error_msg}", "Flight API")
+        return {"error": error_msg}
 
 @frappe.whitelist()
 def search_airports(keyword):
@@ -98,8 +102,10 @@ def search_airports(keyword):
         
         return results
     except Exception as e:
-        frappe.log_error(f"Amadeus Airport Search Error: {str(e)}", "Amadeus API")
-        return {"error": str(e)}
+        # Use short title and limit error message length
+        error_msg = str(e)[:100] if str(e) else "Unknown error"
+        frappe.log_error(f"Airport search error: {error_msg}", "Flight API")
+        return {"error": error_msg}
 
 @frappe.whitelist()
 def test_amadeus_connection():
@@ -147,34 +153,45 @@ def test_amadeus_connection():
                 "message": _("Failed to authenticate with Amadeus API. No token received.")
             }
     except requests.exceptions.HTTPError as e:
-        error_msg = f"HTTP Error: {e}"
+        # Extract meaningful error message
+        error_msg = "HTTP Error"
         if hasattr(e, 'response'):
-            error_msg += f"\nStatus code: {e.response.status_code}"
+            error_msg = f"HTTP Error {e.response.status_code}"
             try:
                 error_data = e.response.json()
                 if 'error_description' in error_data:
-                    error_msg += f"\nError details: {error_data['error_description']}"
+                    error_msg = error_data['error_description']
                 elif 'errors' in error_data and len(error_data['errors']) > 0:
-                    error_msg += f"\nError details: {error_data['errors'][0].get('detail', 'Unknown error')}"
+                    error_msg = error_data['errors'][0].get('detail', 'Unknown error')
             except:
-                error_msg += f"\nResponse text: {e.response.text[:200]}"
+                pass
         
-        frappe.log_error(error_msg, "Amadeus API Connection Test")
+        # Limit error message length
+        error_msg = error_msg[:100] if error_msg else "Unknown error"
+        
+        # Add note about API key activation
+        user_message = f"{error_msg}\n\nNote: New Amadeus API keys may take up to 30 minutes to activate. If you just created your API key, please wait and try again later."
+        
+        # Use short title for log
+        frappe.log_error(f"Connection test: {error_msg}", "API Test")
+        
         return {
             "success": False,
-            "message": error_msg
+            "message": user_message
         }
     except requests.exceptions.RequestException as e:
-        error_msg = f"Request Error: {str(e)}"
-        frappe.log_error(error_msg, "Amadeus API Connection Test")
+        # Network-related errors
+        error_msg = str(e)[:100] if str(e) else "Network error"
+        frappe.log_error(f"Connection error: {error_msg}", "API Test")
         return {
             "success": False,
-            "message": error_msg
+            "message": f"Network error: {error_msg}. Please check your internet connection."
         }
     except Exception as e:
-        error_msg = f"Unexpected Error: {str(e)}"
-        frappe.log_error(error_msg, "Amadeus API Connection Test")
+        # Any other errors
+        error_msg = str(e)[:100] if str(e) else "Unknown error"
+        frappe.log_error(f"Test error: {error_msg}", "API Test")
         return {
             "success": False,
-            "message": error_msg
+            "message": f"Error: {error_msg}"
         }

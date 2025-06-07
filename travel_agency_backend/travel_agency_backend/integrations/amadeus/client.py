@@ -41,60 +41,50 @@ class AmadeusClient:
     
     def authenticate(self):
         """
-        Authenticate with Amadeus API and get access token
+        Authenticate with Amadeus API using OAuth2
         """
         url = f"{self.base_url}/v1/security/oauth2/token"
-        headers = {
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
             "grant_type": "client_credentials",
             "client_id": self.api_key,
             "client_secret": self.api_secret
         }
         
-        # Log authentication attempt
+        # Short log title to avoid truncation
         frappe.log_error(
-            f"Attempting Amadeus authentication with URL: {url}\n"
-            f"API Key: {self.api_key[:5]}...{self.api_key[-4:] if len(self.api_key) > 9 else ''}\n"
-            f"Environment: {self.base_url}", 
-            "Amadeus API Authentication Attempt"
+            f"Auth attempt with key: {self.api_key[:4]}...{self.api_key[-4:] if len(self.api_key) > 8 else ''}", 
+            "Amadeus Auth"
         )
         
         try:
             response = requests.post(url, headers=headers, data=data)
             
-            # Log the full response for debugging
-            frappe.log_error(
-                f"Amadeus authentication response:\n"
-                f"Status code: {response.status_code}\n"
-                f"Response body: {response.text}", 
-                "Amadeus API Response"
-            )
+            # Short log title to avoid truncation
+            if response.status_code != 200:
+                frappe.log_error(
+                    f"Auth failed: {response.status_code}", 
+                    "Amadeus Auth"
+                )
             
             response.raise_for_status()
-            
             result = response.json()
             self.token = result.get("access_token")
             self.token_expiry = datetime.now().timestamp() + result.get("expires_in", 1800)
-            
-            # Log successful authentication
-            frappe.log_error(
-                f"Amadeus authentication successful. Token received.", 
-                "Amadeus API Success"
-            )
-            
             return self.token
         except requests.exceptions.HTTPError as e:
-            # Handle HTTP errors (like 401 Unauthorized)
-            frappe.log_error(
-                f"Amadeus Authentication HTTP Error: {str(e)}\n"
-                f"Status code: {e.response.status_code if hasattr(e, 'response') else 'N/A'}\n"
-                f"Response body: {e.response.text if hasattr(e, 'response') else 'N/A'}", 
-                "Amadeus API Error"
-            )
-            frappe.throw(_(f"Failed to authenticate with Amadeus API: {e.response.json().get('error_description') if hasattr(e, 'response') and hasattr(e.response, 'json') else str(e)}. Please check your credentials."))
-        except requests.exceptions.RequestException as e:
+            # Handle HTTP errors (e.g., 401 Unauthorized)
+            error_msg = "Invalid credentials"
+            if hasattr(e, 'response') and hasattr(e.response, 'json'):
+                try:
+                    error_data = e.response.json()
+                    if 'error_description' in error_data:
+                        error_msg = error_data['error_description']
+                except:
+                    pass
+            
+            frappe.log_error(f"Auth error: {error_msg}", "Amadeus Auth")
+            frappe.throw(_(f"Authentication failed: {error_msg}. Please check your API key and secret."))
             # Handle other request exceptions (like connection errors)
             frappe.log_error(f"Amadeus Authentication Error: {str(e)}", "Amadeus API")
             frappe.throw(_(f"Failed to connect to Amadeus API: {str(e)}. Please check your network connection."))
@@ -162,47 +152,43 @@ class AmadeusClient:
         try:
             headers = self.get_headers()
             
-            # Log the request for debugging
+            # Short log title to avoid truncation
             frappe.log_error(
-                f"Amadeus Flight Search Request:\n"
-                f"URL: {url}\n"
-                f"Parameters: {params}", 
-                "Amadeus API Flight Search"
+                f"Search: {origin} to {destination}", 
+                "Flight Search"
             )
             
             # Make GET request with query parameters
             response = requests.get(url, headers=headers, params=params)
             
-            # Log the response for debugging
-            frappe.log_error(
-                f"Amadeus Flight Search Response:\n"
-                f"Status code: {response.status_code}\n"
-                f"Response body preview: {response.text[:300]}...", 
-                "Amadeus API Flight Search Response"
-            )
+            # Short log title for response
+            if response.status_code != 200:
+                frappe.log_error(
+                    f"Search failed: {response.status_code}", 
+                    "Flight Search"
+                )
             
             response.raise_for_status()
-            
             return response.json()
         except requests.exceptions.HTTPError as e:
-            error_msg = f"Amadeus Flight Search HTTP Error: {str(e)}"
+            error_msg = "API error"
             if hasattr(e, 'response'):
-                error_msg += f"\nStatus code: {e.response.status_code}"
+                error_msg = f"HTTP {e.response.status_code}"
                 try:
                     error_data = e.response.json()
                     if 'errors' in error_data and len(error_data['errors']) > 0:
-                        error_msg += f"\nError details: {error_data['errors'][0].get('detail', 'Unknown error')}"
+                        error_msg = error_data['errors'][0].get('detail', 'Unknown error')[:100]
                 except:
-                    error_msg += f"\nResponse text: {e.response.text[:200]}"
+                    pass
             
-            frappe.log_error(error_msg, "Amadeus API Flight Search Error")
-            frappe.throw(_(f"Failed to search flights: {error_msg}"))
+            frappe.log_error(f"Search error: {error_msg}", "Flight Search")
+            frappe.throw(_(f"Flight search failed: {error_msg}"))
         except requests.exceptions.RequestException as e:
-            frappe.log_error(f"Amadeus Flight Search Error: {str(e)}", "Amadeus API")
-            frappe.throw(_("Failed to search flights. Please check your network connection and try again later."))
+            frappe.log_error(f"Network error: {str(e)[:100]}", "Flight Search")
+            frappe.throw(_("Network error. Please check your connection and try again."))
         except Exception as e:
-            frappe.log_error(f"Unexpected error during flight search: {str(e)}", "Amadeus API")
-            frappe.throw(_(f"An unexpected error occurred: {str(e)}"))
+            frappe.log_error(f"Error: {str(e)[:100]}", "Flight Search")
+            frappe.throw(_(f"Error: {str(e)[:100]}"))
     
     def get_flight_price(self, flight_offer):
         """
@@ -226,46 +212,42 @@ class AmadeusClient:
         try:
             headers = self.get_headers()
             
-            # Log the request for debugging
+            # Short log title
             frappe.log_error(
-                f"Amadeus Flight Price Request:\n"
-                f"URL: {url}\n"
-                f"Payload: {json.dumps(payload)[:300]}...", 
-                "Amadeus API Flight Price"
+                f"Price check for flight offer", 
+                "Price Check"
             )
             
             response = requests.post(url, headers=headers, json=payload)
             
-            # Log the response for debugging
-            frappe.log_error(
-                f"Amadeus Flight Price Response:\n"
-                f"Status code: {response.status_code}\n"
-                f"Response body preview: {response.text[:300]}...", 
-                "Amadeus API Flight Price Response"
-            )
+            # Short log title for response
+            if response.status_code != 200:
+                frappe.log_error(
+                    f"Price check failed: {response.status_code}", 
+                    "Price Check"
+                )
             
             response.raise_for_status()
-            
             return response.json()
         except requests.exceptions.HTTPError as e:
-            error_msg = f"Amadeus Flight Price HTTP Error: {str(e)}"
+            error_msg = "API error"
             if hasattr(e, 'response'):
-                error_msg += f"\nStatus code: {e.response.status_code}"
+                error_msg = f"HTTP {e.response.status_code}"
                 try:
                     error_data = e.response.json()
                     if 'errors' in error_data and len(error_data['errors']) > 0:
-                        error_msg += f"\nError details: {error_data['errors'][0].get('detail', 'Unknown error')}"
+                        error_msg = error_data['errors'][0].get('detail', 'Unknown error')[:100]
                 except:
-                    error_msg += f"\nResponse text: {e.response.text[:200]}"
+                    pass
             
-            frappe.log_error(error_msg, "Amadeus API Flight Price Error")
-            frappe.throw(_(f"Failed to get flight price: {error_msg}"))
+            frappe.log_error(f"Price error: {error_msg}", "Price Check")
+            frappe.throw(_(f"Price check failed: {error_msg}"))
         except requests.exceptions.RequestException as e:
-            frappe.log_error(f"Amadeus Flight Price Error: {str(e)}", "Amadeus API")
-            frappe.throw(_("Failed to get flight price. Please check your network connection and try again later."))
+            frappe.log_error(f"Network error: {str(e)[:100]}", "Price Check")
+            frappe.throw(_("Network error. Please check your connection and try again."))
         except Exception as e:
-            frappe.log_error(f"Unexpected error during flight price retrieval: {str(e)}", "Amadeus API")
-            frappe.throw(_(f"An unexpected error occurred: {str(e)}"))
+            frappe.log_error(f"Error: {str(e)[:100]}", "Price Check")
+            frappe.throw(_(f"Error: {str(e)[:100]}"))
     
     def get_airport_info(self, airport_code):
         """
