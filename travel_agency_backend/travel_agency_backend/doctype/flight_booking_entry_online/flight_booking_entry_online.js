@@ -10,7 +10,7 @@ frappe.ui.form.on('Flight Booking Entry Online', {
         // Show/hide return sector based on trip type
         if (row.trip_type === 'One Way') {
             // For grid forms, we need to use the grid_row API
-            const grid_row = cur_frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
+            const grid_row = frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
             if (grid_row) {
                 grid_row.toggle_editable('return_sector', false);
                 grid_row.toggle_display('return_sector', false);
@@ -20,7 +20,7 @@ frappe.ui.form.on('Flight Booking Entry Online', {
                 frappe.model.set_value(cdt, cdn, 'return_date', '');
             }
         } else if (row.trip_type === 'Return') {
-            const grid_row = cur_frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
+            const grid_row = frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
             if (grid_row) {
                 grid_row.toggle_editable('return_sector', true);
                 grid_row.toggle_display('return_sector', true);
@@ -33,7 +33,7 @@ frappe.ui.form.on('Flight Booking Entry Online', {
     form_render: function(frm, cdt, cdn) {
         // This runs when the row form is rendered
         const row = locals[cdt][cdn];
-        const grid_row = cur_frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
+        const grid_row = frm.fields_dict.flight_booking_entry_online.grid.grid_rows_by_docname[cdn];
         if (!grid_row) return;
         
         if (row.trip_type === 'One Way') {

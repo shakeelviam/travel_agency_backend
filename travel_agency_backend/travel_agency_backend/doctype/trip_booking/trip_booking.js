@@ -1,9 +1,5 @@
 frappe.ui.form.on("Trip Booking", {
   refresh: function (frm) {
-    // Add booking summary section
-    if (!frm.is_new()) {
-      add_booking_summary(frm);
-    }
     // Clear existing custom buttons to avoid duplicates on refresh
     frm.clear_custom_buttons(); // More robust way to clear all custom buttons
 
@@ -256,65 +252,6 @@ function calculate_totals(frm) {
   });
   
   frm.set_value('total_amount', total);
-  
-  // Update booking summary if it exists
-  if (!frm.is_new()) {
-    add_booking_summary(frm);
-  }
 }
 
-// Function to add booking summary to the form
-function add_booking_summary(frm) {
-  // Remove any existing summary section
-  frm.dashboard.clear_headline();
-  
-  // Create summary data
-  const tables = [
-    { name: 'flight_booking_entry_gds', label: 'Flight GDS' },
-    { name: 'flight_booking_entry_online', label: 'Flight Online' },
-    { name: 'hotel_booking_entry', label: 'Hotel' },
-    { name: 'visa_booking_entry', label: 'Visa' },
-    { name: 'car_rental_booking_entry', label: 'Car Rental' },
-    { name: 'insurance_booking_entry', label: 'Insurance' }
-  ];
-  
-  let summary_html = '<div class="booking-summary"><h6>Booking Summary</h6><table class="table table-bordered table-condensed">';
-  summary_html += '<thead><tr><th>Service Type</th><th>Bookings</th><th>Amount</th></tr></thead><tbody>';
-  
-  let has_bookings = false;
-  
-  // Add rows for each service type
-  tables.forEach(table => {
-    const bookings = frm.doc[table.name] || [];
-    if (bookings.length > 0) {
-      has_bookings = true;
-      let total_amount = 0;
-      bookings.forEach(row => {
-        total_amount += flt(row.total_amount || 0);
-      });
-      
-      summary_html += `<tr>
-        <td>${table.label}</td>
-        <td>${bookings.length}</td>
-        <td>${format_currency(total_amount, frm.doc.currency || 'USD')}</td>
-      </tr>`;
-    }
-  });
-  
-  summary_html += '</tbody></table></div>';
-  
-  // Only add the summary if there are bookings
-  if (has_bookings) {
-    frm.dashboard.set_headline_alert(summary_html);
-    
-    // Add some custom styling
-    frm.dashboard.headline_alert.find('.booking-summary').css({
-      'padding': '10px',
-      'margin-bottom': '15px'
-    });
-    
-    frm.dashboard.headline_alert.find('table').css({
-      'margin-bottom': '0'
-    });
-  }
-}
+
