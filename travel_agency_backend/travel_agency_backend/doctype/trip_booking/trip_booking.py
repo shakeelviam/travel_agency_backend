@@ -477,7 +477,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 
                 # Get income account and item code
                 income_account = frappe.db.get_value('Service Type', service_type, 'income_account') or \
-                                frappe.db.get_value('Service Type', service_type, 'service_income_account')
+                                frappe.db.get_value('Service Type', service_type, 'sales_account')
                 item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
                 
                 # Create descriptive text for the line item
@@ -610,7 +610,8 @@ def make_purchase_invoices_from_trip(source_name):
                     continue
                     
                 # Get expense account and item code
-                expense_account = frappe.db.get_value('Service Type', service_type, 'expense_account')
+                expense_account = frappe.db.get_value('Service Type', service_type, 'service_expense_account') or \
+                                frappe.db.get_value('Service Type', service_type, 'purchase_account')
                 item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
                 
                 # Create descriptive text for the line item
