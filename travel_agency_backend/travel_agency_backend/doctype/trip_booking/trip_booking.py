@@ -412,23 +412,37 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         items_added = 0
         
         # Add items from all booking tables using TripBookingConfig
+        # Map table names to default service types for tables without service_type field
+        table_to_service_type_map = {
+            "car_rental_booking_entry": "Car Rental Service",
+            # Add other mappings as needed
+        }
+        
         for table in source.get_all_booking_tables():
             table_entries = source.get(table) or []
             if table_entries:
                 frappe.msgprint(f"Processing {len(table_entries)} entries from {table}")
             
             for row in table_entries:
-                # Skip rows without service_type
-                if not hasattr(row, 'service_type') or not row.service_type:
+                # Determine service type - either from the row or from mapping
+                service_type = None
+                if hasattr(row, 'service_type') and row.service_type:
+                    service_type = row.service_type
+                elif table in table_to_service_type_map:
+                    service_type = table_to_service_type_map[table]
+                
+                # Skip if we couldn't determine service type
+                if not service_type:
+                    frappe.msgprint(f"Skipping entry in {table}: No service type found")
                     continue
                     
                 # Get service configuration
-                service_config = TripBookingConfig.get_service_config(row.service_type)
+                service_config = TripBookingConfig.get_service_config(service_type)
                 
                 # Get item code from Service Type if available
-                item_code = frappe.db.get_value('Service Type', row.service_type, 'item_code')
-                income_account = frappe.db.get_value('Service Type', row.service_type, 'sales_account') or \
-                                frappe.db.get_value('Service Type', row.service_type, 'income_account')
+                item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
+                income_account = frappe.db.get_value('Service Type', service_type, 'sales_account') or \
+                                frappe.db.get_value('Service Type', service_type, 'income_account')
                 
                 # Calculate total amount using service_config
                 total_amount = 0
@@ -458,15 +472,25 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 if total_amount > 0:
                     # Create invoice item with full description to make it clear
                     # what service this item represents
-                    description = f"{row.service_type} for {row.passenger}"
+                    description = f"{service_type} for {row.passenger}"
+                    
+                    # Add reference numbers if available
                     if hasattr(row, 'pnr') and row.pnr:
                         description += f" (PNR: {row.pnr})"
                     if hasattr(row, 'booking_reference') and row.booking_reference:
                         description += f" (Ref: {row.booking_reference})"
+                    elif hasattr(row, 'booking_reference_number') and row.booking_reference_number:
+                        description += f" (Ref: {row.booking_reference_number})"
+                    
+                    # For car rentals, add pickup/return dates if available
+                    if service_type == "Car Rental Service" and hasattr(row, 'pickup_date') and row.pickup_date:
+                        description += f" (Pickup: {row.pickup_date})"
+                        if hasattr(row, 'return_date') and row.return_date:
+                            description += f" (Return: {row.return_date})"
                     
                     item = {
                         "item_code": item_code,
-                        "item_name": f"{row.service_type} - {row.passenger}",
+                        "item_name": f"{service_type} - {row.passenger}",
                         "description": description,
                         "qty": 1,
                         "rate": total_amount,
@@ -474,7 +498,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                         "income_account": income_account,
                         # Custom fields for traceability
                         "passenger": row.passenger,
-                        "service_type": row.service_type,
+                        "service_type": service_type,
                         "trip_booking": source.name
                     }
                     
@@ -509,6 +533,12 @@ def make_purchase_invoices_from_trip(source_name):
     if doc.docstatus != 1:
         frappe.throw("Trip Booking must be submitted before creating Purchase Invoices")
     
+    # Map table names to default service types for tables without service_type field
+    table_to_service_type_map = {
+        "car_rental_booking_entry": "Car Rental Service",
+        # Add other mappings as needed
+    }
+    
     # First, collect all suppliers and their service entries
     supplier_services = {}
     
@@ -534,15 +564,21 @@ def make_purchase_invoices_from_trip(source_name):
             
         # Add all entries for this service type to the supplier's list
         for row in entries:
+            # Use the identified service_type from the entry or from the mapping
+            entry_service_type = None
             if hasattr(row, 'service_type') and row.service_type:
-                # Store the service config with the row for later use
-                entry_data = {
-                    'row': row,
-                    'service_config': config,
-                    'service_type': service_type,
-                    'table': table
-                }
-                supplier_services[supplier].append(entry_data)
+                entry_service_type = row.service_type
+            else:
+                entry_service_type = service_type
+                
+            # Store the service config with the row for later use
+            entry_data = {
+                'row': row,
+                'service_config': config,
+                'service_type': entry_service_type,
+                'table': table
+            }
+            supplier_services[supplier].append(entry_data)
     
     created_invoices = []
     
@@ -585,10 +621,20 @@ def make_purchase_invoices_from_trip(source_name):
                 
                 # Create more detailed description
                 description = f"{service_type} for {row.passenger}"
+                
+                # Add reference numbers if available
                 if hasattr(row, 'pnr') and row.pnr:
                     description += f" (PNR: {row.pnr})"
                 if hasattr(row, 'booking_reference') and row.booking_reference:
                     description += f" (Ref: {row.booking_reference})"
+                elif hasattr(row, 'booking_reference_number') and row.booking_reference_number:
+                    description += f" (Ref: {row.booking_reference_number})"
+                
+                # For car rentals, add pickup/return dates if available
+                if service_type == "Car Rental Service" and hasattr(row, 'pickup_date') and row.pickup_date:
+                    description += f" (Pickup: {row.pickup_date})"
+                    if hasattr(row, 'return_date') and row.return_date:
+                        description += f" (Return: {row.return_date})"
                 
                 pi.append("items", {
                     "item_code": item_code,
@@ -600,7 +646,7 @@ def make_purchase_invoices_from_trip(source_name):
                     "expense_account": expense_account,
                     # Custom fields for traceability
                     "passenger": row.passenger,
-                    "service_type": row.service_type if hasattr(row, 'service_type') else service_type,
+                    "service_type": service_type,
                     "trip_booking": doc.name
                 })
         
