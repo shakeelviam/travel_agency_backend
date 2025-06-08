@@ -21,6 +21,7 @@
   "travel_date",
   "return_date",
   "pricing_section",
+  "item",
   "supplier_cost",
   "markup",
   "column_break_pricing",
@@ -123,6 +124,12 @@
    "fieldname": "pricing_section",
    "fieldtype": "Section Break",
    "label": "Pricing Details"
+  },
+  {
+   "fieldname": "item",
+   "fieldtype": "Link",
+   "label": "Item",
+   "options": "Item"
   },
   {
    "fieldname": "supplier_cost",
