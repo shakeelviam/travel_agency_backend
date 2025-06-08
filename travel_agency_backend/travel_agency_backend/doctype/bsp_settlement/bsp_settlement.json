@@ -1,0 +1,130 @@
+{
+  "actions": [],
+  "autoname": "BSPSETT.####",
+  "creation": "2025-06-08 13:38:00.000000",
+  "doctype": "DocType",
+  "engine": "InnoDB",
+  "field_order": [
+    "settlement_date",
+    "reporting_period",
+    "airline",
+    "column_break_settlement",
+    "total_amount",
+    "paid_amount",
+    "balance_amount",
+    "payment_section",
+    "payment_reference",
+    "journal_entry",
+    "entries_section",
+    "reconciliation_entries"
+  ],
+  "fields": [
+    {
+      "fieldname": "settlement_date",
+      "label": "Settlement Date",
+      "fieldtype": "Date",
+      "default": "Today",
+      "reqd": 1
+    },
+    {
+      "fieldname": "reporting_period",
+      "label": "Reporting Period",
+      "fieldtype": "Data",
+      "reqd": 1
+    },
+    {
+      "fieldname": "airline",
+      "label": "Airline",
+      "fieldtype": "Link",
+      "options": "Airline Master"
+    },
+    {
+      "fieldname": "column_break_settlement",
+      "fieldtype": "Column Break"
+    },
+    {
+      "fieldname": "total_amount",
+      "label": "Total Amount",
+      "fieldtype": "Currency",
+      "reqd": 1
+    },
+    {
+      "fieldname": "paid_amount",
+      "label": "Paid Amount",
+      "fieldtype": "Currency",
+      "reqd": 1
+    },
+    {
+      "fieldname": "balance_amount",
+      "label": "Balance Amount",
+      "fieldtype": "Currency",
+      "read_only": 1
+    },
+    {
+      "fieldname": "payment_section",
+      "label": "Payment Information",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "payment_reference",
+      "label": "Payment Reference",
+      "fieldtype": "Data"
+    },
+    {
+      "fieldname": "journal_entry",
+      "label": "Journal Entry",
+      "fieldtype": "Link",
+      "options": "Journal Entry"
+    },
+    {
+      "fieldname": "entries_section",
+      "label": "Settlement Entries",
+      "fieldtype": "Section Break"
+    },
+    {
+      "fieldname": "reconciliation_entries",
+      "label": "Reconciliation Entries",
+      "fieldtype": "Table",
+      "options": "BSP Settlement Entry"
+    }
+  ],
+  "is_submittable": 1,
+  "links": [],
+  "modified": "2025-06-08 13:38:00.000000",
+  "modified_by": "Administrator",
+  "module": "Travel Agency Backend",
+  "name": "BSP Settlement",
+  "naming_rule": "Expression",
+  "owner": "Administrator",
+  "permissions": [
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "System Manager",
+      "share": 1,
+      "submit": 1,
+      "write": 1
+    },
+    {
+      "create": 1,
+      "delete": 1,
+      "email": 1,
+      "export": 1,
+      "print": 1,
+      "read": 1,
+      "report": 1,
+      "role": "Travel Management Admin",
+      "share": 1,
+      "submit": 1,
+      "write": 1
+    }
+  ],
+  "sort_field": "modified",
+  "sort_order": "DESC",
+  "states": []
+}

@@ -101,7 +101,9 @@
   {
    "fieldname": "ticket_number",
    "fieldtype": "Data",
-   "label": "Ticket Number"
+   "label": "Ticket Number",
+   "reqd": 1,
+   "description": "Required for BSP reconciliation. Use standard 13-digit format without spaces or dashes."
   },
   {
    "fieldname": "column_break_ticket",
@@ -143,6 +145,11 @@
    "read_only": 1
   },
   {
+   "fieldname": "date_section",
+   "fieldtype": "Section Break",
+   "label": "Travel Dates"
+  },
+  {
    "fieldname": "notes_section",
    "fieldtype": "Section Break",
    "label": "Notes"
@@ -151,6 +158,55 @@
    "fieldname": "remarks",
    "fieldtype": "Small Text",
    "label": "Remarks"
+  },
+  {
+   "fieldname": "ticket_issue_date",
+   "fieldtype": "Date",
+   "label": "Ticket Issue Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "airline_code",
+   "fieldtype": "Data",
+   "label": "Airline Code",
+   "description": "2-letter IATA airline code"
+  },
+  {
+   "fieldname": "flight_number",
+   "fieldtype": "Data",
+   "label": "Flight Number"
+  },
+  {
+   "fieldname": "booking_class",
+   "fieldtype": "Data",
+   "label": "Booking Class"
+  },
+  {
+   "fieldname": "return_flight_number",
+   "fieldtype": "Data",
+   "label": "Return Flight Number"
+  },
+  {
+   "fieldname": "return_booking_class",
+   "fieldtype": "Data",
+   "label": "Return Booking Class"
+  },
+  {
+   "fieldname": "base_fare",
+   "fieldtype": "Currency",
+   "label": "Base Fare",
+   "reqd": 1
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount",
+   "reqd": 1
+  },
+  {
+   "fieldname": "commission_amount",
+   "fieldtype": "Currency",
+   "label": "Commission Amount"
   }
  ],
  "istable": 1,

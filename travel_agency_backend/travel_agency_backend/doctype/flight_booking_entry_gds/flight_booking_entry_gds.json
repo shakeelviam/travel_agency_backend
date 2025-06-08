@@ -9,18 +9,29 @@
   "passenger_name",
   "flight_details_section",
   "airline",
+  "airline_code",
   "trip_type",
   "column_break_flight",
   "from_sector",
   "to_sector",
   "return_sector",
+  "flight_details_section_2",
+  "flight_number",
+  "booking_class",
+  "column_break_flight_2",
+  "return_flight_number",
+  "return_booking_class",
   "ticket_details_section",
   "pnr",
   "ticket_number",
+  "ticket_issue_date",
   "column_break_ticket",
   "travel_date",
   "return_date",
   "pricing_section",
+  "base_fare",
+  "tax_amount",
+  "commission_amount",
   "supplier_cost",
   "markup",
   "column_break_pricing",
@@ -101,7 +112,9 @@
   {
    "fieldname": "ticket_number",
    "fieldtype": "Data",
-   "label": "Ticket Number"
+   "label": "Ticket Number",
+   "reqd": 1,
+   "description": "Enter the 13-digit ticket number without spaces or formatting"
   },
   {
    "fieldname": "column_break_ticket",
@@ -143,9 +156,68 @@
    "read_only": 1
   },
   {
-   "fieldname": "notes_section",
+   "fieldname": "flight_details_section_2",
    "fieldtype": "Section Break",
-   "label": "Notes"
+   "label": "Flight Information"
+   },
+   {
+    "fieldname": "flight_number",
+    "fieldtype": "Data",
+    "label": "Flight Number"
+   },
+   {
+    "fieldname": "booking_class",
+    "fieldtype": "Data",
+    "label": "Booking Class"
+   },
+   {
+    "fieldname": "column_break_flight_2",
+    "fieldtype": "Column Break"
+   },
+   {
+    "fieldname": "return_flight_number",
+    "fieldtype": "Data",
+    "label": "Return Flight Number"
+   },
+   {
+    "fieldname": "return_booking_class",
+    "fieldtype": "Data",
+    "label": "Return Booking Class"
+   },
+   {
+    "fieldname": "ticket_issue_date",
+    "fieldtype": "Date",
+    "label": "Ticket Issue Date",
+    "reqd": 1
+   },
+   {
+    "fieldname": "airline_code",
+    "fieldtype": "Data",
+    "label": "Airline Code",
+    "description": "2-letter IATA airline code",
+    "length": 2
+   },
+   {
+    "fieldname": "base_fare",
+    "fieldtype": "Currency",
+    "label": "Base Fare",
+    "reqd": 1
+   },
+   {
+    "fieldname": "tax_amount",
+    "fieldtype": "Currency",
+    "label": "Tax Amount",
+    "reqd": 1
+   },
+   {
+    "fieldname": "commission_amount",
+    "fieldtype": "Currency",
+    "label": "Commission Amount"
+   },
+   {
+    "fieldname": "notes_section",
+    "fieldtype": "Section Break",
+    "label": "Notes"
   },
   {
    "fieldname": "remarks",

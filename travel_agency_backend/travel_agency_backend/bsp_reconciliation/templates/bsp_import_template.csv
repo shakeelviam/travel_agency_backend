@@ -1,0 +1,3 @@
+Ticket Number,Passenger Name,Airline Code,Issue Date,Base Fare,Tax Amount,Commission Amount,Total Amount,Flight Number,Booking Class,Remarks
+1234567890123,John Doe,EK,2025-06-01,1500.00,100.00,75.00,1525.00,EK523,Y,Example row
+,,,YYYY-MM-DD,,,,,,,
