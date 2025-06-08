@@ -161,8 +161,8 @@ class TripBooking(Document):
                 frappe.throw(_("Please add booking details for {0} service").format(service.service_category))
 
     def on_submit(self):
-        self.create_purchase_invoices()
-        self.create_sales_invoice()
+        # Auto invoice creation removed - now only done via UI buttons
+        pass
 
     def create_purchase_invoices(self):
         # Use centralized configuration for service mapping
@@ -327,8 +327,10 @@ class TripBooking(Document):
                 frappe.msgprint(_("No items with amounts found. Sales Invoice not created."))
                 
         except Exception as e:
-            frappe.log_error(f"Error creating sales invoice: {str(e)}", "Trip Booking")
-            frappe.msgprint(_("Error creating sales invoice. See error log for details."))
+            error_msg = f"Error creating sales invoice: {str(e)}"
+            frappe.log_error(error_msg, "Trip Booking")
+            frappe.msgprint(_(f"Error creating Sales Invoice: {str(e)}"), indicator="red")
+            return None
 
     def get_table_fieldname(self, service_category):
         # Use TripBookingConfig to get the table fieldname
@@ -411,11 +413,13 @@ def get_service_category_mapping():
 @frappe.whitelist()
 def make_sales_invoice_from_trip(source_name, target_doc=None):
     """Create a Sales Invoice from Trip Booking"""
-    source = frappe.get_doc("Trip Booking", source_name)
-    if source.docstatus != 1:
-        frappe.throw("Trip Booking must be submitted before creating Sales Invoice")
-        
+    
     try:
+        frappe.msgprint("Creating Sales Invoice...", alert=True)
+        source = frappe.get_doc("Trip Booking", source_name)
+        if source.docstatus != 1:
+            frappe.throw("Trip Booking must be submitted before creating Sales Invoice")
+            
         # Create Sales Invoice
         si = frappe.new_doc("Sales Invoice")
         si.customer = source.customer
@@ -427,7 +431,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         # Get currency from company defaults
         company = frappe.defaults.get_user_default("company")
         si.currency = frappe.get_cached_value("Company", company, "default_currency") if company else "USD"
-        
+            
         # Map table names to default service types for entries without service_type field
         table_to_service_type_map = {}
         for service_type, config in TripBookingConfig.SERVICES.items():
@@ -437,13 +441,13 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         
         # Counter to track items added
         items_added = 0
-        
+    
         # Process all booking tables
         for table in source.get_all_booking_tables():
             entries = source.get(table) or []
             if not entries:
                 continue
-                
+            
             # Get default service type for this table
             default_service_type = table_to_service_type_map.get(table)
             
@@ -458,7 +462,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 # Skip if we couldn't determine service type
                 if not service_type:
                     continue
-                
+            
                 # Get service config
                 service_config = TripBookingConfig.get_service_config(service_type)
                 if not service_config:
@@ -466,7 +470,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 
                 # Calculate total amount
                 total_amount = 0
-                
+            
                 # First try to use total_amount field if it exists
                 if hasattr(entry, 'total_amount') and entry.total_amount:
                     total_amount = flt(entry.total_amount)
@@ -480,7 +484,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                     markup_field = service_config.get('markup_field')
                     if markup_field and hasattr(entry, markup_field) and getattr(entry, markup_field):
                         total_amount += flt(getattr(entry, markup_field))
-                    
+                
                     # Add commission/service fee
                     commission_field = service_config.get('commission_field')
                     if commission_field and hasattr(entry, commission_field) and getattr(entry, commission_field):
@@ -489,7 +493,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 # Skip entries with no cost
                 if total_amount <= 0:
                     continue
-                
+            
                 # Get income account and item code
                 income_account = frappe.db.get_value('Service Type', service_type, 'income_account') or \
                                 frappe.db.get_value('Service Type', service_type, 'sales_account')
@@ -497,7 +501,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 
                 # Create descriptive text for the line item
                 description = f"{service_type} for {entry.passenger}"
-                
+            
                 # Add reference numbers if available
                 if hasattr(entry, 'pnr') and entry.pnr:
                     description += f" (PNR: {entry.pnr})"
@@ -526,7 +530,7 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                     "service_type": service_type,
                     "trip_booking": source.name
                 })
-                
+            
                 items_added += 1
         
         # Only create and submit invoice if it has items
@@ -544,10 +548,11 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
         else:
             frappe.msgprint(_("No items with costs found to create Sales Invoice"))
             return None
-            
     except Exception as e:
-        frappe.log_error(f"Error creating sales invoice: {str(e)}", "Trip Booking")
-        frappe.throw(_(f"Error creating Sales Invoice: {str(e)}"))
+        error_msg = f"Error creating sales invoice: {str(e)}"
+        frappe.log_error(error_msg, "Trip Booking")
+        frappe.msgprint(_(f"❌ Error creating Sales Invoice: {str(e)}"))
+        return None
 
 
 

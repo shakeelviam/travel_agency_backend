@@ -93,36 +93,63 @@ frappe.ui.form.on("Trip Booking", {
 
     // Add Create Invoice buttons if submitted
     if (frm.doc.docstatus === 1) {
-        frm.add_custom_button(__('Sales Invoice'), function() {
-            frappe.model.open_mapped_doc({
-                method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_sales_invoice_from_trip",
-                frm: frm
-            });
-        }, __('Create'));
+        // Check if invoices already exist
+        const salesInvoiceExists = frm.doc.sales_invoice_id;
+        const purchaseInvoiceExists = frm.doc.purchase_invoice_ids && frm.doc.purchase_invoice_ids.length > 0;
         
-        frm.add_custom_button(__('Purchase Invoices'), function() {
-            frappe.call({
-                method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_purchase_invoices_from_trip",
-                args: {
-                    source_name: frm.doc.name
-                },
-                callback: function(r) {
-                    if (r.message && r.message.length) {
-                        frappe.msgprint({
-                            title: __('Purchase Invoices Created'),
-                            message: __('Created {0} Purchase Invoice(s)', [r.message.length]),
-                            indicator: 'green'
-                        });
-                    } else {
-                        frappe.msgprint({
-                            title: __('No Invoices Created'),
-                            message: __('No Purchase Invoices were created. Please check supplier and cost details.'),
-                            indicator: 'orange'
-                        });
+        // Create group for invoice creation buttons
+        const createGroup = __('Create');
+        
+        // Set button color based on invoice existence
+        if (!salesInvoiceExists) {
+            // Add Sales Invoice button (red if no invoice exists)
+            frm.add_custom_button(__('Sales Invoice'), function() {
+                frappe.model.open_mapped_doc({
+                    method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_sales_invoice_from_trip",
+                    frm: frm,
+                    callback: function(doc) {
+                        // Refresh the form after invoice creation
+                        frm.reload_doc();
                     }
-                }
-            });
-        }, __('Create'));
+                });
+            }, createGroup).addClass('btn-danger');
+        }
+        
+        if (!purchaseInvoiceExists) {
+            // Add Purchase Invoices button (red if no invoices exist)
+            frm.add_custom_button(__('Purchase Invoices'), function() {
+                frappe.call({
+                    method: "travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking.make_purchase_invoices_from_trip",
+                    args: {
+                        source_name: frm.doc.name
+                    },
+                    callback: function(r) {
+                        if (r.message && r.message.length) {
+                            frappe.msgprint({
+                                title: __('Purchase Invoices Created'),
+                                message: __('Created {0} Purchase Invoice(s)', [r.message.length]),
+                                indicator: 'green'
+                            });
+                            // Refresh the form after invoice creation
+                            frm.reload_doc();
+                        } else {
+                            frappe.msgprint({
+                                title: __('No Invoices Created'),
+                                message: __('No Purchase Invoices were created. Please check supplier and cost details.'),
+                                indicator: 'orange'
+                            });
+                        }
+                    }
+                });
+            }, createGroup).addClass('btn-danger');
+        }
+        
+        // If both invoice types exist, hide the Create group
+        if (salesInvoiceExists && purchaseInvoiceExists) {
+            // No need to add buttons as they've already been created
+            frm.remove_custom_button(__('Sales Invoice'), createGroup);
+            frm.remove_custom_button(__('Purchase Invoices'), createGroup);
+        }
     }
   },
 
