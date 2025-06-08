@@ -7,6 +7,9 @@ from frappe.model.mapper import get_mapped_doc
 from frappe.utils import now_datetime, nowdate, flt
 from frappe import _
 
+# Import the dynamic description generator
+from travel_agency_backend.travel_agency_backend.utils.description_generator import get_service_description
+
 # Import the TripBookingConfig class
 from travel_agency_backend.travel_agency_backend.doctype.trip_booking.trip_booking_config import TripBookingConfig
 
@@ -499,22 +502,44 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                                 frappe.db.get_value('Service Type', service_type, 'sales_account')
                 item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
                 
-                # Create descriptive text for the line item
-                description = f"{service_type} for {entry.passenger}"
-            
-                # Add reference numbers if available
-                if hasattr(entry, 'pnr') and entry.pnr:
-                    description += f" (PNR: {entry.pnr})"
-                if hasattr(entry, 'booking_reference') and entry.booking_reference:
-                    description += f" (Ref: {entry.booking_reference})"
-                elif hasattr(entry, 'booking_reference_number') and entry.booking_reference_number:
-                    description += f" (Ref: {entry.booking_reference_number})"
+                # Generate rich descriptive text using our dynamic description generator
+                # First check if we can get a doctype name for this entry
+                entry_doctype = None
+                if table == 'flight_booking_entry_gds':
+                    entry_doctype = "Flight Booking Entry GDS"
+                elif table == 'flight_booking_entry_online':
+                    entry_doctype = "Flight Booking Entry Online"
+                elif table == 'hotel_booking_entry':
+                    entry_doctype = "Hotel Booking Entry"
+                elif table == 'car_rental_booking_entry':
+                    entry_doctype = "Car Rental Booking Entry"
+                elif table == 'visa_booking_entry':
+                    entry_doctype = "Visa Booking Entry"
+                elif table == 'insurance_booking_entry':
+                    entry_doctype = "Insurance Booking Entry"
                 
-                # For car rentals, add pickup/return dates if available
-                if service_type == "Car Rental Service" and hasattr(entry, 'pickup_date') and entry.pickup_date:
-                    description += f" (Pickup: {entry.pickup_date})"
-                    if hasattr(entry, 'return_date') and entry.return_date:
-                        description += f" (Return: {entry.return_date})"
+                # Try to generate a rich description
+                description = None
+                if entry_doctype and entry.name:
+                    description = get_service_description(entry_doctype, entry.name)
+                
+                # Fallback to basic description if the generator failed
+                if not description:
+                    description = f"{service_type} for {entry.passenger}"
+                    
+                    # Add reference numbers if available
+                    if hasattr(entry, 'pnr') and entry.pnr:
+                        description += f" (PNR: {entry.pnr})"
+                    if hasattr(entry, 'booking_reference') and entry.booking_reference:
+                        description += f" (Ref: {entry.booking_reference})"
+                    elif hasattr(entry, 'booking_reference_number') and entry.booking_reference_number:
+                        description += f" (Ref: {entry.booking_reference_number})"
+                    
+                    # For car rentals, add pickup/return dates if available
+                    if service_type == "Car Rental Service" and hasattr(entry, 'pickup_date') and entry.pickup_date:
+                        description += f" (Pickup: {entry.pickup_date})"
+                        if hasattr(entry, 'return_date') and entry.return_date:
+                            description += f" (Return: {entry.return_date})"
                 
                 # Add item to sales invoice
                 si.append("items", {
@@ -634,30 +659,52 @@ def make_purchase_invoices_from_trip(source_name):
                                 frappe.db.get_value('Service Type', service_type, 'purchase_account')
                 item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
                 
-                # Create descriptive text for the line item
-                description = f"{service_type} for {entry.passenger}"
+                # Generate rich descriptive text using our dynamic description generator
+                # First check if we can get a doctype name for this entry
+                entry_doctype = None
+                if table == 'flight_booking_entry_gds':
+                    entry_doctype = "Flight Booking Entry GDS"
+                elif table == 'flight_booking_entry_online':
+                    entry_doctype = "Flight Booking Entry Online"
+                elif table == 'hotel_booking_entry':
+                    entry_doctype = "Hotel Booking Entry"
+                elif table == 'car_rental_booking_entry':
+                    entry_doctype = "Car Rental Booking Entry"
+                elif table == 'visa_booking_entry':
+                    entry_doctype = "Visa Booking Entry"
+                elif table == 'insurance_booking_entry':
+                    entry_doctype = "Insurance Booking Entry"
                 
-                # Add reference numbers if available
-                if hasattr(entry, 'pnr') and entry.pnr:
-                    description += f" (PNR: {entry.pnr})"
-                if hasattr(entry, 'booking_reference') and entry.booking_reference:
-                    description += f" (Ref: {entry.booking_reference})"
-                elif hasattr(entry, 'booking_reference_number') and entry.booking_reference_number:
-                    description += f" (Ref: {entry.booking_reference_number})"
+                # Try to generate a rich description
+                description = None
+                if entry_doctype and entry.name:
+                    description = get_service_description(entry_doctype, entry.name)
                 
-                # Special handling for service-specific fields
-                if service_type == "Flight Service" and hasattr(entry, 'flight_number') and entry.flight_number:
-                    description += f" (Flight: {entry.flight_number})"
-                    if hasattr(entry, 'flight_date') and entry.flight_date:
-                        description += f" on {entry.flight_date}"
-                elif service_type == "Car Rental Service" and hasattr(entry, 'pickup_date') and entry.pickup_date:
-                    description += f" (Pickup: {entry.pickup_date})"
-                    if hasattr(entry, 'return_date') and entry.return_date:
-                        description += f" (Return: {entry.return_date})"
-                elif service_type == "Hotel Service" and hasattr(entry, 'check_in') and entry.check_in:
-                    description += f" (Check-in: {entry.check_in})"
-                    if hasattr(entry, 'check_out') and entry.check_out:
-                        description += f" (Check-out: {entry.check_out})"
+                # Fallback to basic description if the generator failed
+                if not description:
+                    description = f"{service_type} for {entry.passenger}"
+                    
+                    # Add reference numbers if available
+                    if hasattr(entry, 'pnr') and entry.pnr:
+                        description += f" (PNR: {entry.pnr})"
+                    if hasattr(entry, 'booking_reference') and entry.booking_reference:
+                        description += f" (Ref: {entry.booking_reference})"
+                    elif hasattr(entry, 'booking_reference_number') and entry.booking_reference_number:
+                        description += f" (Ref: {entry.booking_reference_number})"
+                    
+                    # Special handling for service-specific fields
+                    if service_type == "Flight Service" and hasattr(entry, 'flight_number') and entry.flight_number:
+                        description += f" (Flight: {entry.flight_number})"
+                        if hasattr(entry, 'flight_date') and entry.flight_date:
+                            description += f" on {entry.flight_date}"
+                    elif service_type == "Car Rental Service" and hasattr(entry, 'pickup_date') and entry.pickup_date:
+                        description += f" (Pickup: {entry.pickup_date})"
+                        if hasattr(entry, 'return_date') and entry.return_date:
+                            description += f" (Return: {entry.return_date})"
+                    elif service_type == "Hotel Service" and hasattr(entry, 'check_in') and entry.check_in:
+                        description += f" (Check-in: {entry.check_in})"
+                        if hasattr(entry, 'check_out') and entry.check_out:
+                            description += f" (Check-out: {entry.check_out})"
                 
                 # Create the item
                 item = {
