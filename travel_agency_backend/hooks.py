@@ -126,13 +126,14 @@ doctype_js = {
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Sales Invoice": {
+		"validate": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.set_item_description_from_trip_booking"
+	},
+	"Purchase Invoice": {
+		"validate": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.set_item_description_from_trip_booking"
+	}
+}
 
 # Scheduled Tasks
 # ---------------
