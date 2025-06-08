@@ -48,9 +48,15 @@ class BSPReconciliation(Document):
     
     @frappe.whitelist()
     def auto_reconcile(self):
-        """Automatically match BSP entries with Trip Booking records"""
+        """Automatically match BSP entries with Trip Booking records using enhanced matching"""
         if not self.bsp_file:
             frappe.throw(_("BSP File is required for reconciliation"))
+        
+        # Import utility functions for enhanced matching and date formatting
+        from travel_agency_backend.travel_agency_backend.bsp_reconciliation.utils import (
+            find_matching_flight_bookings, get_purchase_invoice_status,
+            compare_passenger_names, format_date_display, parse_date_string
+        )
         
         # Get all unreconciled entries from the BSP file
         bsp_entries = frappe.get_all(
@@ -59,7 +65,7 @@ class BSPReconciliation(Document):
                 "parent": self.bsp_file,
                 "reconciliation_status": "Pending"
             },
-            fields=["name", "ticket_number", "passenger_name", "airline_code", 
+            fields=["name", "ticket_number", "passenger_name", "airline_code", "pnr",
                    "issue_date", "base_fare", "tax_amount", "commission_amount", "total_amount"]
         )
         
@@ -72,91 +78,83 @@ class BSPReconciliation(Document):
         unmatched = 0
         
         for bsp_entry in bsp_entries:
-            # Standardize ticket number
-            ticket_number = bsp_entry.ticket_number.replace("-", "").replace(" ", "")
-            
-            # Find matching flight bookings
-            flight_entries = frappe.get_all(
-                "Flight Booking Entry GDS",
-                filters={"ticket_number": ["like", f"%{ticket_number}%"]},
-                fields=["name", "parent", "passenger", "passenger_name", 
-                       "base_fare", "tax_amount", "commission_amount", "total_amount"]
+            # Use enhanced matching logic that handles name variations
+            matches = find_matching_flight_bookings(
+                ticket_number=bsp_entry.ticket_number,
+                passenger_name=bsp_entry.passenger_name,
+                pnr=bsp_entry.pnr if hasattr(bsp_entry, 'pnr') else None
             )
             
-            if flight_entries:
-                for flight in flight_entries:
-                    # Get Trip Booking
-                    trip_booking = flight.parent
-                    
-                    # Check for related Purchase Invoice
-                    purchase_invoice = None
-                    payment_status = "Not Invoiced"
-                    
-                    trip_doc = frappe.get_doc("Trip Booking", trip_booking)
-                    purchase_invoice_ids = trip_doc.purchase_invoice_ids or ""
-                    
-                    if purchase_invoice_ids:
-                        # Get the first Purchase Invoice
-                        pi_list = purchase_invoice_ids.split(",")
-                        if pi_list:
-                            purchase_invoice = pi_list[0].strip()
-                            
-                            # Check payment status
-                            pi_status = frappe.db.get_value("Purchase Invoice", purchase_invoice, "status")
-                            if pi_status:
-                                if pi_status == "Paid":
-                                    payment_status = "Paid"
-                                elif pi_status == "Unpaid":
-                                    payment_status = "Unpaid"
-                                elif pi_status == "Partly Paid":
-                                    payment_status = "Partially Paid"
-                    
-                    # Calculate difference
-                    bsp_amount = flt(bsp_entry.total_amount)
-                    system_amount = flt(flight.total_amount)
-                    difference = flt(bsp_amount) - flt(system_amount)
-                    
-                    # Determine reconciliation status
-                    status = "Matched" if abs(difference) < 0.01 else "Discrepancy"
-                    
-                    # Add reconciliation entry
-                    self.append("entries", {
-                        "bsp_entry": bsp_entry.name,
-                        "ticket_number": ticket_number,
-                        "passenger_name": bsp_entry.passenger_name,
-                        "trip_booking": trip_booking,
-                        "purchase_invoice": purchase_invoice,
-                        "bsp_amount": bsp_amount,
-                        "system_amount": system_amount,
-                        "difference": difference,
-                        "status": status,
-                        "payment_status": payment_status
-                    })
-                    
-                    # Update BSP Entry status
-                    frappe.db.set_value("BSP Entry", bsp_entry.name, "reconciliation_status", status)
-                    frappe.db.set_value("BSP Entry", bsp_entry.name, "trip_booking", trip_booking)
-                    
-                    if status == "Matched":
-                        matched += 1
+            if matches:
+                # Use the first match (highest confidence based on our matching algorithm)
+                flight = matches[0]
+                trip_booking = flight.parent
+                
+                # Check for related Purchase Invoice
+                pi_data = get_purchase_invoice_status(trip_booking)
+                purchase_invoice = pi_data.get("invoice")
+                payment_status = pi_data.get("status")
+                
+                # Format dates consistently (DD-MM-YYYY)
+                issue_date = format_date_display(bsp_entry.issue_date) if hasattr(bsp_entry, 'issue_date') else ""
+                
+                # Calculate difference
+                bsp_amount = flt(bsp_entry.total_amount)
+                system_amount = flt(flight.total_amount)
+                difference = flt(bsp_amount) - flt(system_amount)
+                
+                # Determine reconciliation status
+                status = "Matched" if abs(difference) < 0.01 else "Discrepancy"
+                
+                # Add matching information
+                name_match_info = ""
+                if hasattr(bsp_entry, 'passenger_name') and bsp_entry.passenger_name and flight.passenger_name:
+                    if bsp_entry.passenger_name.upper() == flight.passenger_name.upper():
+                        name_match_info = "Exact name match"
                     else:
-                        discrepancy += 1
-                    break  # Only use the first match
-            else:
-                # No match found
-                # Add entry as unmatched
+                        name_match_info = "Similar name match"
+                
+                # Add reconciliation entry
                 self.append("entries", {
                     "bsp_entry": bsp_entry.name,
-                    "ticket_number": ticket_number,
+                    "ticket_number": bsp_entry.ticket_number,
+                    "passenger_name": bsp_entry.passenger_name,
+                    "trip_booking": trip_booking,
+                    "flight_booking_entry": flight.name,
+                    "system_passenger_name": flight.passenger_name,
+                    "purchase_invoice": purchase_invoice,
+                    "bsp_amount": bsp_amount,
+                    "system_amount": system_amount,
+                    "difference": difference,
+                    "status": status,
+                    "payment_status": payment_status,
+                    "notes": name_match_info
+                })
+                
+                # Update BSP Entry status
+                frappe.db.set_value("BSP Entry", bsp_entry.name, "reconciliation_status", status)
+                frappe.db.set_value("BSP Entry", bsp_entry.name, "trip_booking", trip_booking)
+                
+                if status == "Matched":
+                    matched += 1
+                else:
+                    discrepancy += 1
+            else:
+                # No match found - add as unmatched
+                self.append("entries", {
+                    "bsp_entry": bsp_entry.name,
+                    "ticket_number": bsp_entry.ticket_number,
                     "passenger_name": bsp_entry.passenger_name,
                     "bsp_amount": flt(bsp_entry.total_amount),
                     "system_amount": 0,
                     "difference": flt(bsp_entry.total_amount),
-                    "status": "Discrepancy",
+                    "status": "Unmatched",  # Changed from Discrepancy to Unmatched for clarity
                     "payment_status": "Not Invoiced",
-                    "notes": "No matching flight booking found in system"
+                    "notes": "No matching flight booking found"
                 })
                 
+                # Update BSP Entry status
+                frappe.db.set_value("BSP Entry", bsp_entry.name, "reconciliation_status", "Unmatched")
                 unmatched += 1
         
         # Update statistics
