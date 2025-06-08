@@ -198,7 +198,7 @@ class TripBooking(Document):
                 if not has_costs:
                     continue
                 
-                if not supplier_entries.get(supplier):
+                if not supplier_items.get(supplier):
                     pi = frappe.new_doc('Purchase Invoice')
                     pi.supplier = supplier
                     company = frappe.defaults.get_user_default("company")
@@ -218,9 +218,9 @@ class TripBooking(Document):
                                         frappe.db.get_value('Service Type', service_type, 'service_expense_account')
                         item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
                     
-                    supplier_entries[supplier] = pi
+                    supplier_items[supplier] = pi
                 else:
-                    pi = supplier_entries[supplier]
+                    pi = supplier_items[supplier]
                     
                     service_type = entries[0].service_type
                     expense_account = frappe.db.get_value('Service Type', service_type, 'purchase_account') or \
