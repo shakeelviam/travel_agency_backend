@@ -329,128 +329,109 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
                 ]);
             }
             
+            // Add agency information section
+            fields = fields.concat([
+                {fieldtype: 'Section Break', label: 'Agency Booking Information'},
+                {fieldtype: 'HTML', fieldname: 'agency_info', options: `
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i> 
+                        <strong>Travel Agency Booking:</strong> This booking will be processed through the agency settlement system.
+                        No payment will be collected at this time.
+                    </div>
+                `}
+            ]);
+            
             const d = new frappe.ui.Dialog({
                 title: `Book ${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)} - Customer Information`,
                 fields: fields,
-                primary_action_label: 'Proceed to Payment',
+                primary_action_label: 'Create Booking',
                 primary_action: function(values) {
                     d.hide();
-                    showPaymentStep(selectedItem, values, bookingType);
+                    // Go directly to processing the booking, bypassing payment
+                    processBooking(selectedItem, values, bookingType);
                 }
             });
             
             d.show();
         }
         
-        function showPaymentStep(selectedItem, customerInfo, bookingType) {
-            // Parse price from selectedItem
-            let priceText = selectedItem.price;
-            let price = 0;
-            let currency = 'EUR';
-            
-            if (priceText) {
-                const priceParts = priceText.split(' ');
-                if (priceParts.length > 0) {
-                    price = parseFloat(priceParts[0]);
-                    if (priceParts.length > 1) {
-                        currency = priceParts[1];
-                    }
-                }
-            }
-            
-            const d = new frappe.ui.Dialog({
-                title: 'Payment Details',
+        function processBooking(selectedItem, customerInfo, bookingType) {
+            // Show a processing dialog
+            const processingDialog = new frappe.ui.Dialog({
+                title: 'Processing Booking',
                 fields: [
-                    {fieldtype: 'HTML', fieldname: 'payment_summary', options: `
-                        <div class="payment-summary well">
-                            <h4>Booking Summary</h4>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>${bookingType === 'flight' ? 'Flight' : 'Hotel'}:</strong> ${bookingType === 'flight' ? selectedItem.route : selectedItem.name}</p>
-                                    <p><strong>Customer:</strong> ${customerInfo.full_name}</p>
-                                </div>
-                                <div class="col-md-6 text-right">
-                                    <h3>${price.toFixed(2)} ${currency}</h3>
+                    {fieldtype: 'HTML', fieldname: 'processing_html', options: `
+                        <div class="text-center" style="margin: 20px 0;">
+                            <i class="fa fa-circle-o-notch fa-spin fa-3x text-primary"></i>
+                            <p style="margin-top:15px;font-size:16px;">Creating your ${bookingType} booking...</p>
+                            <div class="progress" style="height:8px;margin-top:15px;">
+                                <div class="progress-bar progress-bar-striped active" role="progressbar" 
+                                    aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width:100%">
                                 </div>
                             </div>
+                            <p class="text-muted" style="margin-top:15px;">Connecting to Amadeus API</p>
                         </div>
-                    `},
-                    {fieldtype: 'Section Break', label: 'Card Information'},
-                    {label: 'Card Number', fieldname: 'card_number', fieldtype: 'Data', reqd: 1, default: '4111 1111 1111 1111'},
-                    {fieldtype: 'Column Break'},
-                    {label: 'Expiry', fieldname: 'card_expiry', fieldtype: 'Data', reqd: 1, default: '12/25'},
-                    {fieldtype: 'Column Break'},
-                    {label: 'CVV', fieldname: 'card_cvv', fieldtype: 'Password', reqd: 1, default: '123'}
-                ],
-                primary_action_label: 'Pay & Complete Booking',
-                primary_action: function(values) {
-                    // Show processing indicator
-                    d.$wrapper.find('.modal-content').append(
-                        `<div class="payment-processing" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;">
-                            <i class="fa fa-circle-o-notch fa-spin fa-3x text-primary"></i>
-                            <p class="text-center" style="margin-top:15px;font-size:16px;">Processing payment...</p>
-                        </div>`
-                    );
-                    
-                    // Prepare data for API call
-                    let apiData;
-                    if (bookingType === 'flight') {
-                        apiData = {
-                            passenger_name: customerInfo.full_name,
-                            email: customerInfo.email,
-                            phone: customerInfo.phone,
-                            passport: customerInfo.passport,
-                            dob: customerInfo.dob,
-                            special_requirements: customerInfo.special_requirements,
-                            flight: selectedItem.raw_data
-                        };
-                        
-                        // Make API call to simulate booking
-                        setTimeout(function() {
-                            frappe.call({
-                                method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.simulate_flight_booking',
-                                args: {
-                                    flight_data: apiData
-                                },
-                                callback: function(r) {
-                                    d.hide();
-                                    showConfirmationStep(r.message, customerInfo, selectedItem, bookingType);
-                                }
-                            });
-                        }, 2000); // Simulate processing time
-                    } else {
-                        apiData = {
-                            guest_name: customerInfo.full_name,
-                            email: customerInfo.email,
-                            phone: customerInfo.phone,
-                            rooms: customerInfo.rooms,
-                            guests: customerInfo.guests,
-                            special_requests: customerInfo.special_requests,
-                            check_in: selectedItem.checkin,
-                            check_out: selectedItem.checkout,
-                            hotel: selectedItem.raw_data,
-                            price: price.toString(),
-                            currency: currency
-                        };
-                        
-                        // Make API call to simulate booking
-                        setTimeout(function() {
-                            frappe.call({
-                                method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.simulate_hotel_booking',
-                                args: {
-                                    hotel_data: apiData
-                                },
-                                callback: function(r) {
-                                    d.hide();
-                                    showConfirmationStep(r.message, customerInfo, selectedItem, bookingType);
-                                }
-                            });
-                        }, 2000); // Simulate processing time
-                    }
-                }
+                    `}
+                ]
             });
             
-            d.show();
+            processingDialog.show();
+            
+            // Prepare data for API call based on booking type
+            let apiData;
+            if (bookingType === 'flight') {
+                apiData = {
+                    passenger_name: customerInfo.full_name,
+                    email: customerInfo.email,
+                    phone: customerInfo.phone,
+                    passport: customerInfo.passport,
+                    dob: customerInfo.dob,
+                    special_requirements: customerInfo.special_requirements,
+                    flight: selectedItem.raw_data
+                };
+                
+                // Make API call to Amadeus booking endpoint
+                setTimeout(function() {
+                    frappe.call({
+                        method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.create_flight_order',
+                        args: {
+                            flight_data: apiData
+                        },
+                        callback: function(r) {
+                            processingDialog.hide();
+                            showConfirmationStep(r.message, customerInfo, selectedItem, bookingType);
+                        }
+                    });
+                }, 2000); // Simulate processing time for better UX
+            } else {
+                apiData = {
+                    guest_name: customerInfo.full_name,
+                    email: customerInfo.email,
+                    phone: customerInfo.phone,
+                    rooms: customerInfo.rooms,
+                    guests: customerInfo.guests,
+                    special_requests: customerInfo.special_requests,
+                    check_in: selectedItem.checkin,
+                    check_out: selectedItem.checkout,
+                    hotel: selectedItem.raw_data,
+                    price: selectedItem.price.split(' ')[0] || "0",
+                    currency: selectedItem.price.split(' ')[1] || "EUR"
+                };
+                
+                // Make API call to Amadeus hotel booking endpoint
+                setTimeout(function() {
+                    frappe.call({
+                        method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.create_hotel_booking',
+                        args: {
+                            hotel_data: apiData
+                        },
+                        callback: function(r) {
+                            processingDialog.hide();
+                            showConfirmationStep(r.message, customerInfo, selectedItem, bookingType);
+                        }
+                    });
+                }, 2000); // Simulate processing time for better UX
+            }
         }
         
         function showConfirmationStep(confirmation, customerInfo, selectedItem, bookingType) {
@@ -547,17 +528,17 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
                     
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            <h3 class="panel-title">Payment Information</h3>
+                            <h3 class="panel-title">Agency Booking Information</h3>
                         </div>
                         <div class="panel-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <p><strong>Amount:</strong> ${confirmation.payment.amount} ${confirmation.payment.currency}</p>
-                                    <p><strong>Transaction ID:</strong> ${confirmation.payment.transaction_id}</p>
+                                    <p><strong>Price:</strong> ${selectedItem.price}</p>
+                                    <p><strong>Confirmation Date:</strong> ${confirmation.confirmation_timestamp}</p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p><strong>Status:</strong> <span class="label label-success">${confirmation.payment.status}</span></p>
-                                    <p><strong>Date:</strong> ${confirmation.confirmation_timestamp}</p>
+                                    <p><strong>Settlement Method:</strong> <span class="label label-primary">BSP / Agency Settlement</span></p>
+                                    <p><strong>Status:</strong> <span class="label label-success">${confirmation.status}</span></p>
                                 </div>
                             </div>
                         </div>
@@ -565,7 +546,8 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
                     
                     <div class="well" style="margin-top: 20px;">
                         <div class="text-center">
-                            <p><i class="fa fa-info-circle"></i> This is a demonstration booking. In a production environment, an email would be sent with these details.</p>
+                            <p><i class="fa fa-info-circle"></i> <strong>Travel Agency API Demo:</strong> This is a demonstration of the Amadeus travel agency booking flow. In a production environment, a PNR would be created and settlement would occur through BSP.</p>
+                            <p class="text-muted"><small>Using Amadeus Developer Sandbox API</small></p>
                         </div>
                     </div>
                 `;
