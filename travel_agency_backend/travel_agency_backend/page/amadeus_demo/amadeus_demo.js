@@ -9,6 +9,19 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
     setupAmadeusDemo(page);
 };
 
+frappe.pages['amadeus-demo'].on_page_show = function() {
+    // This ensures tab functionality works when page is shown
+    setupTabEvents();
+};
+
+function setupTabEvents() {
+    // Fix tab navigation
+    $('.nav-tabs a').off('click').on('click', function(e) {
+        e.preventDefault();
+        $(this).tab('show');
+    });
+}
+
 function setupAmadeusDemo(page) {
     // Create sections
     var html = `
@@ -126,6 +139,9 @@ function setupAmadeusDemo(page) {
     `;
     
     $(html).appendTo(page.body);
+    
+    // Initialize tabs
+    setupTabEvents();
     
     // Add event listeners
     $('#search-flights-btn').on('click', function() {
