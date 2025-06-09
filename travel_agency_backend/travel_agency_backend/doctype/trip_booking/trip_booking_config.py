@@ -15,7 +15,7 @@ class TripBookingConfig:
             "child_doctype": "Flight Booking Entry GDS",
             "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
-            "commission_field": null
+            "commission_field": None
         },
         "Flight Online Airlines": {
             "section": "flight_online_section",
@@ -24,7 +24,7 @@ class TripBookingConfig:
             "child_doctype": "Flight Booking Entry Online",
             "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
-            "commission_field": null
+            "commission_field": None
         },
         "Hotel Booking": {
             "section": "hotel_section",
