@@ -185,6 +185,170 @@ def search_flights(origin, destination, departure_date, return_date=None, adults
             "error": str(e)
         }
 
+@frappe.whitelist()
+def search_cities(query):
+    """
+    Search for cities by keyword
+    
+    :param query: Search query string
+    :return: List of city results
+    """
+    response = proxy_request("v1/reference-data/locations", {
+        "keyword": query,
+        "subType": "CITY"
+    })
+    
+    if not response.get("success"):
+        return response
+    
+    try:
+        cities = response["data"].get("data", [])
+        return {
+            "success": True,
+            "cities": cities
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@frappe.whitelist()
+def find_nearest_airports(latitude, longitude, radius=100):
+    """
+    Find airports nearest to a specific location
+    
+    :param latitude: Latitude coordinate
+    :param longitude: Longitude coordinate
+    :param radius: Search radius in kilometers
+    :return: List of nearby airports
+    """
+    response = proxy_request("v1/reference-data/locations/airports", {
+        "latitude": latitude,
+        "longitude": longitude,
+        "radius": radius
+    })
+    
+    if not response.get("success"):
+        return response
+    
+    try:
+        airports = response["data"].get("data", [])
+        return {
+            "success": True,
+            "airports": airports
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@frappe.whitelist()
+def search_flight_inspiration(origin, destination=None, departure_date=None):
+    """
+    Search for flight inspiration - destinations, prices and dates
+    
+    :param origin: Origin city code
+    :param destination: Optional destination city code
+    :param departure_date: Optional departure date (YYYY-MM)
+    :return: Flight inspiration results
+    """
+    params = {
+        "origin": origin
+    }
+    
+    if destination:
+        params["destination"] = destination
+        
+    if departure_date:
+        params["departureDate"] = departure_date
+    
+    response = proxy_request("v1/shopping/flight-destinations", params)
+    
+    if not response.get("success"):
+        return response
+    
+    try:
+        results = response["data"].get("data", [])
+        return {
+            "success": True,
+            "results": results
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@frappe.whitelist()
+def search_cheapest_flights(origin, destination, departure_date=None):
+    """
+    Search for the cheapest flights
+    
+    :param origin: Origin city code
+    :param destination: Destination city code
+    :param departure_date: Optional departure date (YYYY-MM)
+    :return: Cheapest date flight options
+    """
+    params = {
+        "origin": origin,
+        "destination": destination
+    }
+    
+    if departure_date:
+        params["departureDate"] = departure_date
+    
+    response = proxy_request("v1/shopping/flight-dates", params)
+    
+    if not response.get("success"):
+        return response
+    
+    try:
+        results = response["data"].get("data", [])
+        return {
+            "success": True,
+            "results": results
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@frappe.whitelist()
+def search_hotels(cityCode, checkInDate, checkOutDate, adults=1):
+    """
+    Search for hotels in a city
+    
+    :param cityCode: City code
+    :param checkInDate: Check-in date (YYYY-MM-DD)
+    :param checkOutDate: Check-out date (YYYY-MM-DD)
+    :param adults: Number of adult guests
+    :return: Hotel offers
+    """
+    response = proxy_request("v2/shopping/hotel-offers", {
+        "cityCode": cityCode,
+        "checkInDate": checkInDate,
+        "checkOutDate": checkOutDate,
+        "adults": adults
+    })
+    
+    if not response.get("success"):
+        return response
+    
+    try:
+        hotels = response["data"].get("data", [])
+        return {
+            "success": True,
+            "hotels": hotels
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
 if __name__ == "__main__":
     # This allows running the module directly for testing
     import sys
@@ -194,6 +358,8 @@ if __name__ == "__main__":
         print("python amadeus_proxy.py get_token")
         print("python amadeus_proxy.py search_airports 'London'")
         print("python amadeus_proxy.py search_flights 'JFK' 'LHR' '2025-08-15'")
+        print("python amadeus_proxy.py search_cities 'Paris'")
+        print("python amadeus_proxy.py find_nearest_airports 48.8566 2.3522 50")
         sys.exit(1)
     
     command = sys.argv[1]
