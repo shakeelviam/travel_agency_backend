@@ -1,424 +1,336 @@
 frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
-    var page = frappe.ui.make_app_page({
-        parent: wrapper,
-        title: 'Amadeus API Showcase',
-        single_column: true
-    });
-
-    // Add the page content
-    $(frappe.render_template('amadeus_demo', {})).appendTo(page.body);
-    
-    // Initialize the demo page
-    initAmadeusDemoPage(page);
+    new AmadeusShowcase(wrapper);
 };
 
-function initAmadeusDemoPage(page) {
-    // API categories and endpoints
-    const apiCategories = [
-        {
-            name: "Flight",
-            icon: "airplane",
-            endpoints: [
-                { name: "Flight Offers Search", id: "flight_search", method: "search_flights" },
-                { name: "Flight Cheapest Date Search", id: "flight_cheapest", method: "search_cheapest_flights" },
-                { name: "Flight Inspiration Search", id: "flight_inspiration", method: "search_flight_inspiration" },
-                { name: "Flight Order Creation", id: "flight_order", method: "create_flight_order" }
-            ]
-        },
-        {
-            name: "Airport & City",
-            icon: "map-pin",
-            endpoints: [
-                { name: "Airport & City Search", id: "airport_search", method: "search_airports" },
-                { name: "Airport Nearest Relevant", id: "airport_nearest", method: "find_nearest_airports" },
-                { name: "City Search", id: "city_search", method: "search_cities" }
-            ]
-        },
-        {
-            name: "Hotel",
-            icon: "home",
-            endpoints: [
-                { name: "Hotel Search", id: "hotel_search", method: "search_hotels" },
-                { name: "Hotel Booking", id: "hotel_booking", method: "book_hotel" },
-                { name: "Hotel Ratings", id: "hotel_ratings", method: "get_hotel_ratings" }
-            ]
-        }
-    ];
-
-    // Initialize the sidebar navigation
-    initSidebar(page, apiCategories);
-    
-    // Setup the main content area
-    setupMainContentArea(page);
-    
-    // Show welcome screen initially
-    showWelcomeScreen();
-    
-    // Register module endpoints
-    registerEndpoints();
-}
-
-function initSidebar(page, apiCategories) {
-    // Add sidebar section
-    page.sidebar.addClass('amadeus-demo-sidebar');
-    
-    const sidebarHTML = `
-        <div class="amadeus-sidebar-content">
-            <div class="search-field">
-                <input type="text" placeholder="Search APIs..." class="form-control api-search-box">
-            </div>
-            <div class="sidebar-categories"></div>
-        </div>
-    `;
-    
-    $(sidebarHTML).appendTo(page.sidebar);
-    
-    // Populate sidebar with categories and endpoints
-    const $categoriesContainer = page.sidebar.find('.sidebar-categories');
-    
-    apiCategories.forEach(category => {
-        const $categorySection = $(`
-            <div class="category-section">
-                <div class="category-header">
-                    <span class="category-icon"><i class="fa fa-${category.icon}"></i></span>
-                    <span class="category-name">${category.name}</span>
-                </div>
-                <div class="category-endpoints"></div>
-            </div>
-        `);
-        
-        const $endpointsContainer = $categorySection.find('.category-endpoints');
-        
-        category.endpoints.forEach(endpoint => {
-            const $endpoint = $(`
-                <div class="endpoint-item" data-endpoint-id="${endpoint.id}">
-                    <span>${endpoint.name}</span>
-                </div>
-            `);
-            
-            $endpoint.on('click', () => {
-                loadEndpoint(endpoint);
-                
-                // Update active state
-                page.sidebar.find('.endpoint-item').removeClass('active');
-                $endpoint.addClass('active');
-            });
-            
-            $endpoint.appendTo($endpointsContainer);
+class AmadeusShowcase {
+    constructor(wrapper) {
+        this.wrapper = wrapper;
+        this.page = frappe.ui.make_app_page({
+            parent: this.wrapper,
+            title: 'Amadeus API Showcase',
+            single_column: false
         });
         
-        $categorySection.appendTo($categoriesContainer);
-    });
+        this.setup_tabs();
+        this.setup_api_sections();
+    }
     
-    // Implement search functionality
-    const $searchBox = page.sidebar.find('.api-search-box');
-    
-    $searchBox.on('input', () => {
-        const searchTerm = $searchBox.val().toLowerCase();
+    setup_tabs() {
+        this.page.add_tab('Flight APIs', () => this.show_section('flight'));
+        this.page.add_tab('Airport & City APIs', () => this.show_section('airport'));
+        this.page.add_tab('Hotel APIs', () => this.show_section('hotel'));
         
-        page.sidebar.find('.endpoint-item').each(function() {
-            const endpointText = $(this).text().toLowerCase();
-            if (endpointText.includes(searchTerm)) {
-                $(this).show();
-            } else {
-                $(this).hide();
+        // Add action buttons
+        this.page.add_action_item('Amadeus Settings', () => {
+            frappe.set_route('Form', 'Amadeus Settings');
+        });
+        
+        this.page.add_action_item('View Documentation', () => {
+            window.open('https://developers.amadeus.com/self-service/apis-docs', '_blank');
+        });
+    }
+    
+    setup_api_sections() {
+        // Add sections container
+        $(this.page.body).empty();
+        this.sections_area = $('<div class="sections-container"></div>').appendTo(this.page.body);
+        
+        // Flight APIs
+        this.create_section('flight', 'Flight APIs', [
+            { 
+                id: 'flight_search',
+                name: 'Flight Search', 
+                description: 'Search for flights between airports with specified dates',
+                form_fields: [
+                    { label: 'Origin', name: 'origin', type: 'data', placeholder: 'e.g. JFK', required: 1 },
+                    { label: 'Destination', name: 'destination', type: 'data', placeholder: 'e.g. LHR', required: 1 },
+                    { label: 'Departure Date', name: 'departure_date', type: 'date', required: 1 },
+                    { label: 'Return Date', name: 'return_date', type: 'date' },
+                    { label: 'Adults', name: 'adults', type: 'int', default: '1' }
+                ],
+                api_method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.search_flights'
+            },
+            { 
+                id: 'flight_inspiration', 
+                name: 'Flight Inspiration Search',
+                description: 'Discover destinations with prices and dates from a specified origin',
+                form_fields: [
+                    { label: 'Origin', name: 'origin', type: 'data', placeholder: 'e.g. PAR', required: 1 },
+                    { label: 'Destination (Optional)', name: 'destination', type: 'data', placeholder: 'e.g. LON' },
+                    { label: 'Departure Date (Optional, YYYY-MM format)', name: 'departure_date', type: 'data', placeholder: 'e.g. 2025-07' }
+                ],
+                api_method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.search_flight_inspiration'
+            },
+            { 
+                id: 'flight_cheapest', 
+                name: 'Flight Cheapest Date Search',
+                description: 'Find the cheapest dates for a flight between two cities',
+                form_fields: [
+                    { label: 'Origin', name: 'origin', type: 'data', placeholder: 'e.g. JFK', required: 1 },
+                    { label: 'Destination', name: 'destination', type: 'data', placeholder: 'e.g. LHR', required: 1 },
+                    { label: 'Departure Date (Optional, YYYY-MM format)', name: 'departure_date', type: 'data', placeholder: 'e.g. 2025-07' }
+                ],
+                api_method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.search_cheapest_flights'
             }
-        });
+        ]);
         
-        // Show/hide categories based on visible endpoints
-        page.sidebar.find('.category-section').each(function() {
-            const visibleEndpoints = $(this).find('.endpoint-item:visible').length;
-            if (visibleEndpoints > 0) {
-                $(this).show();
-            } else {
-                $(this).hide();
+        // Airport & City APIs
+        this.create_section('airport', 'Airport & City APIs', [
+            { 
+                id: 'airport_search', 
+                name: 'Airport & City Search',
+                description: 'Search for airports by keyword or city name',
+                form_fields: [
+                    { label: 'Search Query', name: 'query', type: 'data', placeholder: 'e.g. London, JFK, Paris', required: 1 }
+                ],
+                api_method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.search_airports'
+            },
+            { 
+                id: 'city_search', 
+                name: 'City Search',
+                description: 'Search for cities by keyword',
+                form_fields: [
+                    { label: 'Search Query', name: 'query', type: 'data', placeholder: 'e.g. London, Paris, New York', required: 1 }
+                ],
+                api_method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.search_cities'
+            },
+            { 
+                id: 'airport_nearest', 
+                name: 'Airport Nearest Relevant',
+                description: 'Find airports nearest to geographical coordinates',
+                form_fields: [
+                    { label: 'Latitude', name: 'latitude', type: 'data', placeholder: 'e.g. 48.8566', required: 1 },
+                    { label: 'Longitude', name: 'longitude', type: 'data', placeholder: 'e.g. 2.3522', required: 1 },
+                    { label: 'Radius (km)', name: 'radius', type: 'int', default: '100' }
+                ],
+                api_method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.find_nearest_airports'
             }
-        });
-    });
-}
-
-function setupMainContentArea(page) {
-    // Add main content container
-    const mainContentHTML = `
-        <div class="amadeus-demo-content">
-            <div class="welcome-screen"></div>
-            <div class="endpoint-container" style="display:none;">
-                <div class="endpoint-header">
-                    <h4 class="endpoint-title"></h4>
-                    <div class="endpoint-description"></div>
-                </div>
-                <div class="form-container"></div>
-                <div class="response-container">
-                    <div class="response-header">
-                        <h5>Response</h5>
-                        <div class="response-actions">
+        ]);
+        
+        // Hotel APIs
+        this.create_section('hotel', 'Hotel APIs', [
+            { 
+                id: 'hotel_search', 
+                name: 'Hotel Search',
+                description: 'Search for hotels in a city for specific dates',
+                form_fields: [
+                    { label: 'City Code', name: 'cityCode', type: 'data', placeholder: 'e.g. PAR', required: 1 },
+                    { label: 'Check-in Date', name: 'checkInDate', type: 'date', required: 1 },
+                    { label: 'Check-out Date', name: 'checkOutDate', type: 'date', required: 1 },
+                    { label: 'Adults', name: 'adults', type: 'int', default: '1' }
+                ],
+                api_method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.search_hotels'
+            }
+        ]);
+        
+        // Show flight section by default
+        this.show_section('flight');
+    }
+    
+    create_section(id, title, apis) {
+        const section = $(`
+            <div class="api-section" id="section-${id}" style="display:none;">
+                <div class="api-listing"></div>
+            </div>
+        `).appendTo(this.sections_area);
+        
+        const listing = section.find('.api-listing');
+        
+        apis.forEach(api => {
+            const apiCard = $(`
+                <div class="api-card" id="api-${api.id}">
+                    <div class="api-header">
+                        <h3>${api.name}</h3>
+                        <p class="text-muted">${api.description}</p>
+                    </div>
+                    <div class="api-form-container"></div>
+                    <div class="api-response" style="display:none;">
+                        <div class="api-response-header">
+                            <h4>Response</h4>
                             <button class="btn btn-xs btn-default copy-response">
                                 <i class="fa fa-copy"></i> Copy
                             </button>
                         </div>
-                    </div>
-                    <div class="response-body">
-                        <pre><code class="response-code json"></code></pre>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    $(mainContentHTML).appendTo(page.main);
-    
-    // Setup copy button
-    page.main.find('.copy-response').on('click', () => {
-        const responseText = page.main.find('.response-code').text();
-        navigator.clipboard.writeText(responseText).then(() => {
-            frappe.show_alert({
-                message: __('Response copied to clipboard'),
-                indicator: 'green'
-            }, 3);
-        });
-    });
-}
-
-function showWelcomeScreen() {
-    const $welcomeScreen = $('.welcome-screen');
-    $welcomeScreen.empty();
-    
-    const welcomeHTML = `
-        <div class="jumbotron text-center">
-            <h1>Amadeus API Showcase</h1>
-            <p class="lead">Explore and test Amadeus Travel APIs directly from your ERPNext system</p>
-            <div class="welcome-icons">
-                <div class="welcome-icon">
-                    <i class="fa fa-airplane fa-3x"></i>
-                    <span>Flights</span>
-                </div>
-                <div class="welcome-icon">
-                    <i class="fa fa-home fa-3x"></i>
-                    <span>Hotels</span>
-                </div>
-                <div class="welcome-icon">
-                    <i class="fa fa-map-pin fa-3x"></i>
-                    <span>Destinations</span>
-                </div>
-            </div>
-            <p>Select an API endpoint from the sidebar to begin exploring the capabilities.</p>
-        </div>
-    `;
-    
-    $(welcomeHTML).appendTo($welcomeScreen);
-    $('.endpoint-container').hide();
-    $('.welcome-screen').show();
-}
-
-function loadEndpoint(endpoint) {
-    $('.welcome-screen').hide();
-    const $endpointContainer = $('.endpoint-container');
-    const $formContainer = $endpointContainer.find('.form-container');
-    
-    // Reset form and response
-    $formContainer.empty();
-    $('.response-code').empty();
-    
-    // Set endpoint title
-    $('.endpoint-title').text(endpoint.name);
-    
-    // Load form based on endpoint
-    if (endpoint.method && typeof endpointForms[endpoint.method] === 'function') {
-        endpointForms[endpoint.method]($formContainer);
-    } else {
-        $formContainer.html(`<div class="alert alert-warning">Form definition for ${endpoint.name} not found.</div>`);
-    }
-    
-    $endpointContainer.show();
-}
-
-// Collection of form definitions for each endpoint
-const endpointForms = {
-    search_flights: function($container) {
-        const formHTML = `
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Origin (Airport Code)</label>
-                        <input type="text" class="form-control" name="origin" placeholder="e.g. JFK" required>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Destination (Airport Code)</label>
-                        <input type="text" class="form-control" name="destination" placeholder="e.g. LHR" required>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Departure Date</label>
-                        <div class="datepicker-container">
-                            <input type="date" class="form-control" name="departure_date" required>
+                        <div class="api-response-body">
+                            <pre><code class="json"></code></pre>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
+            `).appendTo(listing);
+            
+            // Build form
+            const formContainer = apiCard.find('.api-form-container');
+            const form = $(`<div class="api-form"></div>`).appendTo(formContainer);
+            
+            // Add fields
+            api.form_fields.forEach(field => {
+                const fieldHtml = `
                     <div class="form-group">
-                        <label>Return Date (Optional)</label>
-                        <div class="datepicker-container">
-                            <input type="date" class="form-control" name="return_date">
-                        </div>
+                        <label>${field.label}${field.required ? ' <span class="text-danger">*</span>' : ''}</label>
+                        ${this.get_field_html(field)}
                     </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>Adults</label>
-                        <input type="number" class="form-control" name="adults" value="1" min="1" max="9">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>Children</label>
-                        <input type="number" class="form-control" name="children" value="0" min="0" max="9">
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="form-group">
-                        <label>Infants</label>
-                        <input type="number" class="form-control" name="infants" value="0" min="0" max="9">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12 text-right">
-                    <button class="btn btn-primary btn-submit">Search Flights</button>
-                </div>
-            </div>
-        `;
-        
-        $container.html(formHTML);
-        
-        // Handle form submission
-        $container.find('.btn-submit').on('click', function() {
-            const formData = {};
-            $container.find('input').each(function() {
-                const $input = $(this);
-                if ($input.val()) {
-                    formData[$input.attr('name')] = $input.val();
-                }
+                `;
+                $(fieldHtml).appendTo(form);
             });
             
-            // Validate required fields
-            if (!formData.origin || !formData.destination || !formData.departure_date) {
-                frappe.throw(__('Please fill all required fields'));
-                return;
-            }
+            // Add submit button
+            $(`
+                <div class="form-group text-right">
+                    <button class="btn btn-primary btn-submit-api" data-api-method="${api.api_method}">
+                        Submit
+                    </button>
+                </div>
+            `).appendTo(form);
             
-            // Show loading
-            frappe.show_alert({
-                message: __('Searching flights...'),
-                indicator: 'blue'
+            // Handle form submission
+            form.find('.btn-submit-api').on('click', (e) => {
+                const method = $(e.currentTarget).attr('data-api-method');
+                const formData = {};
+                
+                // Collect form data
+                form.find('input, select').each(function() {
+                    const input = $(this);
+                    const name = input.attr('name');
+                    const value = input.val();
+                    
+                    if (value) {
+                        formData[name] = value;
+                    }
+                });
+                
+                // Check required fields
+                let isValid = true;
+                api.form_fields.forEach(field => {
+                    if (field.required && !formData[field.name]) {
+                        frappe.throw(`${field.label} is required`);
+                        isValid = false;
+                        return false;
+                    }
+                });
+                
+                if (!isValid) return;
+                
+                // Show loading
+                frappe.show_alert({
+                    message: __('Processing request...'),
+                    indicator: 'blue'
+                });
+                
+                // Call API
+                frappe.call({
+                    method: method,
+                    args: formData,
+                    callback: (r) => {
+                        if (r.message) {
+                            // Show response
+                            const responseCode = apiCard.find('.api-response code');
+                            responseCode.text(JSON.stringify(r.message, null, 2));
+                            apiCard.find('.api-response').show();
+                            
+                            // Format JSON
+                            if (typeof hljs !== 'undefined') {
+                                hljs.highlightElement(responseCode[0]);
+                            }
+                            
+                            // Scroll to response
+                            $('html, body').animate({
+                                scrollTop: apiCard.find('.api-response').offset().top - 100
+                            }, 500);
+                        }
+                    }
+                });
             });
             
-            // Call API
-            frappe.call({
-                method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.search_flights',
-                args: formData,
-                callback: function(r) {
-                    displayResponse(r.message);
-                }
-            });
-        });
-    },
-    
-    search_airports: function($container) {
-        const formHTML = `
-            <div class="row">
-                <div class="col-md-12">
-                    <div class="form-group">
-                        <label>Search Query</label>
-                        <input type="text" class="form-control" name="query" placeholder="e.g. London, Paris, JFK" required>
-                        <small class="text-muted">Search by city name, airport name, or airport code</small>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Subtype</label>
-                        <select class="form-control" name="subType">
-                            <option value="AIRPORT">Airport</option>
-                            <option value="CITY">City</option>
-                            <option value="ANY">Any</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="form-group">
-                        <label>Results Limit</label>
-                        <input type="number" class="form-control" name="limit" value="10" min="1" max="100">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-12 text-right">
-                    <button class="btn btn-primary btn-submit">Search</button>
-                </div>
-            </div>
-        `;
-        
-        $container.html(formHTML);
-        
-        // Handle form submission
-        $container.find('.btn-submit').on('click', function() {
-            const formData = {};
-            $container.find('input, select').each(function() {
-                const $input = $(this);
-                if ($input.val()) {
-                    formData[$input.attr('name')] = $input.val();
-                }
-            });
-            
-            // Validate required fields
-            if (!formData.query) {
-                frappe.throw(__('Please enter a search query'));
-                return;
-            }
-            
-            // Show loading
-            frappe.show_alert({
-                message: __('Searching...'),
-                indicator: 'blue'
-            });
-            
-            // Call API
-            frappe.call({
-                method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.search_airports',
-                args: { query: formData.query },
-                callback: function(r) {
-                    displayResponse(r.message);
-                }
+            // Handle copy button
+            apiCard.find('.copy-response').on('click', () => {
+                const responseText = apiCard.find('.api-response code').text();
+                frappe.utils.copy_to_clipboard(responseText);
+                frappe.show_alert({
+                    message: __('Response copied to clipboard'),
+                    indicator: 'green'
+                }, 3);
             });
         });
     }
-};
-
-// Register additional endpoint methods
-function registerEndpoints() {
-    // We'll implement these as needed
-}
-
-// Display API response
-function displayResponse(response) {
-    const $responseCode = $('.response-code');
-    $responseCode.html(JSON.stringify(response, null, 2));
     
-    // Highlight syntax
-    if (typeof hljs !== 'undefined') {
-        hljs.highlightElement($responseCode[0]);
+    get_field_html(field) {
+        switch (field.type) {
+            case 'data':
+                return `<input type="text" name="${field.name}" class="form-control" 
+                    placeholder="${field.placeholder || ''}" ${field.default ? 'value="' + field.default + '"' : ''}>`;
+            case 'date':
+                return `<input type="date" name="${field.name}" class="form-control" 
+                    ${field.default ? 'value="' + field.default + '"' : ''}>`;
+            case 'int':
+                return `<input type="number" name="${field.name}" class="form-control" 
+                    ${field.default ? 'value="' + field.default + '"' : ''}>`;
+            case 'select':
+                let options = '';
+                (field.options || []).forEach(opt => {
+                    options += `<option value="${opt.value}">${opt.label}</option>`;
+                });
+                return `<select name="${field.name}" class="form-control">${options}</select>`;
+            default:
+                return `<input type="text" name="${field.name}" class="form-control">`;
+        }
     }
     
-    // Scroll to response
-    $('html, body').animate({
-        scrollTop: $('.response-container').offset().top - 100
-    }, 500);
+    show_section(section_id) {
+        $('.api-section').hide();
+        $(`#section-${section_id}`).show();
+    }
 }
+
+// Add stylesheet
+frappe.dom.set_style(`
+    .api-section {
+        margin-top: 20px;
+    }
+    
+    .api-card {
+        background-color: #fff;
+        border: 1px solid #e3e3e3;
+        border-radius: 4px;
+        margin-bottom: 20px;
+        padding: 20px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .api-header {
+        margin-bottom: 20px;
+    }
+    
+    .api-form {
+        background-color: #f8f8f8;
+        padding: 15px;
+        border-radius: 4px;
+    }
+    
+    .api-response {
+        margin-top: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .api-response-header {
+        padding: 10px 15px;
+        background-color: #f5f5f5;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .api-response-body {
+        max-height: 500px;
+        overflow-y: auto;
+        background-color: #f8f8f8;
+    }
+    
+    .api-response-body pre {
+        margin: 0;
+        padding: 15px;
+        border: none;
+        background-color: transparent;
+    }
+`);
