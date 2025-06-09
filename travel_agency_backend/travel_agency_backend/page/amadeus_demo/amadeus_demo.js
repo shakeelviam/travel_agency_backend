@@ -4,20 +4,10 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
         title: 'Amadeus API Showcase',
         single_column: true
     });
-
-    // Load the modern implementation
-    frappe.require(['/assets/travel_agency_backend/js/amadeus_formatter.js', '/assets/travel_agency_backend/travel_agency_backend/page/amadeus_demo/amadeus_demo_modern.js'], function() {
-        // Modern implementation will initialize automatically
-    });
+    
+    // Load the basic implementation
+    $.getScript('/assets/travel_agency_backend/travel_agency_backend/page/amadeus_demo/amadeus_demo_basic.js');
 };
-
-function setupTabEvents() {
-    // Fix tab navigation
-    $('.nav-tabs a').off('click').on('click', function(e) {
-        e.preventDefault();
-        $(this).tab('show');
-    });
-}
 
 function setupAmadeusDemo(page) {
     // Create sections
