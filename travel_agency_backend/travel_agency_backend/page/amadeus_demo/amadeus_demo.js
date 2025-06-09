@@ -258,9 +258,86 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
         
         $('#api-results').html(html).show();
         
-        // Attach event handler for Book Now buttons
+        // Attach event handler for Book Now buttons - FOR DEMONSTRATION ONLY
         $('.book-now').on('click', function() {
-            frappe.msgprint("Booking functionality would be integrated with your system here.");
+            // Get the booking information based on the button clicked
+            let bookingDetails = [];
+            let bookingType;
+            
+            if (type === 'flight') {
+                const row = $(this).closest('tr');
+                const cells = row.find('td');
+                bookingType = 'Flight';
+                
+                bookingDetails = [
+                    {label: 'Airline', value: $(cells[0]).text()},
+                    {label: 'Route', value: $(cells[1]).text()},
+                    {label: 'Departure', value: $(cells[2]).text()},
+                    {label: 'Price', value: $(cells[3]).text()}
+                ];
+            } else if (type === 'hotel') {
+                const panel = $(this).closest('.panel');
+                const hotelName = panel.find('.panel-heading h4').text();
+                const priceText = panel.find('p:contains("Price")').text().replace('Price:', '').trim();
+                const locationText = panel.find('p:contains("Location")').text().replace('Location:', '').trim();
+                
+                bookingType = 'Hotel';
+                bookingDetails = [
+                    {label: 'Hotel Name', value: hotelName},
+                    {label: 'Location', value: locationText},
+                    {label: 'Price', value: priceText},
+                    {label: 'Check-in Date', value: $('#hotel-checkin').val()},
+                    {label: 'Check-out Date', value: $('#hotel-checkout').val()}
+                ];
+            }
+            
+            // Create a nice looking dialog to display the booking information
+            let dialogHTML = `
+                <div class="booking-preview">
+                    <div class="demo-alert alert alert-info">
+                        <i class="fa fa-info-circle"></i> 
+                        <strong>Demonstration Only:</strong> This is a preview of what would be sent to your booking system.
+                    </div>
+                    <h4>${bookingType} Booking Details</h4>
+                    <table class="table table-bordered">
+                        <tbody>
+            `;
+            
+            // Add all booking details to the table
+            bookingDetails.forEach(detail => {
+                dialogHTML += `
+                    <tr>
+                        <th width="30%">${detail.label}</th>
+                        <td>${detail.value}</td>
+                    </tr>
+                `;
+            });
+            
+            dialogHTML += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            // Show the dialog
+            const d = new frappe.ui.Dialog({
+                title: 'Booking Preview (Demo Only)',
+                fields: [{
+                    fieldname: 'booking_html',
+                    fieldtype: 'HTML',
+                    options: dialogHTML
+                }],
+                primary_action_label: 'Close',
+                primary_action: function() {
+                    d.hide();
+                }
+            });
+            
+            d.show();
+            
+            // Add custom class for styling
+            d.$wrapper.find('.modal-dialog').css('width', '550px');
+            d.$wrapper.find('.booking-preview .demo-alert').css('margin-bottom', '15px');
         });
     };
 
