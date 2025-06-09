@@ -1,78 +1,57 @@
-<div class="amadeus-demo-page">
-    <!-- Simple tab navigation -->
-    <ul class="nav nav-tabs" id="amadeus-tabs">
-        <li class="active"><a href="#flight-search" data-toggle="tab">Flight Search</a></li>
-        <li><a href="#airport-search" data-toggle="tab">Airport Search</a></li>
-        <li><a href="#hotel-search" data-toggle="tab">Hotel Search</a></li>
-    </ul>
-
-    <!-- Tab content -->
-    <div class="tab-content" style="padding-top: 20px;">
-        <!-- Flight Search Tab -->
-        <div class="tab-pane active" id="flight-search">
-            <div class="well">
-                <div class="row">
-                    <div class="col-md-3 form-group">
-                        <label>Origin</label>
-                        <input type="text" class="form-control" id="flight-origin" placeholder="e.g. LHR" value="LHR">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>Destination</label>
-                        <input type="text" class="form-control" id="flight-destination" placeholder="e.g. CDG" value="CDG">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>Departure Date</label>
-                        <input type="date" class="form-control" id="flight-date">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>&nbsp;</label><br>
-                        <button class="btn btn-primary" id="btn-search-flights">Search Flights</button>
-                    </div>
+<div class="amadeus-api-demo">
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <h3>Flight Search</h3>
+            <div class="row">
+                <div class="col-sm-3">
+                    <input type="text" class="form-control" id="flight-origin" placeholder="Origin (e.g. LHR)" value="LHR">
+                </div>
+                <div class="col-sm-3">
+                    <input type="text" class="form-control" id="flight-destination" placeholder="Destination (e.g. CDG)" value="CDG">
+                </div>
+                <div class="col-sm-3">
+                    <input type="date" class="form-control" id="flight-date">
+                </div>
+                <div class="col-sm-3">
+                    <button class="btn btn-primary btn-block" id="btn-search-flights">Search Flights</button>
                 </div>
             </div>
-            <div id="flight-results"></div>
-        </div>
-
-        <!-- Airport Search Tab -->
-        <div class="tab-pane" id="airport-search">
-            <div class="well">
-                <div class="row">
-                    <div class="col-md-9 form-group">
-                        <label>Search Term</label>
-                        <input type="text" class="form-control" id="airport-query" placeholder="e.g. London, Dubai, JFK" value="London">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>&nbsp;</label><br>
-                        <button class="btn btn-primary" id="btn-search-airports">Search Airports</button>
-                    </div>
-                </div>
-            </div>
-            <div id="airport-results"></div>
-        </div>
-
-        <!-- Hotel Search Tab -->
-        <div class="tab-pane" id="hotel-search">
-            <div class="well">
-                <div class="row">
-                    <div class="col-md-3 form-group">
-                        <label>City Code</label>
-                        <input type="text" class="form-control" id="hotel-city" placeholder="e.g. PAR" value="PAR">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>Check-in</label>
-                        <input type="date" class="form-control" id="hotel-checkin">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>Check-out</label>
-                        <input type="date" class="form-control" id="hotel-checkout">
-                    </div>
-                    <div class="col-md-3 form-group">
-                        <label>&nbsp;</label><br>
-                        <button class="btn btn-primary" id="btn-search-hotels">Search Hotels</button>
-                    </div>
-                </div>
-            </div>
-            <div id="hotel-results"></div>
         </div>
     </div>
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <h3>Airport Search</h3>
+            <div class="row">
+                <div class="col-sm-9">
+                    <input type="text" class="form-control" id="airport-query" placeholder="City or Airport (e.g. London)" value="London">
+                </div>
+                <div class="col-sm-3">
+                    <button class="btn btn-primary btn-block" id="btn-search-airports">Search Airports</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="panel panel-default">
+        <div class="panel-body">
+            <h3>Hotel Search</h3>
+            <div class="row">
+                <div class="col-sm-3">
+                    <input type="text" class="form-control" id="hotel-city" placeholder="City Code (e.g. PAR)" value="PAR">
+                </div>
+                <div class="col-sm-3">
+                    <input type="date" class="form-control" id="hotel-checkin" placeholder="Check-in">
+                </div>
+                <div class="col-sm-3">
+                    <input type="date" class="form-control" id="hotel-checkout" placeholder="Check-out">
+                </div>
+                <div class="col-sm-3">
+                    <button class="btn btn-primary btn-block" id="btn-search-hotels">Search Hotels</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="api-results" class="well" style="display:none;"></div>
 </div>
