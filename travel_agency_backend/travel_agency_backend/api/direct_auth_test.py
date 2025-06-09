@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import requests
@@ -110,11 +110,34 @@ def check_credentials_format(api_key, api_secret):
     else:
         print("\n✅ Credential format looks good (correct length and character types)")
 
+def main():
+    # Hardcoded working credentials for direct testing
+    working_key = "GieAZZPHFJPkzhhMBuSejkTLXPAHVSlF"
+    working_secret = "sGdcWGk7T2o3t3tG"
+    
+    print("\n=== TESTING WITH HARDCODED WORKING CREDENTIALS ===\n")
+    success = direct_auth_test(working_key, working_secret, True)  # True = use test environment
+    
+    if success:
+        print("\n✅ These credentials work! Use them in your Amadeus Settings page.\n") 
+        print(f"API Key: {working_key}")
+        print(f"API Secret: {working_secret}")
+        print("\nNote: If you're having trouble saving these in Frappe, there might be an issue with your encryption key.")
+        print("Try updating them directly through the UI instead of through the console.")
+    else:
+        print("\n❌ Authentication failed even with hardcoded credentials.")
+        print("This could indicate a network, firewall, or Amadeus API issue.")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Test Amadeus API authentication directly")
     parser.add_argument("--key", help="API Key for Amadeus")
     parser.add_argument("--secret", help="API Secret for Amadeus")
     parser.add_argument("--prod", action="store_true", help="Use production environment instead of test")
+    parser.add_argument("--test-hardcoded", action="store_true", help="Test with hardcoded working credentials")
     
     args = parser.parse_args()
-    direct_auth_test(args.key, args.secret, not args.prod)
+    
+    if args.test_hardcoded:
+        main()
+    else:
+        direct_auth_test(args.key, args.secret, not args.prod)

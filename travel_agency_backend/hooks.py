@@ -29,7 +29,8 @@ app_include_css = "/assets/travel_agency_backend/css/amadeus.css"
 
 # ✅ Enable JS for Trip Booking Doctype
 doctype_js = {
-    "Trip Booking": "travel_agency_backend/trip_booking/trip_booking.js"
+    "Trip Booking": "travel_agency_backend/trip_booking/trip_booking.js",
+    "Amadeus Settings": "travel_agency_backend/doctype/amadeus_settings/amadeus_settings_proxy.js"
 }
 
 # include js in doctype views
