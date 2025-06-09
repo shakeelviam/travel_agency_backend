@@ -35,3 +35,18 @@ def set_item_description_from_trip_booking(doc, method=None):
             # Update the description if we generated one
             if dynamic_description:
                 item.description = dynamic_description
+                
+def duplicate_invoice_items_for_multi_passenger(doc, method=None):
+    """
+    This is a hook to be called before submission of an invoice.
+    If an invoice needs to be created with multiple passengers, this will be handled
+    by the Trip Booking document (which is separate from this hook).
+    
+    Each service entry already has a single passenger, and this hook will ensure 
+    proper description formatting without creating new Item master records.
+    """
+    # No action needed here as the Trip Booking is responsible for creating
+    # multiple invoice items - one per passenger - each using the same Item
+    # but with different reference_doctype/reference_name values.
+    # This function is just a placeholder for future expansion if needed.
+    pass

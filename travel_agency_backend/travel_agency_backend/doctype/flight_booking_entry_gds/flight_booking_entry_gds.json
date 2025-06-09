@@ -30,9 +30,6 @@
   "return_date",
   "pricing_section",
   "item",
-  "base_fare",
-  "tax_amount",
-  "commission_amount",
   "supplier_cost",
   "markup",
   "column_break_pricing",
@@ -140,7 +137,8 @@
    "fieldname": "item",
    "fieldtype": "Link",
    "label": "Item",
-   "options": "Item"
+   "options": "Item",
+   "read_only": 1
   },
   {
    "fieldname": "supplier_cost",
@@ -203,23 +201,6 @@
     "label": "Airline Code",
     "description": "2-letter IATA airline code",
     "length": 2
-   },
-   {
-    "fieldname": "base_fare",
-    "fieldtype": "Currency",
-    "label": "Base Fare",
-    "reqd": 1
-   },
-   {
-    "fieldname": "tax_amount",
-    "fieldtype": "Currency",
-    "label": "Tax Amount",
-    "reqd": 1
-   },
-   {
-    "fieldname": "commission_amount",
-    "fieldtype": "Currency",
-    "label": "Commission Amount"
    },
    {
     "fieldname": "notes_section",

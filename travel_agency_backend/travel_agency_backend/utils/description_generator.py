@@ -1,5 +1,6 @@
 import frappe
 from frappe import _
+from datetime import datetime
 
 def get_flight_booking_gds_description(booking_entry):
     """Generate detailed description for Flight GDS bookings"""

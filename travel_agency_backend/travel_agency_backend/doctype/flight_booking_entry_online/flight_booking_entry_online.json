@@ -129,7 +129,8 @@
    "fieldname": "item",
    "fieldtype": "Link",
    "label": "Item",
-   "options": "Item"
+   "options": "Item",
+   "read_only": 1
   },
   {
    "fieldname": "supplier_cost",
@@ -197,23 +198,6 @@
    "fieldname": "return_booking_class",
    "fieldtype": "Data",
    "label": "Return Booking Class"
-  },
-  {
-   "fieldname": "base_fare",
-   "fieldtype": "Currency",
-   "label": "Base Fare",
-   "reqd": 1
-  },
-  {
-   "fieldname": "tax_amount",
-   "fieldtype": "Currency",
-   "label": "Tax Amount",
-   "reqd": 1
-  },
-  {
-   "fieldname": "commission_amount",
-   "fieldtype": "Currency",
-   "label": "Commission Amount"
   }
  ],
  "istable": 1,
