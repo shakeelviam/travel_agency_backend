@@ -5,39 +5,61 @@ from datetime import datetime
 def get_flight_booking_gds_description(booking_entry):
     """Generate detailed description for Flight GDS bookings"""
     passenger_name = booking_entry.passenger_name or "N/A"
-    from_sector = frappe.get_value("Sector Master", booking_entry.from_sector, "sector_code") if booking_entry.from_sector else "N/A"
-    to_sector = frappe.get_value("Sector Master", booking_entry.to_sector, "sector_code") if booking_entry.to_sector else "N/A"
     
-    # For return trips, include return sector
-    sector_info = f"{from_sector}-{to_sector}"
-    if booking_entry.trip_type == "Return" and booking_entry.return_sector:
-        return_sector = frappe.get_value("Sector Master", booking_entry.return_sector, "sector_code") or "N/A"
-        sector_info = f"{from_sector}-{to_sector}-{return_sector}"
+    # Only include sector info if both from and to sectors are available
+    sector_info = ""
+    if booking_entry.from_sector and booking_entry.to_sector:
+        from_sector = frappe.get_value("Sector Master", booking_entry.from_sector, "sector_code")
+        to_sector = frappe.get_value("Sector Master", booking_entry.to_sector, "sector_code")
+        
+        if from_sector and to_sector:
+            sector_info = f"{from_sector}-{to_sector}"
+            
+            # For return trips, include return sector
+            if booking_entry.trip_type == "Return" and booking_entry.return_sector:
+                return_sector = frappe.get_value("Sector Master", booking_entry.return_sector, "sector_code")
+                if return_sector:
+                    sector_info = f"{from_sector}-{to_sector}-{return_sector}"
     
+    # Add space before sector info if it exists
+    if sector_info:
+        sector_info = f"{sector_info} "
+        
     ticket_info = f"#{booking_entry.ticket_number}" if booking_entry.ticket_number else ""
     pnr_info = f"PNR: {booking_entry.pnr}" if booking_entry.pnr else ""
     travel_date = booking_entry.travel_date.strftime("%d-%m-%Y") if booking_entry.travel_date else "N/A"
     
-    description = f"{passenger_name}: {sector_info} {booking_entry.trip_type} {ticket_info} {pnr_info} ({travel_date})"
+    description = f"{passenger_name}: {sector_info}{ticket_info} {pnr_info} ({travel_date})"
     return description.strip()
 
 def get_flight_booking_online_description(booking_entry):
     """Generate detailed description for Flight Online bookings"""
     passenger_name = booking_entry.passenger_name or "N/A"
-    from_sector = frappe.get_value("Sector Master", booking_entry.from_sector, "sector_code") if booking_entry.from_sector else "N/A"
-    to_sector = frappe.get_value("Sector Master", booking_entry.to_sector, "sector_code") if booking_entry.to_sector else "N/A"
     
-    # For return trips, include return sector
-    sector_info = f"{from_sector}-{to_sector}"
-    if booking_entry.trip_type == "Return" and booking_entry.return_sector:
-        return_sector = frappe.get_value("Sector Master", booking_entry.return_sector, "sector_code") or "N/A"
-        sector_info = f"{from_sector}-{to_sector}-{return_sector}"
+    # Only include sector info if both from and to sectors are available
+    sector_info = ""
+    if booking_entry.from_sector and booking_entry.to_sector:
+        from_sector = frappe.get_value("Sector Master", booking_entry.from_sector, "sector_code")
+        to_sector = frappe.get_value("Sector Master", booking_entry.to_sector, "sector_code")
+        
+        if from_sector and to_sector:
+            sector_info = f"{from_sector}-{to_sector}"
+            
+            # For return trips, include return sector
+            if booking_entry.trip_type == "Return" and booking_entry.return_sector:
+                return_sector = frappe.get_value("Sector Master", booking_entry.return_sector, "sector_code")
+                if return_sector:
+                    sector_info = f"{from_sector}-{to_sector}-{return_sector}"
     
+    # Add space before sector info if it exists
+    if sector_info:
+        sector_info = f"{sector_info} "
+        
     ticket_info = f"#{booking_entry.ticket_number}" if booking_entry.ticket_number else ""
     pnr_info = f"PNR: {booking_entry.pnr}" if booking_entry.pnr else ""
     travel_date = booking_entry.travel_date.strftime("%d-%m-%Y") if booking_entry.travel_date else "N/A"
     
-    description = f"{passenger_name}: {sector_info} {booking_entry.trip_type} {ticket_info} {pnr_info} ({travel_date})"
+    description = f"{passenger_name}: {sector_info}{ticket_info} {pnr_info} ({travel_date})"
     return description.strip()
 
 def get_hotel_booking_description(booking_entry):

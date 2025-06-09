@@ -9,7 +9,6 @@
   "passenger_name",
   "flight_details_section",
   "airline",
-  "airline_code",
   "trip_type",
   "column_break_flight",
   "from_sector",
@@ -194,13 +193,6 @@
     "fieldtype": "Date",
     "label": "Ticket Issue Date",
     "reqd": 1
-   },
-   {
-    "fieldname": "airline_code",
-    "fieldtype": "Data",
-    "label": "Airline Code",
-    "description": "2-letter IATA airline code",
-    "length": 2
    },
    {
     "fieldname": "notes_section",
