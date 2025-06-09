@@ -73,6 +73,95 @@ frappe.ui.form.on('Amadeus Settings', {
 			});
 		}, __('Troubleshoot'));
 		
+		// Add comprehensive troubleshooter
+		frm.add_custom_button(__('Comprehensive Troubleshooter'), function() {
+			// Create a dialog to confirm running the comprehensive troubleshooter
+			frappe.confirm(
+				__('The comprehensive troubleshooter will test multiple combinations of environments and credentials to find a working solution. This may take a minute or two. Continue?'),
+				function() {
+					// Yes callback - run the troubleshooter
+					
+					// Create progress dialog
+					let d = new frappe.ui.Dialog({
+						title: __('Amadeus Troubleshooter'),
+						fields: [
+							{fieldtype: 'HTML', fieldname: 'progress_area'},
+						]
+					});
+					
+					d.$wrapper.find('.modal-dialog').css("width", "550px");
+					
+					let progress_wrapper = d.fields_dict.progress_area.$wrapper.empty();
+					progress_wrapper.append(`
+						<div class="progress">
+							<div class="progress-bar progress-bar-striped active" role="progressbar"
+								aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+								<span>Testing environment combinations...</span>
+							</div>
+						</div>
+						<div class="text-muted margin-top" id="troubleshooter-status">
+							Initializing troubleshooter...
+						</div>
+					`);
+					
+					d.show();
+					
+					// Listen for progress updates
+					frappe.realtime.on('amadeus_troubleshooter_progress', function(data) {
+						if (data.message) {
+							$('#troubleshooter-status').text(data.message);
+						}
+						
+						if (data.message === 'Completed') {
+							setTimeout(function() {
+								d.hide();
+							}, 1000);
+						}
+					});
+					
+					// Run troubleshooter
+					frappe.call({
+						method: 'travel_agency_backend.travel_agency_backend.api.amadeus_troubleshooter.run_comprehensive_troubleshooter',
+						callback: function(r) {
+							if (r.message) {
+								// Hide progress and show report
+								setTimeout(function() {
+									d.hide();
+									
+									frappe.msgprint({
+										title: r.message.success ? __('Troubleshooting Success!') : __('Troubleshooting Results'),
+										indicator: r.message.success ? 'green' : 'red',
+										message: __(r.message.message),
+										wide: true
+									});
+									
+									// Refresh form if settings were updated
+									if (r.message.success) {
+										frm.reload_doc();
+									}
+								}, 1000);
+							} else {
+								d.hide();
+								frappe.msgprint({
+									title: __('Error'),
+									indicator: 'red',
+									message: __('Failed to run troubleshooter. Please check the server logs.')
+								});
+							}
+						},
+						error: function() {
+							d.hide();
+							frappe.msgprint({
+								title: __('Error'),
+								indicator: 'red',
+								message: __('Server error while running troubleshooter. Please try again later.')
+							});
+						}
+					});
+				}
+			);
+		}, __('Troubleshoot'));
+		
 		frm.add_custom_button(__('Search Flights'), function() {
 			if (!frm.doc.api_key || !frm.doc.api_secret) {
 				frappe.msgprint(__('Please set API Key and API Secret first'));
