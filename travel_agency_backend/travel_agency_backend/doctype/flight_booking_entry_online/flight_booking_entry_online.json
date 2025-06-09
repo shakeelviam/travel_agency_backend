@@ -8,6 +8,7 @@
   "passenger",
   "passenger_name",
   "flight_details_section",
+  "service_type",
   "airline",
   "trip_type",
   "column_break_flight",
@@ -54,6 +55,14 @@
    "fieldname": "flight_details_section",
    "fieldtype": "Section Break",
    "label": "Flight Details"
+  },
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Link",
+   "label": "Service Type",
+   "options": "Service Type",
+   "default": "Flight Online Airlines",
+   "read_only": 1
   },
   {
    "fieldname": "airline",
