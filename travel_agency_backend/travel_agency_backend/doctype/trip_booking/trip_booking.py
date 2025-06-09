@@ -97,16 +97,22 @@ class TripBooking(Document):
             
             # Validate each row in the table
             for row in self.get(table) or []:
-                # Check for supplier cost using service configuration
-                has_cost = False
-                for cost_field in service_config.get('cost_fields', []):
-                    if hasattr(row, cost_field) and flt(getattr(row, cost_field)):
-                        has_cost = True
-                        break
-                    
-                if not has_cost:
-                    frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
-                        row.passenger, service.service_category))
+                # For flight services, we now use supplier_cost directly
+                if service.service_category in ["Flight GDS", "Flight Online Airlines"]:
+                    if not hasattr(row, 'supplier_cost') or not flt(row.supplier_cost):
+                        frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
+                            row.passenger, service.service_category))
+                else:
+                    # For other services, use the cost_fields as configured
+                    has_cost = False
+                    for cost_field in service_config.get('cost_fields', []):
+                        if hasattr(row, cost_field) and flt(getattr(row, cost_field)):
+                            has_cost = True
+                            break
+                        
+                    if not has_cost:
+                        frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
+                            row.passenger, service.service_category))
 
     def calculate_total_amount(self):
         total = 0

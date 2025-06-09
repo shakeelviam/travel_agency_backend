@@ -13,18 +13,18 @@ class TripBookingConfig:
             "table": "flight_booking_entry_gds", 
             "supplier_field": "flight_gds_supplier",
             "child_doctype": "Flight Booking Entry GDS",
-            "cost_fields": ["net_fare", "supplier_cost_payable"],
+            "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
-            "commission_field": "service_fee"
+            "commission_field": null
         },
         "Flight Online Airlines": {
             "section": "flight_online_section",
             "table": "flight_booking_entry_online",
             "supplier_field": "flight_online_supplier", 
             "child_doctype": "Flight Booking Entry Online",
-            "cost_fields": ["net_fare", "supplier_cost_payable"],
+            "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
-            "commission_field": "service_fee"
+            "commission_field": null
         },
         "Hotel Booking": {
             "section": "hotel_section",
