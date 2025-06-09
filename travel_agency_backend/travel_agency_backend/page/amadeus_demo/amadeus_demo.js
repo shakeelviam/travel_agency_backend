@@ -258,76 +258,327 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
         
         $('#api-results').html(html).show();
         
-        // Attach event handler for Book Now buttons - FOR DEMONSTRATION ONLY
+        // Attach event handler for Book Now buttons - FULL DEMO BOOKING FLOW
         $('.book-now').on('click', function() {
-            // Get the booking information based on the button clicked
-            let bookingDetails = [];
+            // Store reference to the selected item
+            let selectedItem;
             let bookingType;
+            let flightOffer;
+            let hotelOffer;
             
             if (type === 'flight') {
                 const row = $(this).closest('tr');
-                const cells = row.find('td');
-                bookingType = 'Flight';
+                const rowIndex = row.index();
+                flightOffer = data.flight_offers[rowIndex];
+                bookingType = 'flight';
                 
-                bookingDetails = [
-                    {label: 'Airline', value: $(cells[0]).text()},
-                    {label: 'Route', value: $(cells[1]).text()},
-                    {label: 'Departure', value: $(cells[2]).text()},
-                    {label: 'Price', value: $(cells[3]).text()}
-                ];
+                selectedItem = {
+                    type: 'flight',
+                    airline: row.find('td').eq(0).text(),
+                    route: row.find('td').eq(1).text(),
+                    departure: row.find('td').eq(2).text(),
+                    price: row.find('td').eq(3).text(),
+                    raw_data: flightOffer
+                };
             } else if (type === 'hotel') {
                 const panel = $(this).closest('.panel');
-                const hotelName = panel.find('.panel-heading h4').text();
-                const priceText = panel.find('p:contains("Price")').text().replace('Price:', '').trim();
-                const locationText = panel.find('p:contains("Location")').text().replace('Location:', '').trim();
+                const panelIndex = $('.panel').index(panel) / 2; // Approximate index
+                hotelOffer = data.data[Math.floor(panelIndex)];
+                bookingType = 'hotel';
                 
-                bookingType = 'Hotel';
-                bookingDetails = [
-                    {label: 'Hotel Name', value: hotelName},
-                    {label: 'Location', value: locationText},
-                    {label: 'Price', value: priceText},
-                    {label: 'Check-in Date', value: $('#hotel-checkin').val()},
-                    {label: 'Check-out Date', value: $('#hotel-checkout').val()}
-                ];
+                selectedItem = {
+                    type: 'hotel',
+                    name: panel.find('.panel-heading h4').text(),
+                    location: panel.find('p:contains("Location")').text().replace('Location:', '').trim(),
+                    price: panel.find('p:contains("Price")').text().replace('Price:', '').trim(),
+                    checkin: $('#hotel-checkin').val(),
+                    checkout: $('#hotel-checkout').val(),
+                    raw_data: hotelOffer
+                };
             }
             
-            // Create a nice looking dialog to display the booking information
-            let dialogHTML = `
-                <div class="booking-preview">
-                    <div class="demo-alert alert alert-info">
-                        <i class="fa fa-info-circle"></i> 
-                        <strong>Demonstration Only:</strong> This is a preview of what would be sent to your booking system.
-                    </div>
-                    <h4>${bookingType} Booking Details</h4>
-                    <table class="table table-bordered">
-                        <tbody>
-            `;
+            startBookingFlow(selectedItem, bookingType);
+        });
+        
+        function startBookingFlow(selectedItem, bookingType) {
+            // Step 1: Customer Information
+            showCustomerInfoStep(selectedItem, bookingType);
+        }
+        
+        function showCustomerInfoStep(selectedItem, bookingType) {
+            // Define fields based on booking type
+            let fields = [
+                {label: 'Full Name', fieldname: 'full_name', fieldtype: 'Data', reqd: 1},
+                {label: 'Email', fieldname: 'email', fieldtype: 'Data', reqd: 1},
+                {label: 'Phone', fieldname: 'phone', fieldtype: 'Data'}
+            ];
             
-            // Add all booking details to the table
-            bookingDetails.forEach(detail => {
-                dialogHTML += `
-                    <tr>
-                        <th width="30%">${detail.label}</th>
-                        <td>${detail.value}</td>
-                    </tr>
-                `;
+            if (bookingType === 'flight') {
+                fields = fields.concat([
+                    {fieldtype: 'Section Break', label: 'Passenger Details'},
+                    {label: 'Date of Birth', fieldname: 'dob', fieldtype: 'Date'},
+                    {label: 'Passport Number', fieldname: 'passport', fieldtype: 'Data'},
+                    {label: 'Special Requirements', fieldname: 'special_requirements', fieldtype: 'Small Text'}
+                ]);
+            } else if (bookingType === 'hotel') {
+                fields = fields.concat([
+                    {fieldtype: 'Section Break', label: 'Stay Details'},
+                    {label: 'Number of Guests', fieldname: 'guests', fieldtype: 'Int', default: 1},
+                    {label: 'Number of Rooms', fieldname: 'rooms', fieldtype: 'Int', default: 1},
+                    {label: 'Special Requests', fieldname: 'special_requests', fieldtype: 'Small Text'}
+                ]);
+            }
+            
+            const d = new frappe.ui.Dialog({
+                title: `Book ${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)} - Customer Information`,
+                fields: fields,
+                primary_action_label: 'Proceed to Payment',
+                primary_action: function(values) {
+                    d.hide();
+                    showPaymentStep(selectedItem, values, bookingType);
+                }
             });
             
-            dialogHTML += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            d.show();
+        }
+        
+        function showPaymentStep(selectedItem, customerInfo, bookingType) {
+            // Parse price from selectedItem
+            let priceText = selectedItem.price;
+            let price = 0;
+            let currency = 'EUR';
             
-            // Show the dialog
+            if (priceText) {
+                const priceParts = priceText.split(' ');
+                if (priceParts.length > 0) {
+                    price = parseFloat(priceParts[0]);
+                    if (priceParts.length > 1) {
+                        currency = priceParts[1];
+                    }
+                }
+            }
+            
             const d = new frappe.ui.Dialog({
-                title: 'Booking Preview (Demo Only)',
+                title: 'Payment Details',
+                fields: [
+                    {fieldtype: 'HTML', fieldname: 'payment_summary', options: `
+                        <div class="payment-summary well">
+                            <h4>Booking Summary</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>${bookingType === 'flight' ? 'Flight' : 'Hotel'}:</strong> ${bookingType === 'flight' ? selectedItem.route : selectedItem.name}</p>
+                                    <p><strong>Customer:</strong> ${customerInfo.full_name}</p>
+                                </div>
+                                <div class="col-md-6 text-right">
+                                    <h3>${price.toFixed(2)} ${currency}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    `},
+                    {fieldtype: 'Section Break', label: 'Card Information'},
+                    {label: 'Card Number', fieldname: 'card_number', fieldtype: 'Data', reqd: 1, default: '4111 1111 1111 1111'},
+                    {fieldtype: 'Column Break'},
+                    {label: 'Expiry', fieldname: 'card_expiry', fieldtype: 'Data', reqd: 1, default: '12/25'},
+                    {fieldtype: 'Column Break'},
+                    {label: 'CVV', fieldname: 'card_cvv', fieldtype: 'Password', reqd: 1, default: '123'}
+                ],
+                primary_action_label: 'Pay & Complete Booking',
+                primary_action: function(values) {
+                    // Show processing indicator
+                    d.$wrapper.find('.modal-content').append(
+                        `<div class="payment-processing" style="position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(255,255,255,0.8);z-index:1000;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+                            <i class="fa fa-circle-o-notch fa-spin fa-3x text-primary"></i>
+                            <p class="text-center" style="margin-top:15px;font-size:16px;">Processing payment...</p>
+                        </div>`
+                    );
+                    
+                    // Prepare data for API call
+                    let apiData;
+                    if (bookingType === 'flight') {
+                        apiData = {
+                            passenger_name: customerInfo.full_name,
+                            email: customerInfo.email,
+                            phone: customerInfo.phone,
+                            passport: customerInfo.passport,
+                            dob: customerInfo.dob,
+                            special_requirements: customerInfo.special_requirements,
+                            flight: selectedItem.raw_data
+                        };
+                        
+                        // Make API call to simulate booking
+                        setTimeout(function() {
+                            frappe.call({
+                                method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.simulate_flight_booking',
+                                args: {
+                                    flight_data: apiData
+                                },
+                                callback: function(r) {
+                                    d.hide();
+                                    showConfirmationStep(r.message, customerInfo, selectedItem, bookingType);
+                                }
+                            });
+                        }, 2000); // Simulate processing time
+                    } else {
+                        apiData = {
+                            guest_name: customerInfo.full_name,
+                            email: customerInfo.email,
+                            phone: customerInfo.phone,
+                            rooms: customerInfo.rooms,
+                            guests: customerInfo.guests,
+                            special_requests: customerInfo.special_requests,
+                            check_in: selectedItem.checkin,
+                            check_out: selectedItem.checkout,
+                            hotel: selectedItem.raw_data,
+                            price: price.toString(),
+                            currency: currency
+                        };
+                        
+                        // Make API call to simulate booking
+                        setTimeout(function() {
+                            frappe.call({
+                                method: 'travel_agency_backend.travel_agency_backend.api.amadeus_proxy.simulate_hotel_booking',
+                                args: {
+                                    hotel_data: apiData
+                                },
+                                callback: function(r) {
+                                    d.hide();
+                                    showConfirmationStep(r.message, customerInfo, selectedItem, bookingType);
+                                }
+                            });
+                        }, 2000); // Simulate processing time
+                    }
+                }
+            });
+            
+            d.show();
+        }
+        
+        function showConfirmationStep(confirmation, customerInfo, selectedItem, bookingType) {
+            let contentHTML = '';
+            
+            if (confirmation.error) {
+                contentHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fa fa-exclamation-circle"></i>
+                        <strong>Booking Failed</strong>
+                        <p>${confirmation.error}</p>
+                    </div>
+                `;
+            } else {
+                // Success message with confirmation details
+                contentHTML = `
+                    <div class="text-center" style="margin-bottom: 20px;">
+                        <i class="fa fa-check-circle text-success" style="font-size: 48px;"></i>
+                        <h3 class="text-success">Booking Confirmed!</h3>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Booking Reference</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Booking ID:</strong> ${confirmation.booking_id}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Status:</strong> <span class="label label-success">${confirmation.status}</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">${bookingType === 'flight' ? 'Flight' : 'Hotel'} Details</h3>
+                        </div>
+                        <div class="panel-body">
+                `;
+                
+                if (bookingType === 'flight') {
+                    contentHTML += `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Route:</strong> ${selectedItem.route}</p>
+                                    <p><strong>Airline:</strong> ${selectedItem.airline}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Departure:</strong> ${selectedItem.departure}</p>
+                                    <p><strong>Price:</strong> ${selectedItem.price}</p>
+                                </div>
+                            </div>
+                    `;
+                } else {
+                    contentHTML += `
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Hotel:</strong> ${selectedItem.name}</p>
+                                    <p><strong>Location:</strong> ${selectedItem.location}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Check-in:</strong> ${selectedItem.checkin}</p>
+                                    <p><strong>Check-out:</strong> ${selectedItem.checkout}</p>
+                                    <p><strong>Price:</strong> ${selectedItem.price}</p>
+                                </div>
+                            </div>
+                    `;
+                }
+                
+                contentHTML += `
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Guest Information</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Name:</strong> ${customerInfo.full_name}</p>
+                                    <p><strong>Email:</strong> ${customerInfo.email}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Phone:</strong> ${customerInfo.phone || 'N/A'}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title">Payment Information</h3>
+                        </div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Amount:</strong> ${confirmation.payment.amount} ${confirmation.payment.currency}</p>
+                                    <p><strong>Transaction ID:</strong> ${confirmation.payment.transaction_id}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Status:</strong> <span class="label label-success">${confirmation.payment.status}</span></p>
+                                    <p><strong>Date:</strong> ${confirmation.confirmation_timestamp}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="well" style="margin-top: 20px;">
+                        <div class="text-center">
+                            <p><i class="fa fa-info-circle"></i> This is a demonstration booking. In a production environment, an email would be sent with these details.</p>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            const d = new frappe.ui.Dialog({
+                title: 'Booking Confirmation',
                 fields: [{
-                    fieldname: 'booking_html',
                     fieldtype: 'HTML',
-                    options: dialogHTML
+                    fieldname: 'confirmation_html',
+                    options: contentHTML
                 }],
-                primary_action_label: 'Close',
+                primary_action_label: 'Done',
                 primary_action: function() {
                     d.hide();
                 }
@@ -335,10 +586,9 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
             
             d.show();
             
-            // Add custom class for styling
-            d.$wrapper.find('.modal-dialog').css('width', '550px');
-            d.$wrapper.find('.booking-preview .demo-alert').css('margin-bottom', '15px');
-        });
+            // Make the dialog wider
+            d.$wrapper.find('.modal-dialog').css('width', '650px');
+        }
     };
 
     // Initialize everything

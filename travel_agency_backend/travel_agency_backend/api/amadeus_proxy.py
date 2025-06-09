@@ -352,6 +352,112 @@ def search_hotels(cityCode, checkInDate, checkOutDate, adults=1):
 if __name__ == "__main__":
     # This allows running the module directly for testing
     import sys
+
+@frappe.whitelist()
+def simulate_flight_booking(flight_data):
+    """
+    Simulate a flight booking using the Amadeus Flight Create Orders API
+    
+    :param flight_data: Flight data from search results, with passenger info
+    :return: Booking confirmation details
+    """
+    try:
+        if isinstance(flight_data, str):
+            flight_data = json.loads(flight_data)
+            
+        # Log the incoming request
+        logger.info(f"Simulating flight booking with data: {json.dumps(flight_data)}")
+        
+        # In a real implementation, we would call the Amadeus Flight Create Orders API
+        # For demo purposes, we'll simulate a successful booking response
+        
+        # Get a fresh token
+        token_response = get_token()
+        if not token_response.get("access_token"):
+            return {"error": "Failed to get access token", "details": token_response}
+            
+        # Create a simulated booking confirmation
+        confirmation = {
+            "success": True,
+            "booking_id": f"AMX-{int(time.time())}",
+            "status": "CONFIRMED",
+            "passenger_name": flight_data.get("passenger_name", "Demo Passenger"),
+            "flight_details": flight_data.get("flight", {}),
+            "payment": {
+                "amount": flight_data.get("flight", {}).get("price", {}).get("total", "0"),
+                "currency": flight_data.get("flight", {}).get("price", {}).get("currency", "EUR"),
+                "status": "APPROVED",
+                "transaction_id": f"TXN{int(time.time())}"
+            },
+            "confirmation_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "booking_expiry": None,  # No expiry for confirmed bookings
+            "itinerary_id": f"ITN{int(time.time())}-{flight_data.get('flight', {}).get('id', '0')}"
+        }
+        
+        # Log the response
+        logger.info(f"Booking simulation complete: {json.dumps(confirmation)}")
+        
+        return confirmation
+        
+    except Exception as e:
+        logger.error(f"Error in simulate_flight_booking: {str(e)}")
+        return {"error": str(e)}
+
+@frappe.whitelist()
+def simulate_hotel_booking(hotel_data):
+    """
+    Simulate a hotel booking using the Amadeus Hotel Booking API
+    
+    :param hotel_data: Hotel data from search results, with guest info
+    :return: Hotel booking confirmation details
+    """
+    try:
+        if isinstance(hotel_data, str):
+            hotel_data = json.loads(hotel_data)
+            
+        # Log the incoming request
+        logger.info(f"Simulating hotel booking with data: {json.dumps(hotel_data)}")
+        
+        # In a real implementation, we would call the Amadeus Hotel Booking API
+        # For demo purposes, we'll simulate a successful booking response
+        
+        # Get a fresh token
+        token_response = get_token()
+        if not token_response.get("access_token"):
+            return {"error": "Failed to get access token", "details": token_response}
+            
+        # Create a simulated booking confirmation
+        confirmation = {
+            "success": True,
+            "booking_id": f"HTL-{int(time.time())}",
+            "status": "CONFIRMED",
+            "guest_name": hotel_data.get("guest_name", "Demo Guest"),
+            "hotel_details": hotel_data.get("hotel", {}),
+            "stay": {
+                "check_in": hotel_data.get("check_in"),
+                "check_out": hotel_data.get("check_out"),
+                "rooms": hotel_data.get("rooms", 1),
+                "guests": hotel_data.get("guests", 1)
+            },
+            "payment": {
+                "amount": hotel_data.get("price", "0"),
+                "currency": hotel_data.get("currency", "EUR"),
+                "status": "APPROVED",
+                "transaction_id": f"TXN{int(time.time())}"
+            },
+            "confirmation_timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "special_requests": hotel_data.get("special_requests", "None"),
+            "reservation_id": f"RSV{int(time.time())}"
+        }
+        
+        # Log the response
+        logger.info(f"Hotel booking simulation complete: {json.dumps(confirmation)}")
+        
+        return confirmation
+        
+    except Exception as e:
+        logger.error(f"Error in simulate_hotel_booking: {str(e)}")
+        return {"error": str(e)}
     
     if len(sys.argv) < 2:
         print("Usage examples:")
