@@ -127,6 +127,12 @@ def test_amadeus_connection():
                 "message": _("API credentials are missing. Please enter both API Key and API Secret.")
             }
             
+        # Log exact length of credentials to check for whitespace issues
+        frappe.log_error(
+            f"API Key length: {len(api_key)}, API Secret length: {len(api_secret)}", 
+            "Amadeus Credentials"
+        )
+            
         # Initialize Amadeus client
         client = AmadeusClient(api_key=api_key, api_secret=api_secret)
         
@@ -165,6 +171,15 @@ def test_amadeus_connection():
                     error_msg = error_data['errors'][0].get('detail', 'Unknown error')
             except:
                 pass
+            
+            # Log full response for debugging
+            try:
+                frappe.log_error(
+                    f"Response status: {e.response.status_code}\nHeaders: {dict(e.response.headers)}\nBody: {e.response.text}", 
+                    "Amadeus Auth Response"
+                )
+            except:
+                pass
         
         # Limit error message length
         error_msg = error_msg[:100] if error_msg else "Unknown error"
@@ -194,4 +209,168 @@ def test_amadeus_connection():
         return {
             "success": False,
             "message": f"Error: {error_msg}"
+        }
+
+@frappe.whitelist()
+def amadeus_auth_diagnostic():
+    """
+    Advanced diagnostic function to troubleshoot Amadeus API authentication issues
+    
+    Makes direct authentication request with detailed logging and diagnostics
+    
+    Returns:
+        dict: Detailed diagnostic results
+    """
+    try:
+        # Get API credentials from settings
+        api_key = frappe.db.get_single_value("Amadeus Settings", "api_key")
+        api_secret = frappe.db.get_single_value("Amadeus Settings", "api_secret")
+        
+        # Check for missing credentials
+        if not api_key or not api_secret:
+            return {
+                "success": False,
+                "message": _("API credentials are missing. Please enter both API Key and API Secret.")
+            }
+        
+        # Check for whitespace issues
+        api_key_stripped = api_key.strip()
+        api_secret_stripped = api_secret.strip()
+        
+        has_whitespace = False
+        if api_key != api_key_stripped or api_secret != api_secret_stripped:
+            has_whitespace = True
+            # Remove whitespace for the test
+            api_key = api_key_stripped
+            api_secret = api_secret_stripped
+        
+        # Log credentials details (safely)
+        credential_info = {
+            "api_key_length": len(api_key),
+            "api_key_prefix": api_key[:4] if len(api_key) >= 4 else None,
+            "api_key_suffix": api_key[-4:] if len(api_key) >= 4 else None,
+            "api_secret_length": len(api_secret),
+            "has_whitespace": has_whitespace
+        }
+        
+        frappe.log_error(str(credential_info), "Amadeus Diagnostic - Credentials")
+        
+        # Start building report
+        report = ["=== Amadeus API Authentication Diagnostic Report ==="]
+        report.append(f"API Key Length: {len(api_key)} characters")
+        report.append(f"API Secret Length: {len(api_secret)} characters")
+        
+        if has_whitespace:
+            report.append("⚠️ WARNING: Whitespace detected in credentials. Testing with whitespace removed.")
+        
+        # Explicit test environment URL
+        base_url = "https://test.api.amadeus.com"
+        auth_url = f"{base_url}/v1/security/oauth2/token"
+        
+        report.append(f"\nAuthentication URL: {auth_url}")
+        
+        # Set up auth request
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        data = {
+            "grant_type": "client_credentials",
+            "client_id": api_key,
+            "client_secret": api_secret
+        }
+        
+        report.append("\nSending authentication request...")
+        
+        # Make the request and track timing
+        import time
+        start_time = time.time()
+        
+        response = requests.post(auth_url, headers=headers, data=data)
+        
+        end_time = time.time()
+        elapsed_ms = int((end_time - start_time) * 1000)
+        
+        # Add response info to report
+        report.append(f"Response time: {elapsed_ms} ms")
+        report.append(f"Status code: {response.status_code}")
+        
+        # Process response headers
+        report.append("\nResponse headers:")
+        for header, value in response.headers.items():
+            # Skip sensitive headers
+            if header.lower() not in ['set-cookie', 'authorization']:
+                report.append(f"  {header}: {value}")
+        
+        # Process response body
+        try:
+            response_json = response.json()
+            response_content = str(response_json)
+            
+            # Log full response (safely) for analysis
+            frappe.log_error(
+                f"Status: {response.status_code}\nTime: {elapsed_ms}ms\nResponse: {response_content}", 
+                "Amadeus Diagnostic - Response"
+            )
+            
+            # Add to report
+            report.append("\nResponse body:")
+            if response.status_code == 200:
+                # Success case
+                report.append(f"  token_type: {response_json.get('token_type')}")
+                report.append(f"  expires_in: {response_json.get('expires_in')} seconds")
+                # Don't show the actual token
+                if 'access_token' in response_json:
+                    token = response_json['access_token']
+                    token_preview = f"{token[:5]}...{token[-5:]}" if len(token) > 10 else "[redacted]"
+                    report.append(f"  access_token: {token_preview} (length: {len(token)})")
+            else:
+                # Error case - show error details
+                if 'error' in response_json:
+                    report.append(f"  error: {response_json.get('error')}")
+                if 'error_description' in response_json:
+                    report.append(f"  error_description: {response_json.get('error_description')}")
+                elif 'errors' in response_json and response_json['errors']:
+                    for i, error in enumerate(response_json['errors']):
+                        report.append(f"  error {i+1}: {error.get('title')} - {error.get('detail')}")
+        except Exception as json_error:
+            # Fallback to raw text if JSON parsing fails
+            report.append("\nResponse is not JSON. Raw content:")
+            report.append(response.text[:500] + ("..." if len(response.text) > 500 else ""))
+            
+        # Add diagnostics and recommendations
+        report.append("\n=== Diagnostics ===")
+        
+        if response.status_code == 200:
+            report.append("✅ Authentication successful! The API credentials are working correctly.")
+            report.append("\nRecommendation: If you're still having issues with other API calls, check those specific endpoints.")
+        else:
+            report.append("❌ Authentication failed.")
+            
+            # Common specific suggestions based on errors
+            if response.status_code == 401:
+                report.append("\nPossible causes:")
+                report.append("1. Incorrect API key or secret")
+                report.append("2. API key is too new (remember: it can take up to 30 minutes to activate)")
+                report.append("3. API key has been deactivated or is invalid")
+                
+                report.append("\nRecommendations:")
+                report.append("1. Double-check your API key and secret against the Amadeus Developer Portal")
+                report.append("2. If you just created the API key, wait 30 minutes and try again")
+                report.append("3. Try creating a new API key in the Developer Portal")
+            elif response.status_code == 500:
+                report.append("\nThis appears to be a server-side issue with Amadeus API.")
+                report.append("\nRecommendation: Try again later or contact Amadeus support if the issue persists.")
+            
+        # Return full report
+        success = response.status_code == 200
+        
+        return {
+            "success": success,
+            "message": "\n".join(report)
+        }
+    except Exception as e:
+        error_msg = str(e)[:200] if str(e) else "Unknown error"
+        frappe.log_error(f"Diagnostic error: {error_msg}", "Amadeus Diagnostic")
+        
+        return {
+            "success": False,
+            "message": f"Diagnostic failed: {error_msg}"
         }

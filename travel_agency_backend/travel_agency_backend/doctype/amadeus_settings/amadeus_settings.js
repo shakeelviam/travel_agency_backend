@@ -41,6 +41,38 @@ frappe.ui.form.on('Amadeus Settings', {
 			});
 		});
 		
+		// Add advanced diagnostics button
+		frm.add_custom_button(__('Advanced Diagnostics'), function() {
+			frm.save();
+			// Show a message that we're running diagnostics
+			frappe.msgprint({
+				title: __('Running Diagnostics'),
+				indicator: 'blue',
+				message: __('Running detailed diagnostics on Amadeus API authentication. This may take a moment...')
+			});
+			
+			frappe.call({
+				method: 'travel_agency_backend.travel_agency_backend.api.amadeus.amadeus_auth_diagnostic',
+				callback: function(r) {
+					if (r.message) {
+						// Always show the detailed report
+						frappe.msgprint({
+							title: r.message.success ? __('Diagnostic Results: Success') : __('Diagnostic Results: Failed'),
+							indicator: r.message.success ? 'green' : 'red',
+							message: __(r.message.message),
+							wide: true  // Use a wider dialog for better readability of the report
+						});
+					} else {
+						frappe.msgprint({
+							title: __('Error'),
+							indicator: 'red',
+							message: __('Failed to run diagnostic. Please check the server logs.')
+						});
+					}
+				}
+			});
+		}, __('Troubleshoot'));
+		
 		frm.add_custom_button(__('Search Flights'), function() {
 			if (!frm.doc.api_key || !frm.doc.api_secret) {
 				frappe.msgprint(__('Please set API Key and API Secret first'));
