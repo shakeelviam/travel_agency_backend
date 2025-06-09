@@ -5,13 +5,10 @@ frappe.pages['amadeus-demo'].on_page_load = function(wrapper) {
         single_column: true
     });
 
-    // Add content
-    setupAmadeusDemo(page);
-};
-
-frappe.pages['amadeus-demo'].on_page_show = function() {
-    // This ensures tab functionality works when page is shown
-    setupTabEvents();
+    // Load the modern implementation
+    frappe.require(['/assets/travel_agency_backend/js/amadeus_formatter.js', '/assets/travel_agency_backend/travel_agency_backend/page/amadeus_demo/amadeus_demo_modern.js'], function() {
+        // Modern implementation will initialize automatically
+    });
 };
 
 function setupTabEvents() {
