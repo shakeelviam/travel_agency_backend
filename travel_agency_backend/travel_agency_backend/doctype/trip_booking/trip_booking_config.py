@@ -90,3 +90,33 @@ class TripBookingConfig:
     def get_service_categories(cls):
         """Get all service categories"""
         return list(cls.SERVICES.keys())
+        
+    @classmethod
+    def map_service_type_to_selected_service(cls, service_type):
+        """Map a Service Type to a valid selected_services value"""
+        # Direct match
+        if service_type in cls.SERVICES:
+            return service_type
+            
+        # Try to match substrings
+        for option in cls.SERVICES.keys():
+            if service_type in option or option in service_type:
+                return option
+                
+        # Default to input if no match found
+        return service_type
+        
+    @classmethod
+    def map_selected_service_to_service_type(cls, selected_service):
+        """Map a selected_services value to a valid Service Type"""
+        # Direct match
+        if selected_service in cls.SERVICES:
+            return selected_service
+            
+        # Try to match substrings
+        for option in cls.SERVICES.keys():
+            if selected_service in option or option in selected_service:
+                return option
+                
+        # Default to input if no match found
+        return selected_service

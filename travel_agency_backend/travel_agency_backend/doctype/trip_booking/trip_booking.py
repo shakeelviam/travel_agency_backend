@@ -29,10 +29,13 @@ class TripBooking(Document):
                     rows = self.get(table)
                     if rows and hasattr(rows[0], 'service_type'):
                         service_type = rows[0].service_type
+                        # Map service_type to a valid selected_services value
+                        mapped_service_type = TripBookingConfig.map_service_type_to_selected_service(service_type)
+                        
                         # Add to selected services if not already there
-                        if not any(s.select_wbjn == service_type for s in self.selected_services):
+                        if not any(s.select_wbjn == mapped_service_type for s in self.selected_services):
                             self.append('selected_services', {
-                                'select_wbjn': service_type
+                                'select_wbjn': mapped_service_type
                             })
         
         # IMPORTANT: Do NOT clean any tables - preserve all data
@@ -85,8 +88,11 @@ class TripBooking(Document):
             
         # Validate each selected service
         for service in self.selected_services:
+            # Map selected service to service type
+            mapped_service = TripBookingConfig.map_selected_service_to_service_type(service.select_wbjn)
+            
             # Get service configuration
-            service_config = TripBookingConfig.get_service_config(service.select_wbjn)
+            service_config = TripBookingConfig.get_service_config(mapped_service)
             if not service_config:
                 frappe.throw(_("Invalid service category: {0}").format(service.select_wbjn))
                 
@@ -98,7 +104,7 @@ class TripBooking(Document):
             # Validate each row in the table
             for row in self.get(table) or []:
                 # For flight services, we now use supplier_cost directly
-                if service.select_wbjn in ["Flight GDS", "Flight Online Airlines"]:
+                if mapped_service in ["Flight GDS", "Flight Online Airlines"]:
                     if not hasattr(row, 'supplier_cost') or not flt(row.supplier_cost):
                         frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
                             row.passenger, service.select_wbjn))
@@ -153,10 +159,14 @@ class TripBooking(Document):
                     rows = self.get(table)
                     if rows and hasattr(rows[0], 'service_type'):
                         service_type = rows[0].service_type
+                        
+                        # Map service_type to a valid selected_services value
+                        mapped_service_type = TripBookingConfig.map_service_type_to_selected_service(service_type)
+                        
                         # Add to selected services if not already there
-                        if not any(s.select_wbjn == service_type for s in self.selected_services):
+                        if not any(s.select_wbjn == mapped_service_type for s in self.selected_services):
                             self.append('selected_services', {
-                                'select_wbjn': service_type
+                                'select_wbjn': mapped_service_type
                             })
         
         # After auto-populating, check if we still have no selected services
@@ -165,7 +175,8 @@ class TripBooking(Document):
             
         # Validate that each selected service has booking details
         for service in self.selected_services:
-            table_fieldname = self.get_child_table(service.select_wbjn)
+            mapped_service = TripBookingConfig.map_selected_service_to_service_type(service.select_wbjn)
+            table_fieldname = self.get_child_table(mapped_service)
             if table_fieldname and not self.get(table_fieldname):
                 frappe.throw(_("Please add booking details for {0} service").format(service.select_wbjn))
 
@@ -373,8 +384,20 @@ class TripBooking(Document):
         }
 
     def get_child_table(self, category):
-        # Just return the fieldname, not the actual table data
-        return self.get_table_fieldname(category)
+        # Try to map the category to a known service type first
+        mapped_category = TripBookingConfig.map_selected_service_to_service_type(category)
+        
+        # Use TripBookingConfig to get the table fieldname
+        service_config = TripBookingConfig.get_service_config(mapped_category)
+        if service_config:
+            return service_config.get('table')
+            
+        # For backward compatibility with shortened category names
+        for full_category, config in TripBookingConfig.SERVICES.items():
+            if full_category.endswith(category) or category.endswith(full_category):
+                return config.get('table')
+                
+        return None
 
 
 @frappe.whitelist()
@@ -399,9 +422,12 @@ def remove_service(docname, service_category):
     if doc.docstatus != 0:
         frappe.throw("Cannot modify submitted document")
         
+    # Map service_category to a valid selected_services option
+    mapped_service_category = TripBookingConfig.map_service_type_to_selected_service(service_category)
+    
     # Find and remove selected service
     for i, service in enumerate(doc.selected_services):
-        if service.select_wbjn == service_category:
+        if service.select_wbjn == mapped_service_category:
             doc.selected_services.pop(i)
             break
     

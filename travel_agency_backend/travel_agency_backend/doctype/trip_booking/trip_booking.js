@@ -81,6 +81,49 @@ frappe.ui.form.on("Trip Booking", {
               console.log("Adding child row with data:", child_row_data, "to table:", table); // Debug
               frm.add_child(table, child_row_data);
               frm.refresh_field(table);
+              
+              // Also add to selected_services if not already there
+              const service_exists = (frm.doc.selected_services || []).some(
+                (row) => row.select_wbjn === values.service_type
+              );
+              
+              // Service type in selected_services should match the options in selected_service.json
+              // Map Service Type to appropriate selected_services value
+              let selected_service_value = values.service_type;
+              
+              // Handle mapping based on the available options in Selected Service doctype
+              // These are the options defined in selected_service.json: 
+              // "Flight GDS\nFlight Online Airlines\nHotel Booking\nVisa Application Charges\nCar Rental Service\nInsurance Service"
+              const serviceTypeToSelectWbjnMap = {
+                "Flight GDS": "Flight GDS",
+                "Flight Online": "Flight Online Airlines",
+                "Hotel": "Hotel Booking",
+                "Visa": "Visa Application Charges",
+                "Car Rental": "Car Rental Service", 
+                "Insurance": "Insurance Service"
+              };
+              
+              // Try to find a match in our map, or use the original value
+              for (const [key, value] of Object.entries(serviceTypeToSelectWbjnMap)) {
+                if (values.service_type.includes(key)) {
+                  selected_service_value = value;
+                  console.log(`Mapped service type "${values.service_type}" to "${selected_service_value}"`);
+                  break;
+                }
+              }
+              
+              // Debug notice if no mapping was found
+              if (selected_service_value === values.service_type) {
+                console.log(`No mapping found for "${values.service_type}", using as-is`);
+              }
+              
+              if (!service_exists) {
+                frm.add_child("selected_services", {
+                  select_wbjn: selected_service_value
+                });
+                frm.refresh_field("selected_services");
+              }
+              
               frm.scroll_to_field(table);
             } else {
               frappe.msgprint(`${values.service_type} already added.`);
@@ -337,18 +380,47 @@ frappe.ui.form.on("Trip Booking", {
       frm.set_value('total_amount', total);
     }
   },
-
-  validate: function (frm) {
-    calculate_totals(frm); // This is good for client-side UI update before save
+  
+  // Add custom handlers for each child table to keep selected_services in sync
+  validate: function(frm) {
+    updateSelectedServices(frm);
   },
+  
   after_save: function(frm) {
-    // Potentially refresh or check status after save if needed
-    // The create buttons logic is now part of the main refresh handler below
+    updateSelectedServices(frm);
   }
-  // IMPORTANT: The main refresh handler continues below and includes the create button logic.
 });
 
-// The following is now integrated into the main refresh handler above.
-// frappe.ui.form.on("Trip Booking", {
-//     refresh: function(frm) { ... }
-// });
+// Update selected_services based on child tables
+function updateSelectedServices(frm) {
+  // Skip if form is being loaded
+  if (frm.__islocal) return;
+  
+  // Map of child tables to service types
+  const tableToServiceMap = {
+    "flight_booking_entry_gds": "Flight GDS",
+    "flight_booking_entry_online": "Flight Online Airlines",
+    "hotel_booking_entry": "Hotel Booking",
+    "visa_booking_entry": "Visa Application Charges",
+    "car_rental_booking_entry": "Car Rental Service",
+    "insurance_booking_entry": "Insurance Service"
+  };
+  
+  // Check each table for entries
+  for (const [table, service_type] of Object.entries(tableToServiceMap)) {
+    const hasEntries = frm.doc[table] && frm.doc[table].length > 0;
+    
+    // Add service type if table has entries and not already in selected_services
+    if (hasEntries) {
+      const serviceExists = (frm.doc.selected_services || []).some(s => s.select_wbjn === service_type);
+      
+      if (!serviceExists) {
+        console.log(`Adding ${service_type} to selected_services based on entries in ${table}`);
+        frm.add_child("selected_services", {
+          select_wbjn: service_type
+        });
+        frm.refresh_field("selected_services");
+      }
+    }
+  }
+}
