@@ -165,10 +165,10 @@ doc_events = {
 # Overriding Methods
 # ------------------------------
 #
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "travel_agency_backend.event.get_events"
-# }
-#
+override_whitelisted_methods = {
+	"erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry": "travel_agency_backend.travel_agency_backend.accounts.payment_overrides.get_payment_entry"
+}
+
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
@@ -190,6 +190,9 @@ doc_events = {
 
 after_install = "travel_agency_backend.travel_agency_backend.custom_fields.setup_custom_fields"
 after_migrate = "travel_agency_backend.travel_agency_backend.custom_fields.setup_custom_fields"
+
+# Apply runtime patches for compatibility fixes 
+on_app_init = "travel_agency_backend.travel_agency_backend.accounts.payment_overrides"
 
 # Request Events
 # ----------------
