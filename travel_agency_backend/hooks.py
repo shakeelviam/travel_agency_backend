@@ -165,9 +165,8 @@ doc_events = {
 # Overriding Methods
 # ------------------------------
 
-# Direct override of the payment entry function
+# No overrides should be needed - let ERPNext handle everything
 override_whitelisted_methods = {
-    "erpnext.accounts.doctype.payment_entry.payment_entry.get_payment_entry": "travel_agency_backend.travel_agency_backend.accounts.payment_utils.get_payment_entry"
 }
 
 # each overriding function accepts a `data` argument;
@@ -192,8 +191,8 @@ override_whitelisted_methods = {
 after_install = "travel_agency_backend.travel_agency_backend.custom_fields.setup_custom_fields"
 after_migrate = "travel_agency_backend.travel_agency_backend.custom_fields.setup_custom_fields"
 
-# Apply runtime patches for compatibility fixes 
-on_app_init = "travel_agency_backend.travel_agency_backend.accounts.payment_utils.apply_patches"
+# No app init hook needed
+# on_app_init = "travel_agency_backend.travel_agency_backend.accounts.payment_utils.apply_patches"
 
 # Request Events
 # ----------------
