@@ -150,6 +150,191 @@ frappe.ui.form.on("Trip Booking", {
             frm.remove_custom_button(__('Sales Invoice'), createGroup);
             frm.remove_custom_button(__('Purchase Invoices'), createGroup);
         }
+        
+        // Add button to manage selected services
+        frm.add_custom_button(__('Manage Services'), function() {
+          let services = [];
+          
+          // Get current services
+          (frm.doc.selected_services || []).forEach(service => {
+            services.push({
+              service_type: service.select_wbjn,
+              selected: true
+            });
+          });
+          
+          // Create dialog to manage services
+          let d = new frappe.ui.Dialog({
+            title: __('Manage Services'),
+            fields: [
+              {
+                fieldname: 'services_section',
+                fieldtype: 'Section Break',
+                label: __('Available Services')
+              },
+              {
+                fieldname: 'services_html',
+                fieldtype: 'HTML',
+                options: `
+                  <div id="service-checkboxes" style="margin-bottom: 15px;">
+                    <div class="checkbox-list"></div>
+                  </div>
+                `
+              }
+            ],
+            primary_action_label: __('Update'),
+            primary_action: function() {
+              let selected = [];
+              $('#service-checkboxes input:checked').each(function() {
+                selected.push($(this).val());
+              });
+
+              // Clear existing services and add new ones
+              frm.doc.selected_services = [];
+              selected.forEach(service => {
+                frm.add_child('selected_services', {
+                  select_wbjn: service
+                });
+              });
+              
+              frm.refresh_field('selected_services');
+              frm.save();
+              d.hide();
+            }
+          });
+
+          d.show();
+          
+          // Populate service checkboxes
+          let serviceList = Object.keys(serviceMap);
+          let checkboxContainer = d.$wrapper.find('.checkbox-list');
+          checkboxContainer.empty();
+          
+          serviceList.forEach(service => {
+            let isSelected = services.some(s => s.service_type === service);
+            checkboxContainer.append(`
+              <div class="checkbox">
+                <label>
+                  <input type="checkbox" value="${service}" ${isSelected ? 'checked' : ''}>
+                  ${__(service)}
+                </label>
+              </div>
+            `);
+          });
+        });
+    }
+
+    // Add handlers for all child tables
+    const child_doctype_map = {
+      "flight_booking_entry_gds": "Flight Booking Entry GDS",
+      "flight_booking_entry_online": "Flight Booking Entry Online",
+      "hotel_booking_entry": "Hotel Booking Entry",
+      "visa_booking_entry": "Visa Booking Entry",
+      "car_rental_booking_entry": "Car Rental Booking Entry",
+      "insurance_booking_entry": "Insurance Booking Entry"
+    };
+
+    const booking_tables = [
+      "flight_booking_entry_gds",
+      "flight_booking_entry_online",
+      "hotel_booking_entry",
+      "visa_booking_entry",
+      "car_rental_booking_entry",
+      "insurance_booking_entry"
+    ];
+
+    // Iterate over the map to use actual Child DocType names for event handlers
+    Object.keys(child_doctype_map).forEach(table_fieldname => {
+      const child_doctype_name = child_doctype_map[table_fieldname];
+      frappe.ui.form.on(child_doctype_name, {
+        supplier_cost: function(frm, cdt, cdn) {
+          calculate_row_total(frm, cdt, cdn);
+        },
+        markup: function(frm, cdt, cdn) {
+          calculate_row_total(frm, cdt, cdn);
+        }
+      });
+    });
+
+    function calculate_row_total(frm, cdt, cdn) {
+      console.log("calculate_row_total called for:", cdt, cdn); // Debug
+      try {
+        const row = locals[cdt][cdn];
+        const supplier_cost = flt(row.supplier_cost) || 0;
+        const markup = flt(row.markup) || 0;
+        
+        row.total_amount = supplier_cost + markup;
+        row.selling_price = row.total_amount;
+        
+        frm.refresh_field('total_amount', row.name, row.parentfield);
+        frm.refresh_field('selling_price', row.name, row.parentfield);
+        
+        calculate_totals(frm);
+      } catch (e) {
+        console.error('Error in calculate_row_total:', e);
+      }
+    }
+
+    // Function to fetch passenger details
+    function fetch_passenger_details(frm, cdt, cdn) {
+      const row = locals[cdt][cdn];
+      if (row.passenger) {
+        frappe.db.get_value('Passenger', row.passenger, 'full_name', function(r) {
+          if (r && r.full_name) {
+            // Set the passenger_name field directly
+            frappe.model.set_value(cdt, cdn, 'passenger_name', r.full_name);
+            
+            // Also update the display in the grid
+            setTimeout(function() {
+              const grid_row = cur_frm.get_field(row.parentfield).grid.grid_rows_by_docname[cdn];
+              if (grid_row) {
+                grid_row.refresh();
+              }
+            }, 100);
+          }
+        });
+      }
+    }
+
+    // Add passenger field handlers to all child tables
+    const child_tables = [
+      'hotel_booking_entry',
+      'visa_booking_entry', 
+      'car_rental_booking_entry',
+      'flight_booking_entry_gds',
+      'flight_booking_entry_online',
+      'insurance_booking_entry'
+    ];
+
+    child_tables.forEach(table => {
+      frappe.ui.form.on(table, {
+        passenger: function(frm, cdt, cdn) {
+          fetch_passenger_details(frm, cdt, cdn);
+        },
+        form_render: function(frm, cdt, cdn) {
+          fetch_passenger_details(frm, cdt, cdn);
+        }
+      });
+    });
+
+    function calculate_totals(frm) {
+      console.log("calculate_totals called for form."); // Debug
+      let total = 0;
+      
+      booking_tables.forEach(table => {
+        (frm.doc[table] || []).forEach(row => {
+          if (row.supplier_cost) {
+            const supplier_cost = flt(row.supplier_cost);
+            const markup = flt(row.markup || 0);
+            row.total_amount = supplier_cost + markup;
+            row.selling_price = row.total_amount;
+            total += row.total_amount;
+          }
+        });
+        frm.refresh_field(table);
+      });
+      
+      frm.set_value('total_amount', total);
     }
   },
 
@@ -167,118 +352,3 @@ frappe.ui.form.on("Trip Booking", {
 // frappe.ui.form.on("Trip Booking", {
 //     refresh: function(frm) { ... }
 // });
-
-// Add handlers for all child tables
-const child_doctype_map = {
-  "flight_booking_entry_gds": "Flight Booking Entry GDS",
-  "flight_booking_entry_online": "Flight Booking Entry Online",
-  "hotel_booking_entry": "Hotel Booking Entry",
-  "visa_booking_entry": "Visa Booking Entry",
-  "car_rental_booking_entry": "Car Rental Booking Entry",
-  "insurance_booking_entry": "Insurance Booking Entry"
-};
-
-const booking_tables = [
-  "flight_booking_entry_gds",
-  "flight_booking_entry_online",
-  "hotel_booking_entry",
-  "visa_booking_entry",
-  "car_rental_booking_entry",
-  "insurance_booking_entry"
-];
-
-// Iterate over the map to use actual Child DocType names for event handlers
-Object.keys(child_doctype_map).forEach(table_fieldname => {
-  const child_doctype_name = child_doctype_map[table_fieldname];
-  frappe.ui.form.on(child_doctype_name, {
-    supplier_cost: function(frm, cdt, cdn) {
-      calculate_row_total(frm, cdt, cdn);
-    },
-    markup: function(frm, cdt, cdn) {
-      calculate_row_total(frm, cdt, cdn);
-    }
-  });
-});
-
-function calculate_row_total(frm, cdt, cdn) {
-  console.log("calculate_row_total called for:", cdt, cdn); // Debug
-  try {
-    const row = locals[cdt][cdn];
-    const supplier_cost = flt(row.supplier_cost) || 0;
-    const markup = flt(row.markup) || 0;
-    
-    row.total_amount = supplier_cost + markup;
-    row.selling_price = row.total_amount;
-    
-    frm.refresh_field('total_amount', row.name, row.parentfield);
-    frm.refresh_field('selling_price', row.name, row.parentfield);
-    
-    calculate_totals(frm);
-  } catch (e) {
-    console.error('Error in calculate_row_total:', e);
-  }
-}
-
-// Function to fetch passenger details
-function fetch_passenger_details(frm, cdt, cdn) {
-  const row = locals[cdt][cdn];
-  if (row.passenger) {
-    frappe.db.get_value('Passenger', row.passenger, 'full_name', function(r) {
-      if (r && r.full_name) {
-        // Set the passenger_name field directly
-        frappe.model.set_value(cdt, cdn, 'passenger_name', r.full_name);
-        
-        // Also update the display in the grid
-        setTimeout(function() {
-          const grid_row = cur_frm.get_field(row.parentfield).grid.grid_rows_by_docname[cdn];
-          if (grid_row) {
-            grid_row.refresh();
-          }
-        }, 100);
-      }
-    });
-  }
-}
-
-// Add passenger field handlers to all child tables
-const child_tables = [
-  'hotel_booking_entry',
-  'visa_booking_entry', 
-  'car_rental_booking_entry',
-  'flight_booking_entry_gds',
-  'flight_booking_entry_online',
-  'insurance_booking_entry'
-];
-
-child_tables.forEach(table => {
-  frappe.ui.form.on(table, {
-    passenger: function(frm, cdt, cdn) {
-      fetch_passenger_details(frm, cdt, cdn);
-    },
-    form_render: function(frm, cdt, cdn) {
-      fetch_passenger_details(frm, cdt, cdn);
-    }
-  });
-});
-
-function calculate_totals(frm) {
-  console.log("calculate_totals called for form."); // Debug
-  let total = 0;
-  
-  booking_tables.forEach(table => {
-    (frm.doc[table] || []).forEach(row => {
-      if (row.supplier_cost) {
-        const supplier_cost = flt(row.supplier_cost);
-        const markup = flt(row.markup || 0);
-        row.total_amount = supplier_cost + markup;
-        row.selling_price = row.total_amount;
-        total += row.total_amount;
-      }
-    });
-    frm.refresh_field(table);
-  });
-  
-  frm.set_value('total_amount', total);
-}
-
-

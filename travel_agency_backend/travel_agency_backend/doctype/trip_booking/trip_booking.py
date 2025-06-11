@@ -30,9 +30,9 @@ class TripBooking(Document):
                     if rows and hasattr(rows[0], 'service_type'):
                         service_type = rows[0].service_type
                         # Add to selected services if not already there
-                        if not any(s.service_category == service_type for s in self.selected_services):
+                        if not any(s.select_wbjn == service_type for s in self.selected_services):
                             self.append('selected_services', {
-                                'service_category': service_type
+                                'select_wbjn': service_type
                             })
         
         # IMPORTANT: Do NOT clean any tables - preserve all data
@@ -86,22 +86,22 @@ class TripBooking(Document):
         # Validate each selected service
         for service in self.selected_services:
             # Get service configuration
-            service_config = TripBookingConfig.get_service_config(service.service_category)
+            service_config = TripBookingConfig.get_service_config(service.select_wbjn)
             if not service_config:
-                frappe.throw(_("Invalid service category: {0}").format(service.service_category))
+                frappe.throw(_("Invalid service category: {0}").format(service.select_wbjn))
                 
             # Get table name from configuration
             table = service_config.get('table')
             if not table or not self.get(table):
-                frappe.throw(_("Please add details for {0} service").format(service.service_category))
+                frappe.throw(_("Please add details for {0} service").format(service.select_wbjn))
             
             # Validate each row in the table
             for row in self.get(table) or []:
                 # For flight services, we now use supplier_cost directly
-                if service.service_category in ["Flight GDS", "Flight Online Airlines"]:
+                if service.select_wbjn in ["Flight GDS", "Flight Online Airlines"]:
                     if not hasattr(row, 'supplier_cost') or not flt(row.supplier_cost):
                         frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
-                            row.passenger, service.service_category))
+                            row.passenger, service.select_wbjn))
                 else:
                     # For other services, use the cost_fields as configured
                     has_cost = False
@@ -112,7 +112,7 @@ class TripBooking(Document):
                         
                     if not has_cost:
                         frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
-                            row.passenger, service.service_category))
+                            row.passenger, service.select_wbjn))
 
     def calculate_total_amount(self):
         total = 0
@@ -133,7 +133,7 @@ class TripBooking(Document):
             return
 
         # Only clear tables for services not selected
-        active = {s.service_category for s in self.selected_services}
+        active = {s.select_wbjn for s in self.selected_services}
         for category in self.get_service_category_mapping().values():
             if category not in active:
                 fieldname = self.get_table_fieldname(category)
@@ -154,9 +154,9 @@ class TripBooking(Document):
                     if rows and hasattr(rows[0], 'service_type'):
                         service_type = rows[0].service_type
                         # Add to selected services if not already there
-                        if not any(s.service_category == service_type for s in self.selected_services):
+                        if not any(s.select_wbjn == service_type for s in self.selected_services):
                             self.append('selected_services', {
-                                'service_category': service_type
+                                'select_wbjn': service_type
                             })
         
         # After auto-populating, check if we still have no selected services
@@ -165,9 +165,9 @@ class TripBooking(Document):
             
         # Validate that each selected service has booking details
         for service in self.selected_services:
-            table_fieldname = self.get_child_table(service.service_category)
+            table_fieldname = self.get_child_table(service.select_wbjn)
             if table_fieldname and not self.get(table_fieldname):
-                frappe.throw(_("Please add booking details for {0} service").format(service.service_category))
+                frappe.throw(_("Please add booking details for {0} service").format(service.select_wbjn))
 
     def on_submit(self):
         # Auto invoice creation removed - now only done via UI buttons
@@ -232,8 +232,8 @@ class TripBooking(Document):
                     pi = supplier_items[supplier]
                     
                     service_type = entries[0].service_type
-                    expense_account = frappe.db.get_value('Service Type', service_type, 'purchase_account') or \
-                                    frappe.db.get_value('Service Type', service_type, 'service_expense_account')
+                    expense_account = frappe.db.get_value('Service Type', service_type, 'service_expense_account') or \
+                                    frappe.db.get_value('Service Type', service_type, 'purchase_account')
                     item_code = frappe.db.get_value('Service Type', service_type, 'item_code')
 
                 for row in entries:
@@ -398,16 +398,15 @@ def remove_service(docname, service_category):
     doc = frappe.get_doc("Trip Booking", docname)
     if doc.docstatus != 0:
         frappe.throw("Cannot modify submitted document")
-
-    doc.selected_services = [s for s in doc.selected_services if s.service_category != service_category]
-    fieldname = doc.get_table_fieldname(service_category)
-    if fieldname and hasattr(doc, fieldname):
-        setattr(doc, fieldname, [])
-
+        
+    # Find and remove selected service
+    for i, service in enumerate(doc.selected_services):
+        if service.select_wbjn == service_category:
+            doc.selected_services.pop(i)
+            break
+    
     doc.save()
-    frappe.msgprint(f"❌ Removed service: {service_category}")
-    return True
-
+    return {"status": "success", "message": f"Removed {service_category} service"}
 
 @frappe.whitelist()
 def get_service_category_mapping():
@@ -453,30 +452,42 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
     
         # Process all booking tables
         for table in source.get_all_booking_tables():
-            entries = source.get(table) or []
+            entries = source.get(table)
             if not entries:
                 continue
-            
-            # Get default service type for this table
+                
+            # Get the service type from mapping
             default_service_type = table_to_service_type_map.get(table)
+            if not default_service_type:
+                continue
+                
+            # Get service config
+            service_config = TripBookingConfig.get_service_config(default_service_type)
+            if not service_config:
+                continue
             
+            # Get supplier field from config
+            supplier_field = service_config.get('supplier_field')
+            if not supplier_field:
+                continue
+                
+            # Get the supplier for this service type from the parent Trip Booking document
+            # IMPORTANT: All entries for a service type use ONE supplier defined at Trip Booking level
+            # For example, all car_rental_booking_entry entries use the car_rental_supplier
+            supplier = source.get(supplier_field)
+            
+            # Skip if no supplier specified for this service type
+            if not supplier:
+                frappe.msgprint(_(f"Warning: Skipping {len(entries)} entries in {table} - no supplier specified in {supplier_field}"))
+                continue
+            
+            # Process each entry with this service type's supplier
             for entry in entries:
                 # Get the service type - either from entry or from table mapping
-                service_type = None
+                service_type = default_service_type
                 if hasattr(entry, 'service_type') and entry.service_type:
                     service_type = entry.service_type
-                else:
-                    service_type = default_service_type
-                
-                # Skip if we couldn't determine service type
-                if not service_type:
-                    continue
-            
-                # Get service config
-                service_config = TripBookingConfig.get_service_config(service_type)
-                if not service_config:
-                    continue
-                
+                    
                 # Calculate total amount
                 total_amount = 0
             
@@ -610,7 +621,7 @@ def make_purchase_invoices_from_trip(source_name):
         
         # Process all booking tables
         for table in doc.get_all_booking_tables():
-            entries = doc.get(table) or []
+            entries = doc.get(table)
             if not entries:
                 continue
                 
