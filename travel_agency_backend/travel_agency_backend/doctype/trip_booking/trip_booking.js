@@ -49,38 +49,24 @@ frappe.ui.form.on("Trip Booking", {
               return;
             }
 
-            const [section, table, supplier_field_on_parent] = selected;
-
-            // Set the supplier on the PARENT document
-            if (supplier_field_on_parent && values.supplier) {
-              frm.set_value(supplier_field_on_parent, values.supplier);
-            } else if (supplier_field_on_parent && !values.supplier) {
-              // Clear the parent supplier field if no supplier was selected (e.g., if reqd:0 for supplier)
-              frm.set_value(supplier_field_on_parent, null);
-            }
-
-            frm.set_df_property(section, "hidden", 0);
-            frm.set_df_property(table, "hidden", 0);
-            if (supplier_field_on_parent) frm.set_df_property(supplier_field_on_parent, "hidden", 0);
-            // It's good to refresh the specific supplier field on parent as well
-            let fields_to_refresh = [section, table];
-            if (supplier_field_on_parent) fields_to_refresh.push(supplier_field_on_parent);
-            frm.refresh_fields(fields_to_refresh);
-
-            const exists = (frm.doc[table] || []).some(
-              (row) => row.service_type === values.service_type
-            );
-
-            if (!exists) {
-              // Add only service_type to the child table row, or other fields that belong in the child row.
-              // Supplier is now set on the parent.
-              let child_row_data = { 
-                service_type: values.service_type
-                // Add other child-specific fields here if necessary
-              };
-              console.log("Adding child row with data:", child_row_data, "to table:", table); // Debug
-              frm.add_child(table, child_row_data);
-              frm.refresh_field(table);
+            const [section, table, supplier_field] = selected;
+            const table_exists = (frm.doc[table] || []).length > 0;
+            
+            if (!table_exists) {
+              // Unhide the section and table
+              frm.set_df_property(section, "hidden", 0);
+              frm.set_df_property(table, "hidden", 0);
+              
+              // Unhide and set the supplier field
+              if (supplier_field) {
+                frm.set_df_property(supplier_field, "hidden", 0);
+                frm.set_value(supplier_field, values.supplier);
+              }
+              
+              // Add a child row to the appropriate table
+              let child = frm.add_child(table);
+              child.service_type = values.service_type;
+              if (child.supplier) child.supplier = values.supplier;
               
               // Also add to selected_services if not already there
               const service_exists = (frm.doc.selected_services || []).some(
@@ -193,178 +179,87 @@ frappe.ui.form.on("Trip Booking", {
             frm.remove_custom_button(__('Sales Invoice'), createGroup);
             frm.remove_custom_button(__('Purchase Invoices'), createGroup);
         }
-        
-        // Add button to manage selected services
-        frm.add_custom_button(__('Manage Services'), function() {
-          let services = [];
-          
-          // Get current services
-          (frm.doc.selected_services || []).forEach(service => {
-            services.push({
-              service_type: service.select_wbjn,
-              selected: true
-            });
-          });
-          
-          // Create dialog to manage services
-          let d = new frappe.ui.Dialog({
-            title: __('Manage Services'),
-            fields: [
-              {
-                fieldname: 'services_section',
-                fieldtype: 'Section Break',
-                label: __('Available Services')
-              },
-              {
-                fieldname: 'services_html',
-                fieldtype: 'HTML',
-                options: `
-                  <div id="service-checkboxes" style="margin-bottom: 15px;">
-                    <div class="checkbox-list"></div>
-                  </div>
-                `
-              }
-            ],
-            primary_action_label: __('Update'),
-            primary_action: function() {
-              let selected = [];
-              $('#service-checkboxes input:checked').each(function() {
-                selected.push($(this).val());
-              });
-
-              // Clear existing services and add new ones
-              frm.doc.selected_services = [];
-              selected.forEach(service => {
-                frm.add_child('selected_services', {
-                  select_wbjn: service
-                });
-              });
-              
-              frm.refresh_field('selected_services');
-              frm.save();
-              d.hide();
-            }
-          });
-
-          d.show();
-          
-          // Populate service checkboxes
-          let serviceList = Object.keys(serviceMap);
-          let checkboxContainer = d.$wrapper.find('.checkbox-list');
-          checkboxContainer.empty();
-          
-          serviceList.forEach(service => {
-            let isSelected = services.some(s => s.service_type === service);
-            checkboxContainer.append(`
-              <div class="checkbox">
-                <label>
-                  <input type="checkbox" value="${service}" ${isSelected ? 'checked' : ''}>
-                  ${__(service)}
-                </label>
-              </div>
-            `);
-          });
-        });
     }
 
-    // Add handlers for all child tables
-    const child_doctype_map = {
-      "flight_booking_entry_gds": "Flight Booking Entry GDS",
-      "flight_booking_entry_online": "Flight Booking Entry Online",
-      "hotel_booking_entry": "Hotel Booking Entry",
-      "visa_booking_entry": "Visa Booking Entry",
-      "car_rental_booking_entry": "Car Rental Booking Entry",
-      "insurance_booking_entry": "Insurance Booking Entry"
-    };
-
-    const booking_tables = [
+    // Add row calculation triggers for supported types
+    const supportedTables = [
       "flight_booking_entry_gds",
       "flight_booking_entry_online",
       "hotel_booking_entry",
-      "visa_booking_entry",
       "car_rental_booking_entry",
+      "visa_booking_entry",
       "insurance_booking_entry"
     ];
+    
+    supportedTables.forEach(table => {
+      // Initial calculation on refresh
+      calculate_table_amounts(frm, table);
+    });
 
-    // Iterate over the map to use actual Child DocType names for event handlers
-    Object.keys(child_doctype_map).forEach(table_fieldname => {
-      const child_doctype_name = child_doctype_map[table_fieldname];
-      frappe.ui.form.on(child_doctype_name, {
+    // Function to calculate amounts for a table
+    function calculate_table_amounts(frm, table) {
+      let rows = frm.doc[table] || [];
+      let total = 0;
+      
+      rows.forEach(row => {
+        if (row.supplier_cost) {
+          const supplier_cost = flt(row.supplier_cost);
+          const markup = flt(row.markup || 0);
+          const commission = flt(row.commission || 0);
+          
+          // Calculate total amount based on cost model
+          row.total_amount = supplier_cost + markup - commission;
+          row.selling_price = row.total_amount;
+          
+          total += row.total_amount;
+        }
+      });
+      
+      // Update the table in the form
+      frm.refresh_field(table);
+      return total;
+    }
+
+    // Add event handlers for all booking tables
+    supportedTables.forEach(table => {
+      frappe.ui.form.on(frappe.model.unscrub(table), {
         supplier_cost: function(frm, cdt, cdn) {
           calculate_row_total(frm, cdt, cdn);
         },
         markup: function(frm, cdt, cdn) {
           calculate_row_total(frm, cdt, cdn);
-        }
-      });
-    });
-
-    function calculate_row_total(frm, cdt, cdn) {
-      console.log("calculate_row_total called for:", cdt, cdn); // Debug
-      try {
-        const row = locals[cdt][cdn];
-        const supplier_cost = flt(row.supplier_cost) || 0;
-        const markup = flt(row.markup) || 0;
-        
-        row.total_amount = supplier_cost + markup;
-        row.selling_price = row.total_amount;
-        
-        frm.refresh_field('total_amount', row.name, row.parentfield);
-        frm.refresh_field('selling_price', row.name, row.parentfield);
-        
-        calculate_totals(frm);
-      } catch (e) {
-        console.error('Error in calculate_row_total:', e);
-      }
-    }
-
-    // Function to fetch passenger details
-    function fetch_passenger_details(frm, cdt, cdn) {
-      const row = locals[cdt][cdn];
-      if (row.passenger) {
-        frappe.db.get_value('Passenger', row.passenger, 'full_name', function(r) {
-          if (r && r.full_name) {
-            // Set the passenger_name field directly
-            frappe.model.set_value(cdt, cdn, 'passenger_name', r.full_name);
-            
-            // Also update the display in the grid
-            setTimeout(function() {
-              const grid_row = cur_frm.get_field(row.parentfield).grid.grid_rows_by_docname[cdn];
-              if (grid_row) {
-                grid_row.refresh();
-              }
-            }, 100);
-          }
-        });
-      }
-    }
-
-    // Add passenger field handlers to all child tables
-    const child_tables = [
-      'hotel_booking_entry',
-      'visa_booking_entry', 
-      'car_rental_booking_entry',
-      'flight_booking_entry_gds',
-      'flight_booking_entry_online',
-      'insurance_booking_entry'
-    ];
-
-    child_tables.forEach(table => {
-      frappe.ui.form.on(table, {
-        passenger: function(frm, cdt, cdn) {
-          fetch_passenger_details(frm, cdt, cdn);
         },
-        form_render: function(frm, cdt, cdn) {
-          fetch_passenger_details(frm, cdt, cdn);
+        commission: function(frm, cdt, cdn) {
+          calculate_row_total(frm, cdt, cdn);
         }
       });
     });
 
+    // Calculate row totals 
+    function calculate_row_total(frm, cdt, cdn) {
+      let row = locals[cdt][cdn];
+      const supplier_cost = flt(row.supplier_cost || 0);
+      const markup = flt(row.markup || 0);
+      const commission = flt(row.commission || 0);
+      
+      // Update the row
+      row.total_amount = supplier_cost + markup - commission;
+      row.selling_price = row.total_amount;
+      
+      // Refresh the row and calculate total
+      refresh_field("total_amount", cdn, cdt);
+      refresh_field("selling_price", cdn, cdt);
+      
+      // Calculate form totals
+      calculate_totals(frm);
+    }
+    
+    // Calculate totals across all tables
     function calculate_totals(frm) {
       console.log("calculate_totals called for form."); // Debug
       let total = 0;
       
-      booking_tables.forEach(table => {
+      supportedTables.forEach(table => {
         (frm.doc[table] || []).forEach(row => {
           if (row.supplier_cost) {
             const supplier_cost = flt(row.supplier_cost);
@@ -379,48 +274,5 @@ frappe.ui.form.on("Trip Booking", {
       
       frm.set_value('total_amount', total);
     }
-  },
-  
-  // Add custom handlers for each child table to keep selected_services in sync
-  validate: function(frm) {
-    updateSelectedServices(frm);
-  },
-  
-  after_save: function(frm) {
-    updateSelectedServices(frm);
   }
 });
-
-// Update selected_services based on child tables
-function updateSelectedServices(frm) {
-  // Skip if form is being loaded
-  if (frm.__islocal) return;
-  
-  // Map of child tables to service types
-  const tableToServiceMap = {
-    "flight_booking_entry_gds": "Flight GDS",
-    "flight_booking_entry_online": "Flight Online Airlines",
-    "hotel_booking_entry": "Hotel Booking",
-    "visa_booking_entry": "Visa Application Charges",
-    "car_rental_booking_entry": "Car Rental Service",
-    "insurance_booking_entry": "Insurance Service"
-  };
-  
-  // Check each table for entries
-  for (const [table, service_type] of Object.entries(tableToServiceMap)) {
-    const hasEntries = frm.doc[table] && frm.doc[table].length > 0;
-    
-    // Add service type if table has entries and not already in selected_services
-    if (hasEntries) {
-      const serviceExists = (frm.doc.selected_services || []).some(s => s.select_wbjn === service_type);
-      
-      if (!serviceExists) {
-        console.log(`Adding ${service_type} to selected_services based on entries in ${table}`);
-        frm.add_child("selected_services", {
-          select_wbjn: service_type
-        });
-        frm.refresh_field("selected_services");
-      }
-    }
-  }
-}
