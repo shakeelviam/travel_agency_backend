@@ -38,7 +38,8 @@ class ServiceType(Document):
                         "expense_account": self.purchase_account or self.net_fare_account
                     })
             
-            item.insert(ignore_permissions=True)
+            # Don't use ignore_permissions
+            item.insert()
             self.db_set("item_code", item.name)
             frappe.msgprint(_("Service Item {0} created").format(item.name), alert=True)
             return item.name
