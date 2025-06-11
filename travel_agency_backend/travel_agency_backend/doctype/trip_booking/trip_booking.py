@@ -147,24 +147,14 @@ class TripBooking(Document):
                     setattr(self, fieldname, [])
 
     def before_submit(self):
-        # Check if any booking tables have entries
-        has_bookings = any(self.get(table) for table in self.get_all_booking_tables())
-        
-        # CRITICAL FIX: If there are bookings, we can proceed with submission even without selected_services
-        if has_bookings:
-            # Try to auto-populate selected services, but don't block submission if it fails
-            try:
-                self.auto_populate_selected_services()
-            except Exception as e:
-                # Log the error but continue with submission
-                frappe.log_error(f"Auto-populate services error: {str(e)}", "Trip Booking")
-                
-            # Don't throw any errors - just let submission proceed if there are bookings
+        # DIRECT FIX FOR SUBMISSION ERROR - Skip service validation completely
+        # Check if any booking tables have entries and allow submission if any entries exist
+        if any(self.get(table) for table in self.get_all_booking_tables()):
+            # If ANY booking table has entries, allow submission regardless of selected_services
             return
             
-        # Only throw error if there are no bookings AND no selected services
-        if not self.selected_services:
-            frappe.throw("Please add at least one service before submitting")
+        # Only throw an error if there are absolutely no bookings of any kind
+        frappe.throw("Please add at least one service before submitting")
     
     def auto_populate_selected_services(self):
         """Helper method to populate selected_services from booking tables"""
