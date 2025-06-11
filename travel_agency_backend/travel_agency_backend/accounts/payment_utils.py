@@ -1,41 +1,33 @@
 import frappe
 from frappe import _
-from erpnext.accounts.doctype.payment_entry.payment_entry import get_default_bank_cash_account
-from typing import Dict, Any, Optional
 
-# Override functions to handle the ignore_permissions parameter issue in ERPNext 15
-def fixed_get_bank_cash_account(
-    doc, bank_account=None, ignore_permissions=False
-) -> Dict[str, Any]:
-    """
-    Fixed version of get_bank_cash_account that handles the ignore_permissions parameter properly
-    for compatibility with ERPNext 15
-    """
-    if bank_account:
-        return frappe.db.get_value("Bank Account", bank_account, ["account", "bank", "bank_account_no"], as_dict=1)
+# This is a direct monkey patch for the get_default_bank_cash_account function in ERPNext
+# that simply removes the ignore_permissions parameter if it exists
 
-    if hasattr(doc, "bank_account") and doc.bank_account:
-        return frappe.db.get_value("Bank Account", doc.bank_account, ["account", "bank", "bank_account_no"], as_dict=1)
+def apply_patches():
+    """Apply all necessary patches to fix incompatibility issues with ERPNext"""
+    
+    # Import the function that needs patching
+    from erpnext.accounts.doctype.payment_entry.payment_entry import get_bank_cash_account
 
-    # Use our fixed version of get_default_bank_cash_account that ignores the ignore_permissions parameter
-    return fixed_get_default_bank_cash_account(
-        doc.company, "Bank", doc.payment_type == "Receive", doc.mode_of_payment, doc.party_type, doc.party
-    )
-
-def fixed_get_default_bank_cash_account(
-    company: str,
-    account_type: str = None,
-    account_subtype: str = None,
-    mode_of_payment: str = None,
-    party_type: Optional[str] = None,
-    party: Optional[str] = None,
-    **kwargs
-) -> Dict[str, Any]:
-    """
-    Fixed version of get_default_bank_cash_account that ignores any unexpected parameters (like ignore_permissions)
-    and passes only the expected parameters to the original function
-    """
-    # Call the original function with only the parameters it expects
-    return get_default_bank_cash_account(
-        company, account_type, account_subtype, mode_of_payment, party_type, party
-    )
+    # Store the original function
+    original_get_bank_cash_account = get_bank_cash_account
+    
+    # Create a simple wrapper that handles the ignore_permissions parameter
+    def patched_get_bank_cash_account(doc, bank_account=None, **kwargs):
+        """
+        Simple wrapper that removes the ignore_permissions parameter if present
+        and passes all other arguments through to the original function
+        """
+        # Remove ignore_permissions if it exists in kwargs
+        if 'ignore_permissions' in kwargs:
+            del kwargs['ignore_permissions']
+            
+        # Call the original function with all remaining parameters
+        return original_get_bank_cash_account(doc, bank_account, **kwargs)
+    
+    # Apply the patch
+    import erpnext.accounts.doctype.payment_entry.payment_entry as payment_entry
+    payment_entry.get_bank_cash_account = patched_get_bank_cash_account
+    
+    frappe.log_error("Payment Entry monkey patch applied", "Payment Entry Fix")
