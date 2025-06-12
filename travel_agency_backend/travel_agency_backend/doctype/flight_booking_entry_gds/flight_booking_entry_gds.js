@@ -5,6 +5,20 @@
 const flt = frappe.utils.flt;
 
 frappe.ui.form.on('Flight Booking Entry GDS', {
+    refresh: function(frm, cdt, cdn) {
+        // Ensure supplier_cost is set correctly on form load
+        if (locals[cdt][cdn]) {
+            calculate_supplier_cost(frm, cdt, cdn);
+        }
+    },
+    
+    base_fare: function(frm, cdt, cdn) {
+        calculate_supplier_cost(frm, cdt, cdn);
+    },
+    
+    taxes: function(frm, cdt, cdn) {
+        calculate_supplier_cost(frm, cdt, cdn);
+    },
     trip_type: function(frm, cdt, cdn) {
         const row = locals[cdt][cdn];
         
@@ -102,6 +116,16 @@ frappe.ui.form.on('Flight Booking Entry GDS', {
         calculate_total(frm, cdt, cdn);
     }
 });
+
+// Function to calculate supplier cost from base_fare + taxes
+function calculate_supplier_cost(frm, cdt, cdn) {
+    let row = locals[cdt][cdn];
+    let base_fare = flt(row.base_fare) || 0;
+    let taxes = flt(row.taxes) || 0;
+    
+    // Calculate supplier_cost
+    frappe.model.set_value(cdt, cdn, 'supplier_cost', base_fare + taxes);
+}
 
 // Function to calculate total amount
 function calculate_total(frm, cdt, cdn) {
