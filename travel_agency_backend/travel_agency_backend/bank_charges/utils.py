@@ -44,45 +44,45 @@ def process_bank_charges(doc, bank_account, amount):
         return False
         
     charge = get_bank_charge(mode_of_payment, amount)
-    if not charge:
+    if not charge or charge <= 0:
         return False
         
     bank_charges_account = get_bank_charges_account(doc.company)
     if not bank_charges_account:
         frappe.msgprint("Bank Charges Account not set in Bank Charges Settings. Skipping bank charges.")
         return False
-        
-    # Post GL Entry for bank charges
-    gl_entries = []
     
-    # First entry - debit bank charges account
-    gl_entries.append({
+    # Create a Journal Entry for bank charges
+    je = frappe.new_doc("Journal Entry")
+    je.voucher_type = "Journal Entry"
+    je.company = doc.company
+    je.posting_date = doc.posting_date
+    je.user_remark = f"Bank Charges for {doc.doctype} {doc.name}"
+    
+    # Debit bank charges account
+    je.append("accounts", {
         "account": bank_charges_account,
-        "debit": charge,
-        "credit": 0,
-        "against": bank_account,
-        "remarks": f"Bank Charges for {doc.doctype} {doc.name}",
-        "voucher_type": doc.doctype,
-        "voucher_no": doc.name,
-        "company": doc.company,
-        "posting_date": doc.posting_date
+        "debit_in_account_currency": charge,
+        "credit_in_account_currency": 0,
+        "reference_type": doc.doctype,
+        "reference_name": doc.name
     })
     
-    # Second entry - credit bank account
-    gl_entries.append({
+    # Credit bank account
+    je.append("accounts", {
         "account": bank_account,
-        "debit": 0,
-        "credit": charge,
-        "against": bank_charges_account,
-        "remarks": f"Bank Charges for {doc.doctype} {doc.name}",
-        "voucher_type": doc.doctype,
-        "voucher_no": doc.name,
-        "company": doc.company,
-        "posting_date": doc.posting_date
+        "debit_in_account_currency": 0,
+        "credit_in_account_currency": charge,
+        "reference_type": doc.doctype,
+        "reference_name": doc.name
     })
     
-    from erpnext.accounts.general_ledger import make_gl_entries
-    make_gl_entries(gl_entries, cancel=0, update_outstanding="No", merge_entries=False)
-    
-    frappe.msgprint(f"Bank charges of {charge} applied for {mode_of_payment}")
-    return True
+    try:
+        je.insert()
+        je.submit()
+        frappe.msgprint(f"Bank charges of {charge} applied for {mode_of_payment} via Journal Entry {je.name}")
+        return True
+    except Exception as e:
+        frappe.log_error(f"Failed to create bank charges journal entry: {str(e)}")
+        frappe.msgprint(f"Failed to apply bank charges: {str(e)}")
+        return False
