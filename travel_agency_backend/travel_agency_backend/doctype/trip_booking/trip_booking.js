@@ -67,6 +67,7 @@ frappe.ui.form.on("Trip Booking", {
               let child = frm.add_child(table);
               child.service_type = values.service_type;
               if (child.supplier) child.supplier = values.supplier;
+              frm.refresh_field(table);
               
               // Also add to selected_services if not already there
               const service_exists = (frm.doc.selected_services || []).some(
