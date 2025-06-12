@@ -2,23 +2,32 @@
  * A professional, clean theme for travel agency ERP
  */
 
-/* TEST STYLE - VERY OBVIOUS */
+/* Travel Agency Theme - Refined Blue-Purple Palette */
 body .navbar, 
 body header .navbar, 
 body .desk-container .navbar, 
 body #navbar-breadcrumbs, 
 body .navbar.navbar-default {
-  background: linear-gradient(to right, #FF0000, #FF00FF) !important;
-  background-color: #FF0000 !important;
-  box-shadow: 0 0 10px 2px rgba(255, 0, 0, 0.5) !important;
+  background: linear-gradient(to right, #A4DEF9, #97F9F9) !important;
+  background-color: #A4DEF9 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 body .page-head {
-  background-color: #FFFF00 !important;
+  background-color: #FFFFFF !important;
+  border-bottom: 1px solid #C1E0F7 !important;
 }
 
 body .layout-main-section-wrapper {
-  background-color: #00FF00 !important;
+  background-color: #F8FAFC !important;
+}
+
+/* Make text in navbar readable */
+body .navbar .navbar-brand,
+body .navbar .nav-item .nav-link,
+body .navbar #navbar-breadcrumbs {
+  color: #2D3748 !important;
+  font-weight: 500 !important;
 }
 
 /* ===== Color Variables ===== */
