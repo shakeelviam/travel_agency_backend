@@ -4,17 +4,27 @@
 
 /* ===== Color Variables ===== */
 :root {
-  --primary-color: #1A73E8;
-  --secondary-color: #00B8A9;
-  --accent-color: #FF8C42;
+  /* New color palette from coolors.co */
+  --primary-color: #97F9F9;       /* Ice blue */
+  --secondary-color: #A4DEF9;     /* Uranian Blue */
+  --tertiary-color: #C1E0F7;      /* Columbia blue */
+  --accent-color-1: #CFBAE1;      /* Thistle */
+  --accent-color-2: #C59FC9;      /* Lilac */
+  
+  /* Text and UI colors */
   --text-dark: #2D3748;
   --text-medium: #718096;
-  --background-light: #EDF2F7;
+  --background-light: #F8FAFC;
+  --background-main: #C1E0F7;     /* Using Columbia blue as main background */
   --white: #FFFFFF;
+  
+  /* Status colors - keeping these standard for clarity */
   --danger: #E53E3E;
   --success: #38A169;
   --warning: #F6AD55;
   --info: #4299E1;
+  
+  /* Effects */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
   --shadow-md: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
   --border-radius: 8px;
@@ -37,19 +47,26 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 
 /* ===== Navbar ===== */
 .navbar {
-  background-color: var(--primary-color) !important;
+  background: linear-gradient(to right, var(--secondary-color), var(--primary-color)) !important;
   box-shadow: var(--shadow-sm);
 }
 
 .navbar-light .navbar-brand,
 .navbar-light .navbar-nav .nav-link {
-  color: var(--white) !important;
+  color: var(--text-dark) !important;
+  font-weight: 500;
+}
+
+/* Make the active page indicator more visible */
+.navbar-light .nav-item.active {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: var(--border-radius-sm);
 }
 
 /* ===== Sidebar ===== */
 .layout-side-section {
   background-color: var(--white);
-  border-right: 1px solid var(--background-light);
+  border-right: 1px solid var(--tertiary-color);
 }
 
 .sidebar-item {
@@ -58,24 +75,40 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 .sidebar-item.selected {
-  background-color: rgba(26, 115, 232, 0.1);
-  color: var(--primary-color);
+  background-color: var(--tertiary-color);
+  color: var(--text-dark);
+}
+
+/* ===== Main Content Area ===== */
+.layout-main-section-wrapper {
+  background-color: var(--background-main);
+}
+
+.page-head {
+  background-color: var(--white);
+  border-bottom: 1px solid var(--tertiary-color);
 }
 
 /* ===== Form Elements ===== */
 .form-control {
   border-radius: var(--border-radius-sm);
-  border: 1px solid #CBD5E0;
+  border: 1px solid var(--tertiary-color);
+  background-color: var(--white);
 }
 
 .form-control:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2);
+  border-color: var(--accent-color-1);
+  box-shadow: 0 0 0 3px rgba(207, 186, 225, 0.3);
 }
 
 .control-label {
   font-weight: 500;
   color: var(--text-medium);
+}
+
+/* Input fields with a light background */
+input.form-control, select.form-control, textarea.form-control {
+  background-color: var(--white);
 }
 
 /* ===== Buttons ===== */
@@ -86,18 +119,27 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 .btn-primary {
-  background-color: var(--primary-color);
-  border-color: var(--primary-color);
+  background-color: var(--accent-color-1);
+  border-color: var(--accent-color-1);
+  color: var(--text-dark);
 }
 
 .btn-primary:hover, .btn-primary:focus {
-  background-color: #0F62D6;
-  border-color: #0F62D6;
+  background-color: var(--accent-color-2);
+  border-color: var(--accent-color-2);
+  color: var(--white);
 }
 
 .btn-secondary {
   background-color: var(--secondary-color);
   border-color: var(--secondary-color);
+  color: var(--text-dark);
+}
+
+.btn-secondary:hover, .btn-secondary:focus {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: var(--text-dark);
 }
 
 .btn-danger {
@@ -110,18 +152,28 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   border-color: var(--success);
 }
 
+/* Custom button for Add Service */
+.custom-btn-add-service {
+  background-color: var(--accent-color-2);
+  color: var(--white);
+  border-color: var(--accent-color-2);
+}
+
 /* ===== Cards ===== */
 .card {
   border-radius: var(--border-radius);
   box-shadow: var(--shadow-sm);
   border: none;
   margin-bottom: 1rem;
+  background-color: var(--white);
 }
 
 .card-header {
-  background-color: var(--white);
-  border-bottom: 1px solid var(--background-light);
+  background-color: var(--tertiary-color);
+  border-bottom: 1px solid var(--secondary-color);
   padding: 1rem;
+  color: var(--text-dark);
+  font-weight: 500;
 }
 
 /* ===== Tables ===== */
@@ -131,18 +183,18 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 }
 
 .table thead th {
-  background-color: var(--background-light);
-  color: var(--text-medium);
+  background-color: var(--tertiary-color);
+  color: var(--text-dark);
   font-weight: 500;
-  border-bottom: 2px solid #E2E8F0;
+  border-bottom: 2px solid var(--secondary-color);
 }
 
 .table tbody tr:nth-child(odd) {
-  background-color: rgba(237, 242, 247, 0.4);
+  background-color: rgba(151, 249, 249, 0.1); /* Very light primary color */
 }
 
 .table tbody tr:hover {
-  background-color: rgba(26, 115, 232, 0.05);
+  background-color: rgba(207, 186, 225, 0.2); /* Light accent color */
 }
 
 /* ===== List View ===== */
@@ -150,26 +202,33 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
   border-radius: var(--border-radius-sm);
   margin-bottom: 4px;
   transition: all 0.2s ease;
+  background-color: var(--white);
 }
 
 .list-row:hover {
-  background-color: rgba(26, 115, 232, 0.05);
+  background-color: rgba(207, 186, 225, 0.2); /* Light accent color */
 }
 
 .list-row-head {
-  background-color: var(--background-light) !important;
-  color: var(--text-medium);
+  background-color: var(--tertiary-color) !important;
+  color: var(--text-dark);
+  font-weight: 500;
 }
 
 /* ===== Tabs ===== */
 .nav-tabs {
-  border-bottom: 1px solid var(--background-light);
+  border-bottom: 1px solid var(--tertiary-color);
 }
 
 .nav-tabs .nav-link.active {
-  color: var(--primary-color);
-  border-bottom: 2px solid var(--primary-color);
+  color: var(--accent-color-2);
+  border-bottom: 2px solid var(--accent-color-2);
   font-weight: 500;
+  background-color: rgba(207, 186, 225, 0.1);
+}
+
+.nav-tabs .nav-link:hover {
+  border-bottom: 2px solid var(--accent-color-1);
 }
 
 /* ===== Alerts ===== */
@@ -202,10 +261,13 @@ h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
 /* Service sections */
 .section-head {
   font-weight: 600;
-  color: var(--primary-color);
-  border-bottom: 1px solid var(--background-light);
+  color: var(--accent-color-2);
+  border-bottom: 1px solid var(--tertiary-color);
   padding-bottom: 8px;
   margin-bottom: 16px;
+  background-color: var(--tertiary-color);
+  padding: 8px 12px;
+  border-radius: var(--border-radius-sm);
 }
 
 /* Add Service button */
