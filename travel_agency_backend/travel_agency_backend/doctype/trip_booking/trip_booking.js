@@ -1,7 +1,14 @@
 frappe.ui.form.on("Trip Booking", {
   refresh: function (frm) {
+    // Calculate totals first to ensure amount is up to date
+    calculate_totals(frm);
+    
+    // Make sure total_amount field is visible
+    frm.set_df_property('total_amount', 'hidden', 0);
+    frm.refresh_field('total_amount');
+    
     // Clear existing custom buttons to avoid duplicates on refresh
-    frm.clear_custom_buttons(); // More robust way to clear all custom buttons
+    frm.clear_custom_buttons();
 
     const serviceMap = {
       "Flight GDS": ["flight_gds_section", "flight_booking_entry_gds", "flight_gds_supplier"],
@@ -21,9 +28,10 @@ frappe.ui.form.on("Trip Booking", {
       }
     });
 
-    // Add Service in draft state
+    // Add Service in draft state - make it a primary action
     if (frm.doc.docstatus === 0) {
-      frm.add_custom_button("Add Service", () => {
+      // Make Add Service a primary button
+      frm.add_custom_button(__('Add Service'), () => {
         frappe.prompt(
           [
             {
@@ -117,7 +125,7 @@ frappe.ui.form.on("Trip Booking", {
           },
           "Add New Service"
         );
-      });
+      }, __('Actions')).addClass('btn-primary');
     }
 
     // Add Create Invoice buttons if submitted
@@ -256,7 +264,7 @@ frappe.ui.form.on("Trip Booking", {
     
     // Calculate totals across all tables
     function calculate_totals(frm) {
-      console.log("calculate_totals called for form."); // Debug
+      console.log("calculate_totals called for form.");
       let total = 0;
       
       supportedTables.forEach(table => {
@@ -264,7 +272,10 @@ frappe.ui.form.on("Trip Booking", {
           if (row.supplier_cost) {
             const supplier_cost = flt(row.supplier_cost);
             const markup = flt(row.markup || 0);
-            row.total_amount = supplier_cost + markup;
+            const commission = flt(row.commission || 0);
+            
+            // Calculate row total including commission
+            row.total_amount = supplier_cost + markup - commission;
             row.selling_price = row.total_amount;
             total += row.total_amount;
           }
@@ -272,7 +283,9 @@ frappe.ui.form.on("Trip Booking", {
         frm.refresh_field(table);
       });
       
+      // Set the total and ensure it's refreshed/visible
       frm.set_value('total_amount', total);
+      frm.refresh_field('total_amount');
     }
   }
 });
