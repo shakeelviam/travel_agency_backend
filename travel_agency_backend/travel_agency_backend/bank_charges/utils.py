@@ -53,30 +53,33 @@ def process_bank_charges(doc, bank_account, amount):
         return False
         
     # Post GL Entry for bank charges
-    gl_entries = [
-        {
-            "account": bank_charges_account,
-            "debit": charge,
-            "credit": 0,
-            "against": bank_account,
-            "remarks": f"Bank Charges for {doc.doctype} {doc.name}",
-            "voucher_type": doc.doctype,
-            "voucher_no": doc.name,
-            "company": doc.company,
-            "posting_date": doc.posting_date
-        },
-        {
-            "account": bank_account,
-            "debit": 0,
-            "credit": charge,
-            "against": bank_charges_account,
-            "remarks": f"Bank Charges for {doc.doctype} {doc.name}",
-            "voucher_type": doc.doctype,
-            "voucher_no": doc.name,
-            "company": doc.company,
-            "posting_date": doc.posting_date
-        }
-    ]
+    gl_entries = []
+    
+    # First entry - debit bank charges account
+    gl_entries.append({
+        "account": bank_charges_account,
+        "debit": charge,
+        "credit": 0,
+        "against": bank_account,
+        "remarks": f"Bank Charges for {doc.doctype} {doc.name}",
+        "voucher_type": doc.doctype,
+        "voucher_no": doc.name,
+        "company": doc.company,
+        "posting_date": doc.posting_date
+    })
+    
+    # Second entry - credit bank account
+    gl_entries.append({
+        "account": bank_account,
+        "debit": 0,
+        "credit": charge,
+        "against": bank_charges_account,
+        "remarks": f"Bank Charges for {doc.doctype} {doc.name}",
+        "voucher_type": doc.doctype,
+        "voucher_no": doc.name,
+        "company": doc.company,
+        "posting_date": doc.posting_date
+    })
     
     from erpnext.accounts.general_ledger import make_gl_entries
     make_gl_entries(gl_entries, cancel=0, update_outstanding="No", merge_entries=False)
