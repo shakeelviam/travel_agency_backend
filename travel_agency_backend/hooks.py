@@ -129,10 +129,14 @@ doctype_js = {
 
 doc_events = {
 	"Sales Invoice": {
-		"validate": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.set_item_description_from_trip_booking"
+		"validate": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.set_item_description_from_trip_booking",
+		"on_submit": "travel_agency_backend.travel_agency_backend.bank_charges.sales_invoice.on_submit_sales_invoice"
 	},
 	"Purchase Invoice": {
 		"validate": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.set_item_description_from_trip_booking"
+	},
+	"Payment Entry": {
+		"on_submit": "travel_agency_backend.travel_agency_backend.bank_charges.payment_entry.on_submit_payment_entry"
 	}
 }
 
