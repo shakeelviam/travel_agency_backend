@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-from travel_agency_backend.bank_charges.utils import process_bank_charges
+from travel_agency_backend.travel_agency_backend.bank_charges.utils import process_bank_charges
 
 def on_submit_payment_entry(doc, method):
     """Apply bank charges when a Payment Entry is submitted

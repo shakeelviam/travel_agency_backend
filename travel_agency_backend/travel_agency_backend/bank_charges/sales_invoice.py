@@ -2,7 +2,7 @@
 # For license information, please see license.txt
 
 import frappe
-from travel_agency_backend.bank_charges.utils import process_bank_charges
+from travel_agency_backend.travel_agency_backend.bank_charges.utils import process_bank_charges
 
 def on_submit_sales_invoice(doc, method):
     """Apply bank charges when a Sales Invoice is submitted with is_paid checked
