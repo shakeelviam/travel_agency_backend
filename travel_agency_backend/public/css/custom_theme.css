@@ -3,9 +3,22 @@
  */
 
 /* TEST STYLE - VERY OBVIOUS */
-.navbar {
+body .navbar, 
+body header .navbar, 
+body .desk-container .navbar, 
+body #navbar-breadcrumbs, 
+body .navbar.navbar-default {
   background: linear-gradient(to right, #FF0000, #FF00FF) !important;
+  background-color: #FF0000 !important;
   box-shadow: 0 0 10px 2px rgba(255, 0, 0, 0.5) !important;
+}
+
+body .page-head {
+  background-color: #FFFF00 !important;
+}
+
+body .layout-main-section-wrapper {
+  background-color: #00FF00 !important;
 }
 
 /* ===== Color Variables ===== */
