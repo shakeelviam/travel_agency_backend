@@ -1,109 +1,41 @@
 // Copyright (c) 2025, Shakeel Mohammed Viam and contributors
 // For license information, please see license.txt
 
-// Import utility functions for number handling and field refreshing
 const flt = frappe.utils.flt;
-
-// Define refresh_field function if not already available
-function refresh_field(fieldname, docname, parent) {
-    if (cur_frm) {
-        cur_frm.refresh_field(fieldname, docname, parent);
-    } else if (frappe.get_doc) {
-        frappe.get_doc(parent, docname).refresh_field(fieldname);
-    }
-}
 
 frappe.ui.form.on('Flight Booking Entry GDS', {
     refresh: function(frm, cdt, cdn) {
-        // Ensure supplier_cost is set correctly on form load
-        if (locals[cdt][cdn]) {
-            calculate_supplier_cost(frm, cdt, cdn);
-            calculate_total(frm, cdt, cdn);
-        }
+        calculate_supplier_cost(frm, cdt, cdn);
+        calculate_total(frm, cdt, cdn);
     },
-    
+
+    form_render: function(frm, cdt, cdn) {
+        calculate_supplier_cost(frm, cdt, cdn);
+        calculate_total(frm, cdt, cdn);
+        toggle_return_fields(frm, cdt, cdn);
+    },
+
     base_fare: function(frm, cdt, cdn) {
         calculate_supplier_cost(frm, cdt, cdn);
     },
-    
+
     taxes: function(frm, cdt, cdn) {
         calculate_supplier_cost(frm, cdt, cdn);
     },
+
+    markup: function(frm, cdt, cdn) {
+        calculate_total(frm, cdt, cdn);
+    },
+
+    supplier_cost: function(frm, cdt, cdn) {
+        calculate_total(frm, cdt, cdn);
+    },
+
     trip_type: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        
-        // Get the grid row using the grid_rows object
-        const grid_rows = cur_frm.fields_dict[row.parentfield].grid.grid_rows;
-        let grid_row;
-        
-        // Find the grid row by docname
-        for (let i=0; i<grid_rows.length; i++) {
-            if (grid_rows[i].doc.name === cdn) {
-                grid_row = grid_rows[i];
-                break;
-            }
-        }
-        
-        if (!grid_row) return;
-        
-        // Toggle return_sector and return_date fields based on trip_type
-        if (row.trip_type === "One Way") {
-            // Hide return fields for One Way trips
-            grid_row.toggle_editable("return_sector", false);
-            grid_row.toggle_display("return_sector", false);
-            grid_row.toggle_editable("return_date", false);
-            grid_row.toggle_display("return_date", false);
-            
-            // Clear return values
-            frappe.model.set_value(cdt, cdn, "return_sector", "");
-            frappe.model.set_value(cdt, cdn, "return_date", "");
-        } else {
-            // Show return fields for Round Trip
-            grid_row.toggle_editable("return_sector", true);
-            grid_row.toggle_display("return_sector", true);
-            grid_row.toggle_editable("return_date", true);
-            grid_row.toggle_display("return_date", true);
-        }
+        toggle_return_fields(frm, cdt, cdn);
     },
-    
-    form_render: function(frm, cdt, cdn) {
-        const row = locals[cdt][cdn];
-        
-        // Apply the same logic on form render
-        if (row) {
-            // Get the grid row using the grid_rows object
-            const grid_rows = cur_frm.fields_dict[row.parentfield].grid.grid_rows;
-            let grid_row;
-            
-            // Find the grid row by docname
-            for (let i=0; i<grid_rows.length; i++) {
-                if (grid_rows[i].doc.name === cdn) {
-                    grid_row = grid_rows[i];
-                    break;
-                }
-            }
-            
-            if (!grid_row) return;
-            
-            // Toggle return_sector and return_date fields based on trip_type
-            if (row.trip_type === "One Way") {
-                // Hide return fields for One Way trips
-                grid_row.toggle_editable("return_sector", false);
-                grid_row.toggle_display("return_sector", false);
-                grid_row.toggle_editable("return_date", false);
-                grid_row.toggle_display("return_date", false);
-            } else {
-                // Show return fields for Round Trip
-                grid_row.toggle_editable("return_sector", true);
-                grid_row.toggle_display("return_sector", true);
-                grid_row.toggle_editable("return_date", true);
-                grid_row.toggle_display("return_date", true);
-            }
-        }
-    },
-    
+
     passenger: function(frm, cdt, cdn) {
-        // Fetch passenger name when passenger is selected
         const row = locals[cdt][cdn];
         if (row.passenger) {
             frappe.db.get_value('Passenger', row.passenger, 'full_name', function(r) {
@@ -112,52 +44,45 @@ frappe.ui.form.on('Flight Booking Entry GDS', {
                 }
             });
         }
-    },
-    
-    supplier_cost: function(frm, cdt, cdn) {
-        calculate_total(frm, cdt, cdn);
-    },
-    
-    markup: function(frm, cdt, cdn) {
-        calculate_total(frm, cdt, cdn);
-    },
-    
-    service_fee: function(frm, cdt, cdn) {
-        calculate_total(frm, cdt, cdn);
     }
 });
 
-// Function to calculate supplier cost from base_fare + taxes
+// Calculate supplier_cost = base_fare + taxes
 function calculate_supplier_cost(frm, cdt, cdn) {
-    let row = locals[cdt][cdn];
-    let base_fare = flt(row.base_fare) || 0;
-    let taxes = flt(row.taxes) || 0;
-    
-    // Calculate supplier_cost
-    let supplier_cost = base_fare + taxes;
-    
-    // Set the value directly
+    const row = locals[cdt][cdn];
+    const base_fare = flt(row.base_fare || 0);
+    const taxes = flt(row.taxes || 0);
+
+    const supplier_cost = base_fare + taxes;
     frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
-    
-    // Force refresh the field
-    refresh_field('supplier_cost', cdn, cdt);
-    
-    console.log('Flight GDS: Updated supplier_cost:', supplier_cost, 'from base_fare:', base_fare, 'and taxes:', taxes);
-    
-    // Return the calculated value for any chained operations
-    return supplier_cost;
 }
 
-// Function to calculate total amount
+// Calculate total = supplier_cost + markup
 function calculate_total(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
-    const supplier_cost = flt(row.supplier_cost) || 0;
-    const markup = flt(row.markup) || 0;
-    const service_fee = flt(row.service_fee) || 0;
-    
-    // Calculate total amount
-    const total_amount = supplier_cost + markup + service_fee;
-    
-    // Update the total amount field
+    const supplier_cost = flt(row.supplier_cost || 0);
+    const markup = flt(row.markup || 0);
+
+    const total_amount = supplier_cost + markup;
     frappe.model.set_value(cdt, cdn, 'total_amount', total_amount);
+}
+
+// Show/hide return_sector and return_date
+function toggle_return_fields(frm, cdt, cdn) {
+    const row = locals[cdt][cdn];
+    const grid_rows = cur_frm.fields_dict[row.parentfield].grid.grid_rows;
+    let grid_row = grid_rows.find(gr => gr.doc.name === cdn);
+    if (!grid_row) return;
+
+    const is_return = row.trip_type === "Return";
+
+    grid_row.toggle_editable("return_sector", is_return);
+    grid_row.toggle_display("return_sector", is_return);
+    grid_row.toggle_editable("return_date", is_return);
+    grid_row.toggle_display("return_date", is_return);
+
+    if (!is_return) {
+        frappe.model.set_value(cdt, cdn, "return_sector", "");
+        frappe.model.set_value(cdt, cdn, "return_date", "");
+    }
 }
