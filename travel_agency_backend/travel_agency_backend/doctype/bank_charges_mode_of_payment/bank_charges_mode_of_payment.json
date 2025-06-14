@@ -7,7 +7,8 @@
  "field_order": [
   "mode_of_payment",
   "charge_type",
-  "charge_value"
+  "charge_value",
+  "bank_charges_account"
  ],
  "fields": [
   {
@@ -32,6 +33,14 @@
    "in_list_view": 1,
    "label": "Charge Value",
    "reqd": 1
+  },
+  {
+   "fieldname": "bank_charges_account",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Bank Charges Account",
+   "options": "Account",
+   "description": "If specified, this account will be used for this payment method instead of the default account"
   }
  ],
  "istable": 1,

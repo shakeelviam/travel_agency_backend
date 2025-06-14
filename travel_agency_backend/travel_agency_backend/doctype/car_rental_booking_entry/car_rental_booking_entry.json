@@ -16,6 +16,7 @@
   "return_date",
   "drop_location",
   "booking_reference_number",
+  "date_of_issue",
   "pricing_section",
   "item",
   "supplier_cost",
@@ -89,6 +90,12 @@
    "fieldname": "booking_reference_number",
    "fieldtype": "Data",
    "label": "Booking Reference Number"
+  },
+  {
+   "fieldname": "date_of_issue",
+   "fieldtype": "Date",
+   "label": "Date of Issue",
+   "reqd": 1
   },
   {
    "fieldname": "pricing_section",

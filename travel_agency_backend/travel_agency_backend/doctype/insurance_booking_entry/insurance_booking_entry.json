@@ -18,6 +18,7 @@
   "validity_section",
   "valid_from",
   "valid_to",
+  "date_of_issue",
   "pricing_section",
   "item",
   "supplier_cost",
@@ -100,6 +101,12 @@
    "fieldname": "valid_to",
    "fieldtype": "Date",
    "label": "Valid To"
+  },
+  {
+   "fieldname": "date_of_issue",
+   "fieldtype": "Date",
+   "label": "Date of Issue",
+   "reqd": 1
   },
   {
    "fieldname": "pricing_section",

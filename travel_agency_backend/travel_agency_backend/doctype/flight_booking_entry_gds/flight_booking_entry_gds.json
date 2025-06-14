@@ -198,9 +198,9 @@
     "label": "Return Booking Class"
    },
    {
-    "fieldname": "ticket_issue_date",
+    "fieldname": "date_of_issue",
     "fieldtype": "Date",
-    "label": "Ticket Issue Date",
+    "label": "Date of Issue",
     "reqd": 1
    },
    {

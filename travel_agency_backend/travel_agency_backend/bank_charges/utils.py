@@ -4,9 +4,26 @@
 import frappe
 from frappe.utils import flt
 
-def get_bank_charges_account(company):
-    """Get the default bank charges account from settings"""
+def get_bank_charges_account(company, mode_of_payment=None):
+    """Get the bank charges account for a specific mode of payment or the default
+    
+    Args:
+        company (str): Company
+        mode_of_payment (str, optional): Mode of Payment. If specified, will check for
+                                        a specific account for this payment method first
+    
+    Returns:
+        str: Bank charges account
+    """
     settings = frappe.get_cached_doc("Bank Charges Settings")
+    
+    # If mode of payment is specified, check if it has a specific account
+    if mode_of_payment:
+        for row in settings.mode_of_payment_charges:
+            if row.mode_of_payment == mode_of_payment and row.bank_charges_account:
+                return row.bank_charges_account
+    
+    # Fall back to default account
     return settings.default_bank_charges_account
 
 def get_bank_charge(mode_of_payment, amount):
@@ -47,7 +64,7 @@ def process_bank_charges(doc, bank_account, amount):
     if not charge or charge <= 0:
         return False
         
-    bank_charges_account = get_bank_charges_account(doc.company)
+    bank_charges_account = get_bank_charges_account(doc.company, mode_of_payment)
     if not bank_charges_account:
         frappe.msgprint("Bank Charges Account not set in Bank Charges Settings. Skipping bank charges.")
         return False

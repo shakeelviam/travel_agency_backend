@@ -13,6 +13,9 @@
   "column_break_visa",
   "country",
   "validity_dates",
+  "date_of_issue",
+  "valid_from",
+  "valid_until",
   "pricing_section",
   "item",
   "supplier_cost",
@@ -72,6 +75,12 @@
    "fieldname": "validity_dates",
    "fieldtype": "Section Break",
    "label": "Validity Period"
+  },
+  {
+   "fieldname": "date_of_issue",
+   "fieldtype": "Date",
+   "label": "Date of Issue",
+   "reqd": 1
   },
   {
    "fieldname": "valid_from",
