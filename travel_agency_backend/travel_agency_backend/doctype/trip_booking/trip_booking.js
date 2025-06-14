@@ -288,11 +288,16 @@ frappe.ui.form.on("Trip Booking", {
       // Calculate supplier_cost
       let supplier_cost = base_fare + taxes;
       
-      // Only update if value has changed
-      if (flt(row.supplier_cost) !== supplier_cost) {
-        frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
-        console.log('Trip Booking: Updated supplier_cost:', supplier_cost, 'from base_fare:', base_fare, 'and taxes:', taxes);
-      }
+      // Always update the supplier_cost value
+      frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
+      
+      // Force refresh the field
+      refresh_field('supplier_cost', cdn, cdt);
+      
+      // Also trigger the row total calculation
+      calculate_row_total(frm, cdt, cdn);
+      
+      console.log('Trip Booking: Updated supplier_cost:', supplier_cost, 'from base_fare:', base_fare, 'and taxes:', taxes);
     }
     
     // Calculate totals across all tables
