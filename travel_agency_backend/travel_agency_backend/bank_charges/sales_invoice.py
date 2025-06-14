@@ -5,20 +5,19 @@ import frappe
 from travel_agency_backend.travel_agency_backend.bank_charges.utils import process_bank_charges
 
 def on_submit_sales_invoice(doc, method):
-    """Apply bank charges when a Sales Invoice is submitted with is_paid checked
+    """Apply bank charges when a Sales Invoice is submitted with payments
     
-    Only applies when is_paid is checked and mode_of_payment is set
+    Only applies when there are payments in the payments table and mode_of_payment is set
     """
-    # Only if Is Paid is checked and no Payment Entry is made
-    if not doc.is_paid or doc.outstanding_amount != 0:
+    # Skip if outstanding amount is not zero (invoice not fully paid)
+    if doc.outstanding_amount != 0:
         return
         
     # Get the mode of payment and account from the payment entry table
-    # In ERPNext, when is_paid is checked, there should be an entry in the payments table
     if not doc.payments or len(doc.payments) == 0:
         return
         
-    # Get the first payment entry (usually there's only one when is_paid is checked)
+    # Get the first payment entry
     payment = doc.payments[0]
     mode_of_payment = payment.mode_of_payment
     account = payment.account
