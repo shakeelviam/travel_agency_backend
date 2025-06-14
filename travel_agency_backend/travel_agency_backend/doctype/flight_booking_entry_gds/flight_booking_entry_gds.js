@@ -9,6 +9,7 @@ frappe.ui.form.on('Flight Booking Entry GDS', {
         // Ensure supplier_cost is set correctly on form load
         if (locals[cdt][cdn]) {
             calculate_supplier_cost(frm, cdt, cdn);
+            calculate_total(frm, cdt, cdn);
         }
     },
     
@@ -124,7 +125,15 @@ function calculate_supplier_cost(frm, cdt, cdn) {
     let taxes = flt(row.taxes) || 0;
     
     // Calculate supplier_cost
-    frappe.model.set_value(cdt, cdn, 'supplier_cost', base_fare + taxes);
+    let supplier_cost = base_fare + taxes;
+    
+    // Ensure we're not setting the same value (to avoid unnecessary triggers)
+    if (flt(row.supplier_cost) !== supplier_cost) {
+        frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
+        
+        // Log for debugging
+        console.log('Updated supplier_cost:', supplier_cost, 'from base_fare:', base_fare, 'and taxes:', taxes);
+    }
 }
 
 // Function to calculate total amount
@@ -137,6 +146,12 @@ function calculate_total(frm, cdt, cdn) {
     // Calculate total amount
     const total_amount = supplier_cost + markup + service_fee;
     
-    // Update the total amount field
-    frappe.model.set_value(cdt, cdn, 'total_amount', total_amount);
+    // Ensure we're not setting the same value (to avoid unnecessary triggers)
+    if (flt(row.total_amount) !== total_amount) {
+        // Update the total amount field
+        frappe.model.set_value(cdt, cdn, 'total_amount', total_amount);
+        
+        // Log for debugging
+        console.log('Updated total_amount:', total_amount, 'from supplier_cost:', supplier_cost, 'markup:', markup);
+    }
 }
