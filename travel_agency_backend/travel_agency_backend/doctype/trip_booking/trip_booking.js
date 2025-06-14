@@ -225,8 +225,39 @@ frappe.ui.form.on("Trip Booking", {
     supportedTables.forEach(table => {
       const doctype = frappe.model.unscrub(table);
 
-      // Only apply to standard types — Flight GDS is now handled within its own .js
-      if (table !== "flight_booking_entry_gds") {
+      // Special handling for Flight Booking Entry GDS
+      if (table === "flight_booking_entry_gds") {
+        frappe.ui.form.on(doctype, {
+          base_fare: function(frm, cdt, cdn) {
+            let row = locals[cdt][cdn];
+            let base_fare = flt(row.base_fare) || 0;
+            let taxes = flt(row.taxes) || 0;
+            
+            // Calculate and set supplier_cost
+            frappe.model.set_value(cdt, cdn, 'supplier_cost', base_fare + taxes);
+            
+            // Refresh the field in the parent form context
+            frm.refresh_field('flight_booking_entry_gds');
+          },
+          taxes: function(frm, cdt, cdn) {
+            let row = locals[cdt][cdn];
+            let base_fare = flt(row.base_fare) || 0;
+            let taxes = flt(row.taxes) || 0;
+            
+            // Calculate and set supplier_cost
+            frappe.model.set_value(cdt, cdn, 'supplier_cost', base_fare + taxes);
+            
+            // Refresh the field in the parent form context
+            frm.refresh_field('flight_booking_entry_gds');
+          },
+          supplier_cost: function(frm, cdt, cdn) {
+            calculate_row_total(frm, cdt, cdn);
+          },
+          markup: function(frm, cdt, cdn) {
+            calculate_row_total(frm, cdt, cdn);
+          }
+        });
+      } else {
         frappe.ui.form.on(doctype, {
           supplier_cost: function(frm, cdt, cdn) {
             calculate_row_total(frm, cdt, cdn);
