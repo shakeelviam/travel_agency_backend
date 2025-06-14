@@ -224,28 +224,9 @@ frappe.ui.form.on("Trip Booking", {
     // Add event handlers for all booking tables
     supportedTables.forEach(table => {
       const doctype = frappe.model.unscrub(table);
-      
-      // Special handling for Flight Booking Entry GDS
-      if (table === "flight_booking_entry_gds") {
-        frappe.ui.form.on(doctype, {
-          base_fare: function(frm, cdt, cdn) {
-            calculate_supplier_cost_gds(frm, cdt, cdn);
-          },
-          taxes: function(frm, cdt, cdn) {
-            calculate_supplier_cost_gds(frm, cdt, cdn);
-          },
-          supplier_cost: function(frm, cdt, cdn) {
-            calculate_row_total(frm, cdt, cdn);
-          },
-          markup: function(frm, cdt, cdn) {
-            calculate_row_total(frm, cdt, cdn);
-          },
-          commission: function(frm, cdt, cdn) {
-            calculate_row_total(frm, cdt, cdn);
-          }
-        });
-      } else {
-        // Standard handling for other doctypes
+
+      // Only apply to standard types — Flight GDS is now handled within its own .js
+      if (table !== "flight_booking_entry_gds") {
         frappe.ui.form.on(doctype, {
           supplier_cost: function(frm, cdt, cdn) {
             calculate_row_total(frm, cdt, cdn);
@@ -278,28 +259,7 @@ frappe.ui.form.on("Trip Booking", {
       // Calculate form totals
       calculate_totals(frm);
     }
-    
-    // Function to calculate supplier cost for Flight Booking Entry GDS
-    function calculate_supplier_cost_gds(frm, cdt, cdn) {
-      let row = locals[cdt][cdn];
-      let base_fare = flt(row.base_fare) || 0;
-      let taxes = flt(row.taxes) || 0;
-      
-      // Calculate supplier_cost
-      let supplier_cost = base_fare + taxes;
-      
-      // Always update the supplier_cost value
-      frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
-      
-      // Force refresh the field
-      refresh_field('supplier_cost', cdn, cdt);
-      
-      // Also trigger the row total calculation
-      calculate_row_total(frm, cdt, cdn);
-      
-      console.log('Trip Booking: Updated supplier_cost:', supplier_cost, 'from base_fare:', base_fare, 'and taxes:', taxes);
-    }
-    
+
     // Calculate totals across all tables
     function calculate_totals(frm) {
       console.log("calculate_totals called for form."); // Debug
@@ -307,14 +267,6 @@ frappe.ui.form.on("Trip Booking", {
       
       supportedTables.forEach(table => {
         (frm.doc[table] || []).forEach(row => {
-          // Special handling for Flight Booking Entry GDS
-          if (table === "flight_booking_entry_gds" && row.base_fare !== undefined && row.taxes !== undefined) {
-            // Ensure supplier_cost is calculated from base_fare and taxes
-            const base_fare = flt(row.base_fare || 0);
-            const taxes = flt(row.taxes || 0);
-            row.supplier_cost = base_fare + taxes;
-          }
-          
           if (row.supplier_cost) {
             const supplier_cost = flt(row.supplier_cost);
             const markup = flt(row.markup || 0);
