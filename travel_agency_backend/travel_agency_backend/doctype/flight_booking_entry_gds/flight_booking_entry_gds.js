@@ -5,22 +5,14 @@ const flt = frappe.utils.flt;
 
 frappe.ui.form.on('Flight Booking Entry GDS', {
     refresh: function(frm, cdt, cdn) {
-        calculate_supplier_cost(frm, cdt, cdn);
         calculate_total(frm, cdt, cdn);
+        add_done_button(frm);
     },
 
     form_render: function(frm, cdt, cdn) {
-        calculate_supplier_cost(frm, cdt, cdn);
         calculate_total(frm, cdt, cdn);
         toggle_return_fields(frm, cdt, cdn);
-    },
-
-    base_fare: function(frm, cdt, cdn) {
-        calculate_supplier_cost(frm, cdt, cdn);
-    },
-
-    taxes: function(frm, cdt, cdn) {
-        calculate_supplier_cost(frm, cdt, cdn);
+        add_done_button(frm);
     },
 
     markup: function(frm, cdt, cdn) {
@@ -47,16 +39,6 @@ frappe.ui.form.on('Flight Booking Entry GDS', {
     }
 });
 
-// Calculate supplier_cost = base_fare + taxes
-function calculate_supplier_cost(frm, cdt, cdn) {
-    const row = locals[cdt][cdn];
-    const base_fare = flt(row.base_fare || 0);
-    const taxes = flt(row.taxes || 0);
-
-    const supplier_cost = base_fare + taxes;
-    frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
-}
-
 // Calculate total = supplier_cost + markup
 function calculate_total(frm, cdt, cdn) {
     const row = locals[cdt][cdn];
@@ -65,6 +47,53 @@ function calculate_total(frm, cdt, cdn) {
 
     const total_amount = supplier_cost + markup;
     frappe.model.set_value(cdt, cdn, 'total_amount', total_amount);
+}
+
+// Add DONE button to the form
+function add_done_button(frm) {
+    // Only add button if this is a child form (in grid edit mode)
+    if (!frm.is_new() && frm.doc.parenttype === "Trip Booking") {
+        // Remove existing button if any to avoid duplicates
+        $('.page-actions .btn-done').remove();
+        
+        // Add DONE button to the form footer
+        const $doneBtn = $(`<button class="btn btn-primary btn-done">${__('DONE')}</button>`)
+            .appendTo($('.page-actions'))
+            .on('click', function() {
+                // Calculate total amount
+                const supplier_cost = flt(frm.doc.supplier_cost) || 0;
+                const markup = flt(frm.doc.markup) || 0;
+                const total_amount = supplier_cost + markup;
+                
+                // Update total amount
+                frm.set_value('total_amount', total_amount);
+                
+                // Save the form
+                frm.save();
+                
+                // Show success message
+                frappe.show_alert({
+                    message: __('Calculations updated successfully!'),
+                    indicator: 'green'
+                }, 3);
+                
+                // Close the form
+                frappe.ui.form.close_grid_form();
+                
+                // Refresh the parent form's table
+                const parentForm = frappe.ui.form.get_open_grid_form();
+                if (parentForm) {
+                    parentForm.frm.refresh_field('flight_booking_entry_gds');
+                }
+            });
+        
+        // Make the button more prominent
+        $doneBtn.css({
+            'font-weight': 'bold',
+            'font-size': '14px',
+            'margin-right': '10px'
+        });
+    }
 }
 
 // Show/hide return_sector and return_date

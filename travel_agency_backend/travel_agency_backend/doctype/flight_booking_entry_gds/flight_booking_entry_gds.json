@@ -164,7 +164,7 @@
    "fieldname": "supplier_cost",
    "fieldtype": "Currency",
    "label": "Supplier Cost",
-   "read_only": 1
+   "description": "Enter the total amount including net fare and taxes"
   },
   {
    "fieldname": "markup",
