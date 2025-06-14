@@ -2,6 +2,9 @@ frappe.ui.form.on("Trip Booking", {
   refresh: function (frm) {
     // Clear existing custom buttons to avoid duplicates on refresh
     frm.clear_custom_buttons(); // More robust way to clear all custom buttons
+    
+    // Add "DONE" button to all child table rows
+    add_done_buttons_to_child_tables(frm);
 
     const serviceMap = {
       "Flight GDS": ["flight_gds_section", "flight_booking_entry_gds", "flight_gds_supplier"],
@@ -329,3 +332,101 @@ frappe.ui.form.on("Trip Booking", {
     }
   }
 });
+
+// Function to add "DONE" buttons to all child tables
+function add_done_buttons_to_child_tables(frm) {
+  // List of all supported child tables
+  const supportedTables = [
+    "flight_booking_entry_gds",
+    "flight_booking_entry_online",
+    "hotel_booking_entry",
+    "visa_booking_entry",
+    "insurance_booking_entry",
+    "car_rental_booking_entry"
+  ];
+  
+  // Add custom buttons to each table
+  supportedTables.forEach(table => {
+    // Get the grid for this table
+    const grid = frm.fields_dict[table].grid;
+    
+    // Add a custom button in the grid toolbar
+    if (grid && grid.add_custom_button) {
+      // Remove existing button if any to avoid duplicates
+      if (grid.custom_buttons && grid.custom_buttons['DONE']) {
+        grid.custom_buttons['DONE'].remove();
+      }
+      
+      // Add the DONE button to the grid
+      grid.add_custom_button(__('DONE'), function() {
+        const selected = grid.get_selected();
+        if (selected && selected.length) {
+          selected.forEach(idx => {
+            const row_idx = parseInt(idx);
+            const row = grid.grid_rows[row_idx].doc;
+            
+            // Calculate and update values based on the table type
+            if (table === "flight_booking_entry_gds") {
+              // For Flight Booking Entry GDS
+              const base_fare = flt(row.base_fare) || 0;
+              const taxes = flt(row.taxes) || 0;
+              const markup = flt(row.markup) || 0;
+              
+              // Calculate supplier_cost
+              const supplier_cost = base_fare + taxes;
+              frappe.model.set_value(row.doctype, row.name, 'supplier_cost', supplier_cost);
+              
+              // Calculate total_amount
+              const total_amount = supplier_cost + markup;
+              frappe.model.set_value(row.doctype, row.name, 'total_amount', total_amount);
+              frappe.model.set_value(row.doctype, row.name, 'selling_price', total_amount);
+              
+              console.log("DONE button: Updated Flight GDS row", row_idx, "supplier_cost:", supplier_cost, "total_amount:", total_amount);
+            } else {
+              // For other tables
+              const supplier_cost = flt(row.supplier_cost) || 0;
+              const markup = flt(row.markup) || 0;
+              const commission = flt(row.commission || 0);
+              const service_fee = flt(row.service_fee || 0);
+              
+              // Calculate total amount based on table type
+              let total_amount = supplier_cost + markup - commission;
+              
+              // Add service_fee for Flight Booking Entry Online
+              if (table === "flight_booking_entry_online") {
+                total_amount += service_fee;
+              }
+              
+              frappe.model.set_value(row.doctype, row.name, 'total_amount', total_amount);
+              frappe.model.set_value(row.doctype, row.name, 'selling_price', total_amount);
+              
+              console.log("DONE button: Updated row", row_idx, "in table", table, "total_amount:", total_amount);
+            }
+          });
+          
+          // Refresh the entire table
+          frm.refresh_field(table);
+          
+          // Calculate form totals
+          calculate_totals(frm);
+          
+          // Show success message
+          frappe.show_alert({
+            message: __('Calculations updated successfully!'),
+            indicator: 'green'
+          }, 3);
+          
+          // Close the row editor if possible
+          if (grid.grid_rows[selected[0]] && grid.grid_rows[selected[0]].toggle_view) {
+            grid.grid_rows[selected[0]].toggle_view(false);
+          }
+        } else {
+          frappe.show_alert({
+            message: __('Please select a row first'),
+            indicator: 'red'
+          });
+        }
+      }).addClass('btn-primary');
+    }
+  });
+}
