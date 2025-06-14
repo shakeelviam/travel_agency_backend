@@ -1,8 +1,17 @@
 // Copyright (c) 2025, Shakeel Mohammed Viam and contributors
 // For license information, please see license.txt
 
-// Import flt function for number handling
+// Import utility functions for number handling and field refreshing
 const flt = frappe.utils.flt;
+
+// Define refresh_field function if not already available
+function refresh_field(fieldname, docname, parent) {
+    if (cur_frm) {
+        cur_frm.refresh_field(fieldname, docname, parent);
+    } else if (frappe.get_doc) {
+        frappe.get_doc(parent, docname).refresh_field(fieldname);
+    }
+}
 
 frappe.ui.form.on('Flight Booking Entry GDS', {
     refresh: function(frm, cdt, cdn) {
@@ -125,7 +134,18 @@ function calculate_supplier_cost(frm, cdt, cdn) {
     let taxes = flt(row.taxes) || 0;
     
     // Calculate supplier_cost
-    frappe.model.set_value(cdt, cdn, 'supplier_cost', base_fare + taxes);
+    let supplier_cost = base_fare + taxes;
+    
+    // Set the value directly
+    frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
+    
+    // Force refresh the field
+    refresh_field('supplier_cost', cdn, cdt);
+    
+    console.log('Flight GDS: Updated supplier_cost:', supplier_cost, 'from base_fare:', base_fare, 'and taxes:', taxes);
+    
+    // Return the calculated value for any chained operations
+    return supplier_cost;
 }
 
 // Function to calculate total amount
