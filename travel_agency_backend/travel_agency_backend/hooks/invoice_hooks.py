@@ -30,9 +30,15 @@ def set_item_description_from_trip_booking(doc, method=None):
         ]
         
         if ref_doctype in service_doctypes:
-            dynamic_description = get_service_description(ref_doctype, ref_name)
+            # Get the referenced service entry
+            service_entry = frappe.get_doc(ref_doctype, ref_name)
             
-            # Update the description if we generated one
+            # Copy date_of_issue from service entry to invoice item
+            if hasattr(service_entry, 'date_of_issue') and service_entry.date_of_issue:
+                item.date_of_issue = service_entry.date_of_issue
+            
+            # Generate and update description
+            dynamic_description = get_service_description(ref_doctype, ref_name)
             if dynamic_description:
                 item.description = dynamic_description
                 

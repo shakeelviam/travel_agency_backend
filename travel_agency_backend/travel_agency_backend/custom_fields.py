@@ -4,6 +4,8 @@
 import frappe
 from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 
+from travel_agency_backend.travel_agency_backend.custom_fields_date_of_issue import setup_date_of_issue_fields
+
 def setup_custom_fields():
     """Setup custom fields for the travel agency backend"""
     custom_fields = {
@@ -80,3 +82,6 @@ def setup_custom_fields():
     }
     
     create_custom_fields(custom_fields)
+    
+    # Setup date_of_issue fields for Sales Invoice Item and Purchase Invoice Item
+    setup_date_of_issue_fields()
