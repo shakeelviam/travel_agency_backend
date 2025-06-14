@@ -233,10 +233,18 @@ frappe.ui.form.on("Trip Booking", {
             let base_fare = flt(row.base_fare) || 0;
             let taxes = flt(row.taxes) || 0;
             
-            // Calculate and set supplier_cost
-            frappe.model.set_value(cdt, cdn, 'supplier_cost', base_fare + taxes);
+            console.log("Trip Booking: base_fare changed to", base_fare);
             
-            // Refresh the field in the parent form context
+            // Calculate and set supplier_cost
+            let supplier_cost = base_fare + taxes;
+            frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
+            
+            console.log("Trip Booking: Updated supplier_cost to", supplier_cost);
+            
+            // Explicitly trigger row total calculation
+            calculate_row_total(frm, cdt, cdn);
+            
+            // Refresh both the specific field and the entire child table
             frm.refresh_field('flight_booking_entry_gds');
           },
           taxes: function(frm, cdt, cdn) {
@@ -244,10 +252,18 @@ frappe.ui.form.on("Trip Booking", {
             let base_fare = flt(row.base_fare) || 0;
             let taxes = flt(row.taxes) || 0;
             
-            // Calculate and set supplier_cost
-            frappe.model.set_value(cdt, cdn, 'supplier_cost', base_fare + taxes);
+            console.log("Trip Booking: taxes changed to", taxes);
             
-            // Refresh the field in the parent form context
+            // Calculate and set supplier_cost
+            let supplier_cost = base_fare + taxes;
+            frappe.model.set_value(cdt, cdn, 'supplier_cost', supplier_cost);
+            
+            console.log("Trip Booking: Updated supplier_cost to", supplier_cost);
+            
+            // Explicitly trigger row total calculation
+            calculate_row_total(frm, cdt, cdn);
+            
+            // Refresh both the specific field and the entire child table
             frm.refresh_field('flight_booking_entry_gds');
           },
           supplier_cost: function(frm, cdt, cdn) {
