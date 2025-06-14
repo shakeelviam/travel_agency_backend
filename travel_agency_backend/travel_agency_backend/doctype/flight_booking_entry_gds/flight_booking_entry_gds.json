@@ -30,6 +30,8 @@
   "return_date",
   "pricing_section",
   "item",
+  "base_fare",
+  "taxes",
   "supplier_cost",
   "markup",
   "column_break_pricing",
@@ -149,9 +151,20 @@
    "read_only": 1
   },
   {
+   "fieldname": "base_fare",
+   "fieldtype": "Currency",
+   "label": "Base Fare"
+  },
+  {
+   "fieldname": "taxes",
+   "fieldtype": "Currency",
+   "label": "Taxes"
+  },
+  {
    "fieldname": "supplier_cost",
    "fieldtype": "Currency",
-   "label": "Supplier Cost"
+   "label": "Supplier Cost",
+   "read_only": 1
   },
   {
    "fieldname": "markup",

@@ -13,3 +13,9 @@ class FlightBookingEntryGDS(Document):
 			item_code = frappe.db.get_value("Service Type", service_type, "item_code")
 			if item_code:
 				self.item = item_code
+		
+		# Calculate supplier_cost as sum of base_fare and taxes
+		self.supplier_cost = (self.base_fare or 0) + (self.taxes or 0)
+		
+		# Calculate total_amount as supplier_cost + markup
+		self.total_amount = (self.supplier_cost or 0) + (self.markup or 0)
