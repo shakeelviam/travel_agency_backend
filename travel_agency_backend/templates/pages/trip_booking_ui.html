@@ -1,0 +1,433 @@
+{% extends "templates/web.html" %}
+
+{% block title %}Trip Booking Dashboard{% endblock %}
+
+{% block page_content %}
+<div id="trip-booking-app" class="container mx-auto px-4 py-6">
+  <div v-if="loading" class="flex justify-center items-center h-32">
+    <div class="loading loading-spinner loading-lg text-primary"></div>
+  </div>
+  
+  <div v-else>
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+      <div>
+        <h1 class="text-2xl font-bold mb-2">[[ tripBooking.name || 'New Trip Booking' ]]</h1>
+        <p class="text-sm text-gray-600">
+          <span v-if="tripBooking.creation">Created: [[ formatDate(tripBooking.creation) ]]</span>
+          <span v-if="tripBooking.status" class="ml-2">
+            Status: <span class="badge" :class="getStatusBadgeClass(tripBooking.status)">[[ tripBooking.status ]]</span>
+          </span>
+        </p>
+      </div>
+      
+      <div class="flex mt-4 md:mt-0">
+        <button @click="saveDocument" class="btn btn-primary mr-2">Save</button>
+        <button @click="submitDocument" class="btn btn-success" :disabled="!tripBooking.name">Submit</button>
+      </div>
+    </div>
+    
+    <!-- Customer Information Section -->
+    <div class="card bg-base-100 shadow-md mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-lg">Customer Information</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Customer</span>
+            </label>
+            <input type="text" v-model="tripBooking.customer" class="input input-bordered" placeholder="Select Customer">
+          </div>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Customer Name</span>
+            </label>
+            <input type="text" v-model="tripBooking.customer_name" class="input input-bordered" readonly>
+          </div>
+          
+          <div class="form-control">
+            <label class="label">
+              <span class="label-text">Trip Type</span>
+            </label>
+            <select v-model="tripBooking.trip_type" class="select select-bordered w-full">
+              <option value="Domestic">Domestic</option>
+              <option value="International">International</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Flight Bookings Section -->
+    <div class="card bg-base-100 shadow-md mb-6">
+      <div class="card-body">
+        <div class="flex justify-between items-center">
+          <h2 class="card-title text-lg">Flight Bookings</h2>
+          <button @click="addFlightBooking" class="btn btn-sm btn-outline btn-primary">
+            Add Flight
+          </button>
+        </div>
+        
+        <div v-if="tripBooking.flight_booking_entry_gds && tripBooking.flight_booking_entry_gds.length > 0" class="mt-4">
+          <div v-for="(flight, index) in tripBooking.flight_booking_entry_gds" :key="index" class="card bg-base-200 mb-4">
+            <div class="card-body p-4">
+              <div class="flex justify-between items-start">
+                <h3 class="font-medium">[[ flight.airline || 'New Flight' ]]</h3>
+                <button @click="removeFlightBooking(index)" class="btn btn-xs btn-error btn-circle">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">Airline</span>
+                  </label>
+                  <input type="text" v-model="flight.airline" class="input input-bordered input-sm">
+                </div>
+                
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">From Sector</span>
+                  </label>
+                  <input type="text" v-model="flight.from_sector" class="input input-bordered input-sm">
+                </div>
+                
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">To Sector</span>
+                  </label>
+                  <input type="text" v-model="flight.to_sector" class="input input-bordered input-sm">
+                </div>
+                
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">Travel Date</span>
+                  </label>
+                  <input type="date" v-model="flight.travel_date" class="input input-bordered input-sm">
+                </div>
+                
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">PNR</span>
+                  </label>
+                  <input type="text" v-model="flight.pnr" class="input input-bordered input-sm">
+                </div>
+                
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">Ticket Number</span>
+                  </label>
+                  <input type="text" v-model="flight.ticket_number" class="input input-bordered input-sm">
+                </div>
+                
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">Supplier Cost</span>
+                    <span class="label-text-alt">Net fare + taxes</span>
+                  </label>
+                  <input type="number" v-model="flight.supplier_cost" class="input input-bordered input-sm">
+                </div>
+                
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">Markup</span>
+                  </label>
+                  <input type="number" v-model="flight.markup" class="input input-bordered input-sm">
+                </div>
+                
+                <div class="form-control">
+                  <label class="label">
+                    <span class="label-text">Selling Price</span>
+                  </label>
+                  <input type="number" v-model="flight.total_amount" class="input input-bordered input-sm" readonly>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div v-else class="alert alert-info mt-4">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <span>No flight bookings added yet. Click "Add Flight" to create one.</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Summary Section -->
+    <div class="card bg-base-100 shadow-md">
+      <div class="card-body">
+        <h2 class="card-title text-lg">Booking Summary</h2>
+        
+        <div class="overflow-x-auto mt-4">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Service Type</th>
+                <th>Count</th>
+                <th>Total Cost</th>
+                <th>Total Selling</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Flights</td>
+                <td>[[ getServiceCount('flight_booking_entry_gds') ]]</td>
+                <td>[[ formatCurrency(getServiceTotalCost('flight_booking_entry_gds')) ]]</td>
+                <td>[[ formatCurrency(getServiceTotalSelling('flight_booking_entry_gds')) ]]</td>
+              </tr>
+              <tr class="font-bold">
+                <td>Total</td>
+                <td>[[ getTotalServiceCount() ]]</td>
+                <td>[[ formatCurrency(getTotalCost()) ]]</td>
+                <td>[[ formatCurrency(getTotalSelling()) ]]</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<script>
+  frappe.ready(function() {
+    // Initialize Vue app
+    new Vue({
+      el: '#trip-booking-app',
+      delimiters: ['[[', ']]'], // Use custom delimiters to avoid conflict with Jinja
+      data: {
+        loading: true,
+        tripBooking: {
+          name: null,
+          customer: '',
+          customer_name: '',
+          trip_type: 'Domestic',
+          status: 'Draft',
+          flight_booking_entry_gds: []
+        },
+        doctype: 'Trip Booking'
+      },
+      mounted() {
+        // Get document name from URL if editing existing
+        const urlParams = new URLSearchParams(window.location.search);
+        const docName = urlParams.get('name');
+        
+        if (docName) {
+          this.fetchTripBooking(docName);
+        } else {
+          this.loading = false;
+        }
+      },
+      methods: {
+        // Fetch existing trip booking
+        fetchTripBooking(name) {
+          this.loading = true;
+          frappe.call({
+            method: 'frappe.client.get',
+            args: {
+              doctype: this.doctype,
+              name: name
+            },
+            callback: (response) => {
+              if (response.message) {
+                this.tripBooking = response.message;
+                // Ensure flight_booking_entry_gds is an array
+                if (!this.tripBooking.flight_booking_entry_gds) {
+                  this.tripBooking.flight_booking_entry_gds = [];
+                }
+              }
+              this.loading = false;
+            }
+          });
+        },
+        
+        // Save document
+        saveDocument() {
+          this.loading = true;
+          
+          const method = this.tripBooking.name ? 'frappe.client.save' : 'frappe.client.insert';
+          const args = this.tripBooking.name ? 
+            { doc: this.tripBooking } : 
+            { doc: { doctype: this.doctype, ...this.tripBooking } };
+          
+          frappe.call({
+            method: method,
+            args: args,
+            callback: (response) => {
+              if (response.message) {
+                if (!this.tripBooking.name) {
+                  // If new document, update URL with name
+                  const newUrl = window.location.pathname + '?name=' + response.message.name;
+                  window.history.pushState({ path: newUrl }, '', newUrl);
+                }
+                
+                this.tripBooking = response.message;
+                frappe.show_alert({
+                  message: 'Trip Booking saved successfully',
+                  indicator: 'green'
+                });
+              }
+              this.loading = false;
+            }
+          });
+        },
+        
+        // Submit document
+        submitDocument() {
+          if (!this.tripBooking.name) return;
+          
+          this.loading = true;
+          frappe.call({
+            method: 'frappe.client.submit',
+            args: {
+              doc: this.tripBooking
+            },
+            callback: (response) => {
+              if (response.message) {
+                this.tripBooking = response.message;
+                frappe.show_alert({
+                  message: 'Trip Booking submitted successfully',
+                  indicator: 'green'
+                });
+              }
+              this.loading = false;
+            }
+          });
+        },
+        
+        // Add new flight booking
+        addFlightBooking() {
+          if (!this.tripBooking.flight_booking_entry_gds) {
+            this.tripBooking.flight_booking_entry_gds = [];
+          }
+          
+          this.tripBooking.flight_booking_entry_gds.push({
+            doctype: 'Flight Booking Entry GDS',
+            airline: '',
+            from_sector: '',
+            to_sector: '',
+            travel_date: '',
+            pnr: '',
+            ticket_number: '',
+            supplier_cost: 0,
+            markup: 0,
+            total_amount: 0
+          });
+        },
+        
+        // Remove flight booking
+        removeFlightBooking(index) {
+          this.tripBooking.flight_booking_entry_gds.splice(index, 1);
+        },
+        
+        // Format date
+        formatDate(dateString) {
+          const date = new Date(dateString);
+          return date.toLocaleDateString();
+        },
+        
+        // Format currency
+        formatCurrency(amount) {
+          return frappe.format(amount, { fieldtype: 'Currency' });
+        },
+        
+        // Get status badge class
+        getStatusBadgeClass(status) {
+          switch (status) {
+            case 'Draft': return 'badge-warning';
+            case 'Submitted': return 'badge-success';
+            case 'Cancelled': return 'badge-error';
+            default: return 'badge-info';
+          }
+        },
+        
+        // Get service count
+        getServiceCount(serviceType) {
+          return this.tripBooking[serviceType] ? this.tripBooking[serviceType].length : 0;
+        },
+        
+        // Get service total cost
+        getServiceTotalCost(serviceType) {
+          if (!this.tripBooking[serviceType]) return 0;
+          
+          return this.tripBooking[serviceType].reduce((total, item) => {
+            return total + (parseFloat(item.supplier_cost) || 0);
+          }, 0);
+        },
+        
+        // Get service total selling
+        getServiceTotalSelling(serviceType) {
+          if (!this.tripBooking[serviceType]) return 0;
+          
+          return this.tripBooking[serviceType].reduce((total, item) => {
+            return total + (parseFloat(item.total_amount) || 0);
+          }, 0);
+        },
+        
+        // Get total service count
+        getTotalServiceCount() {
+          return this.getServiceCount('flight_booking_entry_gds');
+        },
+        
+        // Get total cost
+        getTotalCost() {
+          return this.getServiceTotalCost('flight_booking_entry_gds');
+        },
+        
+        // Get total selling
+        getTotalSelling() {
+          return this.getServiceTotalSelling('flight_booking_entry_gds');
+        }
+      },
+      watch: {
+        // Watch for changes to supplier_cost and markup to update total_amount
+        'tripBooking.flight_booking_entry_gds': {
+          deep: true,
+          handler(flights) {
+            if (!flights) return;
+            
+            flights.forEach(flight => {
+              const supplierCost = parseFloat(flight.supplier_cost) || 0;
+              const markup = parseFloat(flight.markup) || 0;
+              flight.total_amount = supplierCost + markup;
+            });
+          }
+        }
+      }
+    });
+  });
+</script>
+{% endblock %}
+
+{% block style %}
+<link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" type="text/css" />
+<style>
+  /* Custom styles */
+  .badge {
+    @apply px-2 py-1 text-xs rounded;
+  }
+  .badge-success {
+    @apply bg-green-100 text-green-800;
+  }
+  .badge-warning {
+    @apply bg-yellow-100 text-yellow-800;
+  }
+  .badge-error {
+    @apply bg-red-100 text-red-800;
+  }
+  .badge-info {
+    @apply bg-blue-100 text-blue-800;
+  }
+</style>
+{% endblock %}
