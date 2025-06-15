@@ -285,6 +285,17 @@ class TripBookingInterface {
     }
 
     setup_vue() {
+        // Make sure Vue is loaded
+        if (!window.Vue) {
+            frappe.require("vue.js", () => {
+                this._setup_vue_instance();
+            });
+        } else {
+            this._setup_vue_instance();
+        }
+    }
+    
+    _setup_vue_instance() {
         this.vue = new Vue({
             el: '#trip-booking-app',
             data: {
