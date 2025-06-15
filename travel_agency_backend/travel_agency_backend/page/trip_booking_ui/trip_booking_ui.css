@@ -1,0 +1,391 @@
+/* Trip Booking Interface Styles */
+
+.trip-booking-ui-page {
+    padding: 0;
+    height: 100%;
+}
+
+/* Service Type Badge Styles */
+.service-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    margin-right: 5px;
+    margin-top: 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #fff;
+}
+
+.flight-badge {
+    background-color: #4287f5;
+}
+
+.hotel-badge {
+    background-color: #42b883;
+}
+
+.car-badge {
+    background-color: #f58742;
+}
+
+.visa-badge {
+    background-color: #9c42f5;
+}
+
+.insurance-badge {
+    background-color: #f54263;
+}
+
+.default-badge {
+    background-color: #6c757d;
+}
+
+.trip-booking-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header Styles */
+.tb-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: #fff;
+}
+
+.tb-tabs {
+    display: flex;
+    margin-top: 10px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.tb-tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: 500;
+    position: relative;
+    color: var(--text-muted);
+}
+
+.tb-tab.active {
+    color: var(--primary);
+}
+
+.tb-tab.active:after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary);
+}
+
+/* Main Content Area */
+.tb-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.tb-sidebar {
+    width: 280px;
+    border-right: 1px solid var(--border-color);
+    background-color: #f8f9fa;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.tb-main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background-color: var(--bg-light);
+}
+
+/* Search Form */
+.tb-search-form {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.tb-form-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.tb-form-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0 -10px;
+}
+
+.tb-form-group {
+    padding: 0 10px;
+    margin-bottom: 15px;
+    flex: 1 0 250px;
+}
+
+.tb-form-label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-color);
+}
+
+.tb-form-control {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.tb-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+/* Results Section */
+.tb-results {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+
+.tb-results-header {
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tb-results-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.tb-results-count {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.tb-results-body {
+    padding: 0;
+}
+
+/* Flight Card */
+.tb-flight-card {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s;
+}
+
+.tb-flight-card:hover {
+    background-color: #f8f9fa;
+}
+
+.tb-flight-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.tb-flight-airline {
+    display: flex;
+    align-items: center;
+}
+
+.tb-airline-logo {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f1f5f9;
+    border-radius: 4px;
+}
+
+.tb-airline-logo i {
+    font-size: 18px;
+    color: #475569;
+}
+
+.tb-airline-name {
+    font-weight: 500;
+}
+
+.tb-flight-price {
+    text-align: right;
+}
+
+.tb-price-amount {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.tb-price-label {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.tb-flight-details {
+    display: flex;
+    margin-bottom: 15px;
+}
+
+.tb-flight-segment {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.tb-segment-airports {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.tb-airport {
+    text-align: center;
+}
+
+.tb-airport-code {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.tb-airport-city {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.tb-flight-line {
+    flex: 1;
+    position: relative;
+    height: 2px;
+    background-color: #e2e8f0;
+    margin: 0 15px;
+}
+
+.tb-flight-line:after {
+    content: '';
+    position: absolute;
+    right: -5px;
+    top: -4px;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 5px solid #e2e8f0;
+}
+
+.tb-flight-time {
+    font-size: 14px;
+    color: var(--text-color);
+    text-align: center;
+    margin-top: 5px;
+}
+
+.tb-flight-duration {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.tb-flight-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.tb-flight-info {
+    display: flex;
+    align-items: center;
+}
+
+.tb-info-item {
+    margin-right: 15px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.tb-info-item i {
+    margin-right: 5px;
+}
+
+/* Icons and Badges */
+.tb-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.tb-badge-blue {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.tb-badge-green {
+    background-color: #dcfce7;
+    color: #166534;
+}
+
+.tb-badge-yellow {
+    background-color: #fef9c3;
+    color: #854d0e;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+    .tb-content {
+        flex-direction: column;
+    }
+    
+    .tb-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 300px;
+    }
+}
+
+@media (max-width: 768px) {
+    .tb-flight-details {
+        flex-direction: column;
+    }
+    
+    .tb-flight-segment {
+        margin-bottom: 15px;
+    }
+    
+    .tb-flight-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .tb-flight-actions {
+        margin-top: 10px;
+        width: 100%;
+    }
+    
+    .tb-flight-actions .btn {
+        width: 100%;
+    }
+}

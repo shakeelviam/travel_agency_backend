@@ -1,0 +1,28 @@
+{
+ "content": null,
+ "creation": "2025-06-15 22:10:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-06-15 22:10:00.000000",
+ "modified_by": "Administrator",
+ "module": "Travel Agency Backend",
+ "name": "trip-booking-ui",
+ "owner": "Administrator",
+ "page_name": "trip-booking-ui",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Travel Agent"
+  },
+  {
+   "role": "Travel Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "title": "Trip Booking Interface"
+}
