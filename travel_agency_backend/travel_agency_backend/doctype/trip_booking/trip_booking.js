@@ -335,98 +335,102 @@ frappe.ui.form.on("Trip Booking", {
 
 // Function to add "DONE" buttons to all child tables
 function add_done_buttons_to_child_tables(frm) {
-  // List of all supported child tables
-  const supportedTables = [
-    "flight_booking_entry_gds",
-    "flight_booking_entry_online",
-    "hotel_booking_entry",
-    "visa_booking_entry",
-    "insurance_booking_entry",
-    "car_rental_booking_entry"
-  ];
-  
-  // Add custom buttons to each table
-  supportedTables.forEach(table => {
-    // Get the grid for this table
-    const grid = frm.fields_dict[table].grid;
-    
-    // Add a custom button in the grid toolbar
-    if (grid && grid.add_custom_button) {
-      // Remove existing button if any to avoid duplicates
-      if (grid.custom_buttons && grid.custom_buttons['DONE']) {
-        grid.custom_buttons['DONE'].remove();
-      }
-      
-      // Add the DONE button to the grid
-      grid.add_custom_button(__('DONE'), function() {
-        const selected = grid.get_selected();
-        if (selected && selected.length) {
-          selected.forEach(idx => {
-            const row_idx = parseInt(idx);
-            const row = grid.grid_rows[row_idx].doc;
+  // We need to hook into the grid row form rendering
+  // This is a global hook that will run when any grid form is rendered
+  $(document).off('grid-row-render').on('grid-row-render', function() {
+    // Wait a bit for the form to fully render
+    setTimeout(function() {
+      // Check if we're in a grid form
+      if ($('.grid-form-heading').length) {
+        // Only add the button if it doesn't already exist
+        if ($('.grid-footer .btn-done').length === 0) {
+          // Create the DONE button
+          const $doneBtn = $(`<button class="btn btn-primary btn-done">${__('DONE')}</button>`);
+          
+          // Add the button to the grid form footer
+          $('.grid-footer').append($doneBtn);
+          
+          // Style the button to make it prominent
+          $doneBtn.css({
+            'font-weight': 'bold',
+            'font-size': '14px',
+            'margin-right': '10px',
+            'margin-top': '10px',
+            'float': 'right'
+          });
+          
+          // Add click handler
+          $doneBtn.on('click', function() {
+            // Get the current grid form
+            const grid_form = $('.grid-form-body').closest('.form-grid').data('grid');
+            if (!grid_form) return;
             
-            // Calculate and update values based on the table type
-            if (table === "flight_booking_entry_gds") {
+            // Get the current row being edited
+            const grid_row = grid_form.get_open_row();
+            if (!grid_row) return;
+            
+            // Get the row data
+            const doc = grid_row.doc;
+            const doctype = doc.doctype;
+            const name = doc.name;
+            
+            // Calculate and update values based on the doctype
+            if (doctype === 'Flight Booking Entry GDS') {
               // For Flight Booking Entry GDS
-              const base_fare = flt(row.base_fare) || 0;
-              const taxes = flt(row.taxes) || 0;
-              const markup = flt(row.markup) || 0;
-              
-              // Calculate supplier_cost
-              const supplier_cost = base_fare + taxes;
-              frappe.model.set_value(row.doctype, row.name, 'supplier_cost', supplier_cost);
+              // Simplified approach - supplier_cost is now directly editable
+              const supplier_cost = flt(doc.supplier_cost) || 0;
+              const markup = flt(doc.markup) || 0;
               
               // Calculate total_amount
               const total_amount = supplier_cost + markup;
-              frappe.model.set_value(row.doctype, row.name, 'total_amount', total_amount);
-              frappe.model.set_value(row.doctype, row.name, 'selling_price', total_amount);
+              frappe.model.set_value(doctype, name, 'total_amount', total_amount);
+              frappe.model.set_value(doctype, name, 'selling_price', total_amount);
               
-              console.log("DONE button: Updated Flight GDS row", row_idx, "supplier_cost:", supplier_cost, "total_amount:", total_amount);
+              console.log("DONE button: Updated Flight GDS row", name, "supplier_cost:", supplier_cost, "total_amount:", total_amount);
             } else {
               // For other tables
-              const supplier_cost = flt(row.supplier_cost) || 0;
-              const markup = flt(row.markup) || 0;
-              const commission = flt(row.commission || 0);
-              const service_fee = flt(row.service_fee || 0);
+              const supplier_cost = flt(doc.supplier_cost) || 0;
+              const markup = flt(doc.markup) || 0;
+              const commission = flt(doc.commission || 0);
+              const service_fee = flt(doc.service_fee || 0);
               
-              // Calculate total amount based on table type
+              // Calculate total amount based on doctype
               let total_amount = supplier_cost + markup - commission;
               
               // Add service_fee for Flight Booking Entry Online
-              if (table === "flight_booking_entry_online") {
+              if (doctype === 'Flight Booking Entry Online') {
                 total_amount += service_fee;
               }
               
-              frappe.model.set_value(row.doctype, row.name, 'total_amount', total_amount);
-              frappe.model.set_value(row.doctype, row.name, 'selling_price', total_amount);
+              frappe.model.set_value(doctype, name, 'total_amount', total_amount);
+              frappe.model.set_value(doctype, name, 'selling_price', total_amount);
               
-              console.log("DONE button: Updated row", row_idx, "in table", table, "total_amount:", total_amount);
+              console.log("DONE button: Updated row", name, "in doctype", doctype, "total_amount:", total_amount);
+            }
+            
+            // Show success message
+            frappe.show_alert({
+              message: __('Calculations updated successfully!'),
+              indicator: 'green'
+            }, 3);
+            
+            // Close the form
+            grid_form.toggle_view(false);
+            
+            // Refresh the parent form
+            if (frm) {
+              // Get the table field name from the doctype
+              const table_field = frappe.model.scrub(doctype.replace(/ /g, '_'));
+              frm.refresh_field(table_field);
+              
+              // Calculate form totals
+              if (typeof calculate_totals === 'function') {
+                calculate_totals(frm);
+              }
             }
           });
-          
-          // Refresh the entire table
-          frm.refresh_field(table);
-          
-          // Calculate form totals
-          calculate_totals(frm);
-          
-          // Show success message
-          frappe.show_alert({
-            message: __('Calculations updated successfully!'),
-            indicator: 'green'
-          }, 3);
-          
-          // Close the row editor if possible
-          if (grid.grid_rows[selected[0]] && grid.grid_rows[selected[0]].toggle_view) {
-            grid.grid_rows[selected[0]].toggle_view(false);
-          }
-        } else {
-          frappe.show_alert({
-            message: __('Please select a row first'),
-            indicator: 'red'
-          });
         }
-      }).addClass('btn-primary');
-    }
+      }
+    }, 100); // Small delay to ensure the form is fully rendered
   });
 }
