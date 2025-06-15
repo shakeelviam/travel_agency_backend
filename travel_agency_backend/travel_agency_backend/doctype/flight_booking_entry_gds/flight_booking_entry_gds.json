@@ -30,8 +30,6 @@
   "return_date",
   "pricing_section",
   "item",
-  "base_fare",
-  "taxes",
   "supplier_cost",
   "markup",
   "column_break_pricing",
