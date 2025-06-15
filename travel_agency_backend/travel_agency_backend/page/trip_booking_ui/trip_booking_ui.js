@@ -40,22 +40,248 @@ class TripBookingInterface {
     }
 
     init_vue() {
-        // Load the Vue.js template
-        $(this.page.body).html('<div id="trip-booking-app"></div>');
+        // Directly insert the HTML template
+        $(this.page.body).html(`
+        <div id="trip-booking-app" class="trip-booking-ui-container">
+            <!-- Vue.js template -->
+            <div v-cloak>
+                <!-- Header with tabs -->
+                <div class="tabs-container">
+                    <ul class="nav nav-tabs">
+                        <li :class="{ 'active': activeTab === 'bookings' }" @click="setActiveTab('bookings')">
+                            <a><i class="fa fa-list"></i> Bookings</a>
+                        </li>
+                        <li :class="{ 'active': activeTab === 'create' }" @click="setActiveTab('create')">
+                            <a><i class="fa fa-plus-circle"></i> Create Booking</a>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Bookings List Tab -->
+                <div v-if="activeTab === 'bookings'" class="bookings-container">
+                    <div class="filters-container">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select v-model="filters.status" class="form-control">
+                                        <option value="">All</option>
+                                        <option value="Draft">Draft</option>
+                                        <option value="Confirmed">Confirmed</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Completed">Completed</option>
+                                        <option value="Cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>Customer</label>
+                                    <input type="text" v-model="filters.customer" class="form-control" placeholder="Customer">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>From Date</label>
+                                    <input type="date" v-model="filters.fromDate" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label>To Date</label>
+                                    <input type="date" v-model="filters.toDate" class="form-control">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <button @click="fetchBookings" class="btn btn-primary">
+                                    <i class="fa fa-refresh"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bookings-list">
+                        <div v-if="isLoading" class="text-center p-5">
+                            <i class="fa fa-spinner fa-spin fa-2x"></i>
+                            <p>Loading bookings...</p>
+                        </div>
+                        <div v-else-if="bookings.length === 0" class="text-center p-5">
+                            <i class="fa fa-info-circle fa-2x"></i>
+                            <p>No bookings found</p>
+                        </div>
+                        <div v-else class="booking-cards">
+                            <div v-for="booking in bookings" :key="booking.name" class="booking-card">
+                                <div class="booking-header">
+                                    <div class="booking-id">
+                                        <i class="fa fa-bookmark"></i>
+                                        {{ booking.name }}
+                                    </div>
+                                    <div class="booking-status" :class="'status-' + booking.status.toLowerCase()">
+                                        {{ booking.status }}
+                                    </div>
+                                </div>
+                                <div class="booking-details">
+                                    <div class="booking-customer">
+                                        <i class="fa fa-user"></i>
+                                        {{ booking.customer || 'N/A' }}
+                                    </div>
+                                    <div class="booking-date">
+                                        <i class="fa fa-calendar"></i>
+                                        {{ formatDate(booking.booking_date) }}
+                                    </div>
+                                    <div class="booking-amount">
+                                        <i class="fa fa-money"></i>
+                                        {{ formatCurrency(booking.total_amount) }}
+                                    </div>
+                                </div>
+                                <div class="booking-services">
+                                    <span v-for="service in getBookingServices(booking)" :key="service.type" 
+                                        class="service-badge" :class="'service-' + service.type.toLowerCase().replace(' ', '-')">
+                                        <i :class="getServiceIcon(service.type)"></i>
+                                        {{ service.type }}
+                                    </span>
+                                </div>
+                                <div class="booking-actions">
+                                    <button @click="viewBooking(booking)" class="btn btn-sm btn-default">
+                                        <i class="fa fa-eye"></i> View
+                                    </button>
+                                    <button @click="editBooking(booking)" class="btn btn-sm btn-primary">
+                                        <i class="fa fa-pencil"></i> Edit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create Booking Tab -->
+                <div v-if="activeTab === 'create'" class="create-booking-container">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <h3 class="panel-title"><i class="fa fa-plus-circle"></i> Create New Trip Booking</h3>
+                        </div>
+                        <div class="panel-body">
+                            <!-- Basic Information -->
+                            <div class="section-title">Basic Information</div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Customer</label>
+                                        <div class="input-group">
+                                            <input type="text" v-model="newBooking.customer" class="form-control" readonly>
+                                            <span class="input-group-btn">
+                                                <button @click="openCustomerSelector" class="btn btn-default">
+                                                    <i class="fa fa-search"></i>
+                                                </button>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Booking Date</label>
+                                        <input type="date" v-model="newBooking.date_of_issue" class="form-control">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Service Selection -->
+                            <div class="section-title">Select Services</div>
+                            <div class="service-selection">
+                                <div v-for="service in availableServices" :key="service.type" 
+                                    @click="toggleService(service.type)"
+                                    :class="['service-card', isServiceSelected(service.type) ? 'selected' : '']">
+                                    <div class="service-icon">
+                                        <i :class="service.icon"></i>
+                                    </div>
+                                    <div class="service-name">{{ service.type }}</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Service Details -->
+                            <div v-if="newBooking.selected_services.length > 0" class="service-details">
+                                <div class="section-title">Service Details</div>
+                                
+                                <!-- Flight GDS Service -->
+                                <div v-if="isServiceSelected('Flight GDS')" class="service-detail-section">
+                                    <h4><i class="fa fa-plane"></i> Flight GDS Details</h4>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Origin</label>
+                                                <input type="text" v-model="serviceDetails.flight_gds.origin" class="form-control" placeholder="City or Airport Code">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Destination</label>
+                                                <input type="text" v-model="serviceDetails.flight_gds.destination" class="form-control" placeholder="City or Airport Code">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Departure Date</label>
+                                                <input type="date" v-model="serviceDetails.flight_gds.departure_date" class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Return Date</label>
+                                                <input type="date" v-model="serviceDetails.flight_gds.return_date" class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Hotel Service -->
+                                <div v-if="isServiceSelected('Hotel')" class="service-detail-section">
+                                    <h4><i class="fa fa-hotel"></i> Hotel Details</h4>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group">
+                                                <label>Location</label>
+                                                <input type="text" v-model="serviceDetails.hotel.location" class="form-control" placeholder="City">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Check-in Date</label>
+                                                <input type="date" v-model="serviceDetails.hotel.checkin_date" class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="form-group">
+                                                <label>Check-out Date</label>
+                                                <input type="date" v-model="serviceDetails.hotel.checkout_date" class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Form Actions -->
+                            <div class="form-actions">
+                                <button @click="saveBooking" class="btn btn-primary">
+                                    <i class="fa fa-save"></i> Save Booking
+                                </button>
+                                <button @click="resetForm" class="btn btn-default">
+                                    <i class="fa fa-refresh"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`);
         
-        // Load the HTML template
-        frappe.call({
-            method: "frappe.client.get_js_template",
-            args: {
-                template_path: "travel_agency_backend/travel_agency_backend/page/trip_booking_ui/trip_booking_ui.html"
-            },
-            callback: (r) => {
-                if (r.message) {
-                    $("#trip-booking-app").html(r.message);
-                    this.setup_vue();
-                }
-            }
-        });
+        // Initialize Vue
+        this.setup_vue();
     }
 
     setup_vue() {
