@@ -261,95 +261,36 @@
 }
 
 .tb-airport {
-    text-align: center;
-}
-
-.tb-airport-code {
     font-size: 16px;
-    font-weight: 600;
-}
-
-.tb-airport-city {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-.tb-flight-line {
-    flex: 1;
-    position: relative;
-    height: 2px;
-    background-color: #e2e8f0;
-    margin: 0 15px;
-}
-
-.tb-flight-line:after {
-    content: '';
-    position: absolute;
-    right: -5px;
-    top: -4px;
-    width: 0;
-    height: 0;
-    border-top: 5px solid transparent;
-    border-bottom: 5px solid transparent;
-    border-left: 5px solid #e2e8f0;
-}
-
-.tb-flight-time {
-    font-size: 14px;
-    color: var(--text-color);
-    text-align: center;
-    margin-top: 5px;
-}
-
-.tb-flight-duration {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-align: center;
-}
-
-.tb-flight-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.tb-flight-info {
-    display: flex;
-    align-items: center;
-}
-
-.tb-info-item {
-    margin-right: 15px;
-    font-size: 13px;
-    color: var(--text-muted);
-}
-
-.tb-info-item i {
-    margin-right: 5px;
-}
-
-/* Icons and Badges */
-.tb-badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 12px;
     font-weight: 500;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.tb-badge-blue {
-    background-color: #e0f2fe;
-    color: #0369a1;
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 10px;
 }
 
-.tb-badge-green {
-    background-color: #dcfce7;
-    color: #166534;
+/* Loading and Empty States */
+.text-center {
+    text-align: center;
 }
 
-.tb-badge-yellow {
-    background-color: #fef9c3;
-    color: #854d0e;
+.p-5 {
+    padding: 3rem;
+}
+
+.fa-spinner {
+    animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 /* Responsive Adjustments */

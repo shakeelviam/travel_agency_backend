@@ -1,64 +1,13 @@
-frappe.pages['trip-booking-ui'].on_page_load = function(wrapper) {
-    var page = frappe.ui.make_app_page({
-        parent: wrapper,
-        title: 'Trip Booking Interface',
-        single_column: true
-    });
+// Trip Booking UI Vue.js implementation
+frappe.provide('travel_agency_backend.trip_booking_ui');
 
-    // Initialize the Trip Booking Vue.js interface
-    wrapper.trip_booking = new TripBookingInterface(page);
-};
-
-frappe.pages['trip-booking-ui'].on_page_show = function(wrapper) {
-    // Refresh the page when shown
-    if (wrapper.trip_booking) {
-        wrapper.trip_booking.refresh();
-    }
-};
-
-class TripBookingInterface {
-    constructor(page) {
-        this.page = page;
-        this.init();
-    }
-
-    init() {
-        this.setup_page();
+travel_agency_backend.trip_booking_ui.vue_app = class TripBookingVueApp {
+    constructor(wrapper) {
+        this.wrapper = wrapper;
         this.init_vue();
     }
 
-    setup_page() {
-        // Add menu items
-        this.page.add_menu_item('Refresh', () => this.refresh());
-        this.page.add_menu_item('View List', () => frappe.set_route('List', 'Trip Booking'));
-    }
-
-    refresh() {
-        if (this.vue) {
-            this.vue.fetchBookings();
-        }
-    }
-
     init_vue() {
-        // Load the Vue.js template
-        $(this.page.body).html('<div id="trip-booking-app"></div>');
-        
-        // Load the HTML template
-        frappe.call({
-            method: "frappe.client.get_js_template",
-            args: {
-                template_path: "travel_agency_backend/travel_agency_backend/page/trip_booking_ui/trip_booking_ui.html"
-            },
-            callback: (r) => {
-                if (r.message) {
-                    $("#trip-booking-app").html(r.message);
-                    this.setup_vue();
-                }
-            }
-        });
-    }
-
-    setup_vue() {
         this.vue = new Vue({
             el: '#trip-booking-app',
             data: {
@@ -73,7 +22,7 @@ class TripBookingInterface {
                 },
                 newBooking: {
                     customer: '',
-                    date_of_issue: frappe.datetime.get_today(),
+                    date_of_issue: this.get_today(),
                     selected_services: []
                 },
                 serviceDetails: {
@@ -81,41 +30,25 @@ class TripBookingInterface {
                         origin: '',
                         destination: '',
                         departure_date: '',
-                        return_date: '',
-                        airline: '',
-                        flight_number: ''
-                    },
-                    flight_online: {
-                        origin: '',
-                        destination: '',
-                        departure_date: '',
-                        return_date: '',
-                        airline: ''
+                        return_date: ''
                     },
                     hotel: {
                         location: '',
                         checkin_date: '',
-                        checkout_date: '',
-                        hotel_name: '',
-                        room_type: ''
+                        checkout_date: ''
                     },
                     visa: {
                         country: '',
-                        visa_type: '',
-                        application_date: '',
-                        expiry_date: ''
+                        visa_type: ''
                     },
                     car_rental: {
                         location: '',
                         pickup_date: '',
-                        return_date: '',
-                        car_type: ''
+                        return_date: ''
                     },
                     insurance: {
                         type: '',
-                        coverage: '',
-                        start_date: '',
-                        end_date: ''
+                        coverage: ''
                     }
                 },
                 availableServices: [
@@ -210,6 +143,10 @@ class TripBookingInterface {
                     frappe.set_route('Form', 'Trip Booking', booking.name);
                 },
                 
+                get_today() {
+                    return frappe.datetime.nowdate();
+                },
+                
                 isServiceSelected(serviceType) {
                     return this.newBooking.selected_services.includes(serviceType);
                 },
@@ -232,16 +169,36 @@ class TripBookingInterface {
                 resetForm() {
                     this.newBooking = {
                         customer: '',
-                        date_of_issue: frappe.datetime.get_today(),
+                        date_of_issue: this.get_today(),
                         selected_services: []
                     };
                     
-                    // Reset all service details
-                    Object.keys(this.serviceDetails).forEach(key => {
-                        Object.keys(this.serviceDetails[key]).forEach(field => {
-                            this.serviceDetails[key][field] = '';
-                        });
-                    });
+                    this.serviceDetails = {
+                        flight_gds: {
+                            origin: '',
+                            destination: '',
+                            departure_date: '',
+                            return_date: ''
+                        },
+                        hotel: {
+                            location: '',
+                            checkin_date: '',
+                            checkout_date: ''
+                        },
+                        visa: {
+                            country: '',
+                            visa_type: ''
+                        },
+                        car_rental: {
+                            location: '',
+                            pickup_date: '',
+                            return_date: ''
+                        },
+                        insurance: {
+                            type: '',
+                            coverage: ''
+                        }
+                    };
                 },
                 
                 saveBooking() {
@@ -304,78 +261,4 @@ class TripBookingInterface {
             }
         });
     }
-}
-
-var tripBookingUI = {
-    get_status_class: function(status) {
-        switch (status) {
-            case 'Draft':
-                return 'blue';
-            case 'Confirmed':
-                return 'green';
-            case 'In Progress':
-                return 'orange';
-            case 'Completed':
-                return 'green';
-            case 'Cancelled':
-                return 'red';
-            default:
-                return 'gray';
-        }
-    }
-    
-    get_trip_type_icon(trip_type) {
-        switch (trip_type) {
-            case 'Flight':
-                return 'fa fa-plane';
-            case 'Hotel':
-                return 'fa fa-hotel';
-            case 'Car':
-                return 'fa fa-car';
-            case 'Package':
-                return 'fa fa-suitcase';
-            case 'Visa':
-                return 'fa fa-id-card';
-            case 'Insurance':
-                return 'fa fa-shield';
-            default:
-                return 'fa fa-ticket';
-        }
-    }
-    
-    // Create a new service-specific document
-    create_service_document(doctype) {
-        frappe.new_doc(doctype);
-    }
-    
-    // Generate HTML for service type badges
-    get_service_type_badges(service_types) {
-        if (!service_types || service_types.length === 0) {
-            return '';
-        }
-        
-        return service_types.map(type => {
-            const icon = this.get_trip_type_icon(type);
-            const badge_class = this.get_service_badge_class(type);
-            return `<span class="service-badge ${badge_class}"><i class="${icon}"></i> ${type}</span>`;
-        }).join('');
-    }
-    
-    // Get badge class based on service type
-    get_service_badge_class(service_type) {
-        switch (service_type) {
-            case 'Flight':
-                return 'flight-badge';
-            case 'Hotel':
-                return 'hotel-badge';
-            case 'Car':
-                return 'car-badge';
-            case 'Visa':
-                return 'visa-badge';
-            case 'Insurance':
-                return 'insurance-badge';
-            default:
-                return 'default-badge';
-        }
-    }
-}
+};
