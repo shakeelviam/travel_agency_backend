@@ -148,16 +148,7 @@
    "options": "Item",
    "read_only": 1
   },
-  {
-   "fieldname": "base_fare",
-   "fieldtype": "Currency",
-   "label": "Base Fare"
-  },
-  {
-   "fieldname": "taxes",
-   "fieldtype": "Currency",
-   "label": "Taxes"
-  },
+
   {
    "fieldname": "supplier_cost",
    "fieldtype": "Currency",
