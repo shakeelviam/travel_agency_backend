@@ -182,7 +182,7 @@ class TripBookingInterface {
         
         // Fetch trip bookings
         frappe.db.get_list('Trip Booking', {
-            fields: ['name', 'customer', 'customer_name', 'date_of_issue as booking_date', 'status', 'total_amount', 'modified', 
+            fields: ['name', 'customer', 'date_of_issue as booking_date', 'status', 'total_amount', 'modified', 
                     'selected_services'],
             filters: filters,
             limit: 50,
@@ -259,7 +259,7 @@ class TripBookingInterface {
                     <div class="booking-details">
                         <div class="booking-customer">
                             <i class="fa fa-user"></i>
-                            ${booking.customer_name || booking.customer || 'N/A'}
+                            ${booking.customer || 'N/A'}
                         </div>
                         <div class="booking-date">
                             <i class="fa fa-calendar"></i>
