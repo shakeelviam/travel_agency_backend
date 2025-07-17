@@ -113,6 +113,45 @@ frappe.ui.form.on("Trip Booking", {
                   select_wbjn: selected_service_value
                 });
                 frm.refresh_field("selected_services");
+                
+                // Initialize multi-city tables with default rows if needed
+                if (selected_service_value === "Flight Booking GDS Multi City") {
+                  // Check if there are no rows yet
+                  if (!frm.doc.flight_booking_entry_gds_multicity || frm.doc.flight_booking_entry_gds_multicity.length === 0) {
+                    // Add a default row
+                    let row = frm.add_child("flight_booking_entry_gds_multicity", {
+                      service_type: "Flight GDS Multicity"
+                    });
+                    
+                    // Add at least one segment
+                    frm.add_child("flight_booking_entry_gds_multicity", row, "multi_city_segments", {
+                      date_of_travel: frappe.datetime.get_today(),
+                      from_location: "",
+                      to_location: ""
+                    });
+                    
+                    frm.refresh_field("flight_booking_entry_gds_multicity");
+                    frappe.show_alert("Added default row for GDS Multi City booking");
+                  }
+                } else if (selected_service_value === "Flight Booking Online Airlines Multi City") {
+                  // Check if there are no rows yet
+                  if (!frm.doc.flight_booking_entry_online_multicity || frm.doc.flight_booking_entry_online_multicity.length === 0) {
+                    // Add a default row
+                    let row = frm.add_child("flight_booking_entry_online_multicity", {
+                      service_type: "Flight Online Airlines Multicity"
+                    });
+                    
+                    // Add at least one segment
+                    frm.add_child("flight_booking_entry_online_multicity", row, "multi_city_segments", {
+                      date_of_travel: frappe.datetime.get_today(),
+                      from_location: "",
+                      to_location: ""
+                    });
+                    
+                    frm.refresh_field("flight_booking_entry_online_multicity");
+                    frappe.show_alert("Added default row for Online Multi City booking");
+                  }
+                }
               }
               
               frm.scroll_to_field(table);

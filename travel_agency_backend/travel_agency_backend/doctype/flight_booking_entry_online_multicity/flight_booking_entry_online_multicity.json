@@ -11,7 +11,7 @@
   "service_type",
   "airline",
   "flight_segments_section",
-  "segments",
+  "multi_city_segments",
   "ticket_details_section",
   "pnr",
   "ticket_number",
@@ -71,10 +71,10 @@
    "label": "Flight Segments"
   },
   {
-   "fieldname": "segments",
+   "fieldname": "multi_city_segments",
    "fieldtype": "Table",
    "label": "Flight Segments",
-   "options": "Flight Booking Segment Online",
+   "options": "Flight Multi City Segment",
    "reqd": 1
   },
   {
