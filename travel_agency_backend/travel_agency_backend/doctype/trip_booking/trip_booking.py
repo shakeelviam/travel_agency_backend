@@ -543,11 +543,11 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 if table == 'flight_booking_entry_gds':
                     entry_doctype = "Flight Booking Entry GDS"
                 elif table == 'flight_booking_entry_online':
+                    entry_doctype = "Flight Booking Entry Online"
                 elif table == "flight_booking_entry_gds_multicity":
                     entry_doctype = "Flight Booking Entry GDS Multicity"
                 elif table == "flight_booking_entry_online_multicity":
                     entry_doctype = "Flight Booking Entry Online Multicity"
-                    entry_doctype = "Flight Booking Entry Online"
                 elif table == 'hotel_booking_entry':
                     entry_doctype = "Hotel Booking Entry"
                 elif table == 'car_rental_booking_entry':
@@ -700,15 +700,15 @@ def make_purchase_invoices_from_trip(source_name):
                 
                 # Generate rich descriptive text using our dynamic description generator
                 # First check if we can get a doctype name for this entry
-                elif table == "flight_booking_entry_gds_multicity":
-                    entry_doctype = "Flight Booking Entry GDS Multicity"
-                elif table == "flight_booking_entry_online_multicity":
-                    entry_doctype = "Flight Booking Entry Online Multicity"
                 entry_doctype = None
                 if table == 'flight_booking_entry_gds':
                     entry_doctype = "Flight Booking Entry GDS"
                 elif table == 'flight_booking_entry_online':
                     entry_doctype = "Flight Booking Entry Online"
+                elif table == "flight_booking_entry_gds_multicity":
+                    entry_doctype = "Flight Booking Entry GDS Multicity"
+                elif table == "flight_booking_entry_online_multicity":
+                    entry_doctype = "Flight Booking Entry Online Multicity"
                 elif table == 'hotel_booking_entry':
                     entry_doctype = "Hotel Booking Entry"
                 elif table == 'car_rental_booking_entry':
