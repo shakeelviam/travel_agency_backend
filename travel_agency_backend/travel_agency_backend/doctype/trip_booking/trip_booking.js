@@ -190,6 +190,8 @@ frappe.ui.form.on("Trip Booking", {
     const supportedTables = [
       "flight_booking_entry_gds",
       "flight_booking_entry_online",
+      "flight_booking_entry_gds_multicity",
+      "flight_booking_entry_online_multicity",
       "hotel_booking_entry",
       "car_rental_booking_entry",
       "visa_booking_entry",

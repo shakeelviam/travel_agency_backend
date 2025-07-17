@@ -24,6 +24,8 @@ def set_item_description_from_trip_booking(doc, method=None):
         service_doctypes = [
             "Flight Booking Entry GDS",
             "Flight Booking Entry Online",
+            "Flight Booking Entry GDS Multicity",
+            "Flight Booking Entry Online Multicity",
             "Hotel Booking Entry",
             "Car Rental Booking Entry",
             "Visa Booking Entry",
