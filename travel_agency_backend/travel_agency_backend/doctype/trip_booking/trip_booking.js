@@ -120,15 +120,19 @@ frappe.ui.form.on("Trip Booking", {
                   if (!frm.doc.flight_booking_entry_gds_multicity || frm.doc.flight_booking_entry_gds_multicity.length === 0) {
                     // Add a default row
                     let row = frm.add_child("flight_booking_entry_gds_multicity", {
-                      service_type: "Flight GDS Multicity"
+                      service_type: "Flight GDS Multicity",
+                      route_summary: "Click to add route"
                     });
                     
                     // Add at least one segment
                     frm.add_child("flight_booking_entry_gds_multicity", row, "multi_city_segments", {
                       date_of_travel: frappe.datetime.get_today(),
-                      from_location: "",
-                      to_location: ""
+                      from_location: "Origin",
+                      to_location: "Destination"
                     });
+                    
+                    // Update the route summary
+                    row.route_summary = "Origin → Destination";
                     
                     frm.refresh_field("flight_booking_entry_gds_multicity");
                     frappe.show_alert("Added default row for GDS Multi City booking");
@@ -138,15 +142,19 @@ frappe.ui.form.on("Trip Booking", {
                   if (!frm.doc.flight_booking_entry_online_multicity || frm.doc.flight_booking_entry_online_multicity.length === 0) {
                     // Add a default row
                     let row = frm.add_child("flight_booking_entry_online_multicity", {
-                      service_type: "Flight Online Airlines Multicity"
+                      service_type: "Flight Online Airlines Multicity",
+                      route_summary: "Click to add route"
                     });
                     
                     // Add at least one segment
                     frm.add_child("flight_booking_entry_online_multicity", row, "multi_city_segments", {
                       date_of_travel: frappe.datetime.get_today(),
-                      from_location: "",
-                      to_location: ""
+                      from_location: "Origin",
+                      to_location: "Destination"
                     });
+                    
+                    // Update the route summary
+                    row.route_summary = "Origin → Destination";
                     
                     frm.refresh_field("flight_booking_entry_online_multicity");
                     frappe.show_alert("Added default row for Online Multi City booking");
@@ -266,6 +274,31 @@ frappe.ui.form.on("Trip Booking", {
       return total;
     }
 
+    // Function to update route summary for multi-city bookings
+    function update_route_summary(frm, cdt, cdn) {
+      const row = locals[cdt][cdn];
+      if (!row.multi_city_segments || row.multi_city_segments.length === 0) return;
+      
+      // Create a summary of all segments
+      const segments = row.multi_city_segments;
+      let summary = '';
+      
+      segments.forEach((segment, index) => {
+        if (index > 0) {
+          summary += ' → ';
+        }
+        summary += segment.from_location;
+        
+        // Add the final destination for the last segment
+        if (index === segments.length - 1) {
+          summary += ' → ' + segment.to_location;
+        }
+      });
+      
+      // Update the route_summary field
+      frappe.model.set_value(cdt, cdn, 'route_summary', summary);
+    }
+    
     // Add event handlers for all booking tables
     supportedTables.forEach(table => {
       const doctype = frappe.model.unscrub(table);
@@ -316,6 +349,51 @@ frappe.ui.form.on("Trip Booking", {
           },
           markup: function(frm, cdt, cdn) {
             calculate_row_total(frm, cdt, cdn);
+          }
+        });
+      } else if (table === "flight_booking_entry_gds_multicity" || table === "flight_booking_entry_online_multicity") {
+        // Special handling for multi-city flight bookings
+        frappe.ui.form.on(doctype, {
+          supplier_cost: function(frm, cdt, cdn) {
+            calculate_row_total(frm, cdt, cdn);
+          },
+          markup: function(frm, cdt, cdn) {
+            calculate_row_total(frm, cdt, cdn);
+          },
+          commission: function(frm, cdt, cdn) {
+            calculate_row_total(frm, cdt, cdn);
+          },
+          multi_city_segments_add: function(frm, cdt, cdn) {
+            // When a new segment is added, update the route summary
+            update_route_summary(frm, cdt, cdn);
+          },
+          multi_city_segments_remove: function(frm, cdt, cdn) {
+            // When a segment is removed, update the route summary
+            update_route_summary(frm, cdt, cdn);
+          }
+        });
+        
+        // Add handlers for the child table (segments)
+        frappe.ui.form.on('Flight Multi City Segment', {
+          from_location: function(frm, cdt, cdn) {
+            // Get the parent doctype and name
+            const segment = locals[cdt][cdn];
+            const parentType = segment.parenttype;
+            const parentName = segment.parent;
+            
+            if (parentType) {
+              update_route_summary(frm, parentType, parentName);
+            }
+          },
+          to_location: function(frm, cdt, cdn) {
+            // Get the parent doctype and name
+            const segment = locals[cdt][cdn];
+            const parentType = segment.parenttype;
+            const parentName = segment.parent;
+            
+            if (parentType) {
+              update_route_summary(frm, parentType, parentName);
+            }
           }
         });
       } else {

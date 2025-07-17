@@ -10,6 +10,7 @@
   "flight_details_section",
   "service_type",
   "airline",
+  "route_summary",
   "flight_segments_section",
   "multi_city_segments",
   "ticket_details_section",
@@ -64,6 +65,13 @@
    "fieldtype": "Link",
    "label": "Airline",
    "options": "Airline Master"
+  },
+  {
+   "fieldname": "route_summary",
+   "fieldtype": "Data",
+   "label": "Route",
+   "in_list_view": 1,
+   "read_only": 1
   },
   {
    "fieldname": "flight_segments_section",
