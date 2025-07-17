@@ -32,6 +32,10 @@
      "flight_online_section",
      "flight_online_supplier",
      "flight_booking_entry_online",
+     "flight_gds_multicity_section",
+     "flight_booking_entry_gds_multicity",
+     "flight_online_multicity_section",
+     "flight_booking_entry_online_multicity",
      "insurance_section",
      "insurance_supplier",
      "insurance_booking_entry"
@@ -221,6 +225,32 @@
       "hidden": 1,
       "label": "Insurance Booking Entry",
       "options": "Insurance Booking Entry"
+     },
+     {
+      "fieldname": "flight_gds_multicity_section",
+      "fieldtype": "Section Break",
+      "hidden": 1,
+      "label": "Flight GDS Multicity Services"
+     },
+     {
+      "fieldname": "flight_booking_entry_gds_multicity",
+      "fieldtype": "Table",
+      "hidden": 1,
+      "label": "Flight Booking Entry GDS Multicity",
+      "options": "Flight Booking Entry GDS Multicity"
+     },
+     {
+      "fieldname": "flight_online_multicity_section",
+      "fieldtype": "Section Break",
+      "hidden": 1,
+      "label": "Flight Online Multicity Services"
+     },
+     {
+      "fieldname": "flight_booking_entry_online_multicity",
+      "fieldtype": "Table",
+      "hidden": 1,
+      "label": "Flight Booking Entry Online Multicity",
+      "options": "Flight Booking Entry Online Multicity"
      },
      {
       "fieldname": "selected_services",

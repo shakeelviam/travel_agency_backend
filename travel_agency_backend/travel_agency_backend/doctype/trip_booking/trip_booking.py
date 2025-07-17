@@ -104,7 +104,7 @@ class TripBooking(Document):
             # Validate each row in the table
             for row in self.get(table) or []:
                 # For flight services, we now use supplier_cost directly
-                if mapped_service in ["Flight GDS", "Flight Online Airlines"]:
+                if mapped_service in ["Flight GDS", "Flight Online Airlines", "Flight GDS Multicity", "Flight Online Airlines Multicity"]:
                     if not hasattr(row, 'supplier_cost') or not flt(row.supplier_cost):
                         frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
                             row.passenger, service.select_wbjn))
@@ -543,6 +543,10 @@ def make_sales_invoice_from_trip(source_name, target_doc=None):
                 if table == 'flight_booking_entry_gds':
                     entry_doctype = "Flight Booking Entry GDS"
                 elif table == 'flight_booking_entry_online':
+                elif table == "flight_booking_entry_gds_multicity":
+                    entry_doctype = "Flight Booking Entry GDS Multicity"
+                elif table == "flight_booking_entry_online_multicity":
+                    entry_doctype = "Flight Booking Entry Online Multicity"
                     entry_doctype = "Flight Booking Entry Online"
                 elif table == 'hotel_booking_entry':
                     entry_doctype = "Hotel Booking Entry"
@@ -696,6 +700,10 @@ def make_purchase_invoices_from_trip(source_name):
                 
                 # Generate rich descriptive text using our dynamic description generator
                 # First check if we can get a doctype name for this entry
+                elif table == "flight_booking_entry_gds_multicity":
+                    entry_doctype = "Flight Booking Entry GDS Multicity"
+                elif table == "flight_booking_entry_online_multicity":
+                    entry_doctype = "Flight Booking Entry Online Multicity"
                 entry_doctype = None
                 if table == 'flight_booking_entry_gds':
                     entry_doctype = "Flight Booking Entry GDS"

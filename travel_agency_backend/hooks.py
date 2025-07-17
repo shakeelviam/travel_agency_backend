@@ -63,6 +63,11 @@ doctype_js = {
 # automatically create page for each record of this doctype
 # website_generators = ["Web Page"]
 
+# Website Route Rules
+website_route_rules = [
+    {"from_route": "/trip_booking_ui", "to_route": "trip_booking_ui"},
+]
+
 # Jinja
 # ----------
 
@@ -133,10 +138,15 @@ doctype_js = {
 doc_events = {
 	"Sales Invoice": {
 		"validate": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.set_item_description_from_trip_booking",
-		"on_submit": "travel_agency_backend.travel_agency_backend.bank_charges.sales_invoice.on_submit_sales_invoice"
+		"on_submit": "travel_agency_backend.travel_agency_backend.bank_charges.sales_invoice.on_submit_sales_invoice",
+		"on_cancel": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.unlink_sales_invoice_from_trip_booking"
 	},
 	"Purchase Invoice": {
-		"validate": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.set_item_description_from_trip_booking"
+		"validate": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.set_item_description_from_trip_booking",
+		"on_cancel": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.unlink_purchase_invoice_from_trip_booking"
+	},
+	"Trip Booking": {
+		"on_cancel": "travel_agency_backend.travel_agency_backend.hooks.invoice_hooks.unlink_invoices_from_trip_booking"
 	},
 	"Payment Entry": {
 		"on_submit": "travel_agency_backend.travel_agency_backend.bank_charges.payment_entry.on_submit_payment_entry"

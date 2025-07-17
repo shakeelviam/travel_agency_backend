@@ -116,6 +116,70 @@ def get_insurance_description(booking_entry):
     description = f"{passenger_name}: {insurance_type} Insurance {policy_number} (Valid: {valid_from} to {valid_to})"
     return description.strip()
 
+def get_flight_booking_gds_multicity_description(booking_entry):
+    """Generate detailed description for Flight GDS Multicity bookings"""
+    passenger_name = booking_entry.passenger_name or "N/A"
+    
+    # For multicity bookings, we need to get segments information
+    segments_info = ""
+    if booking_entry.segments and len(booking_entry.segments) > 0:
+        segment_codes = []
+        for segment in booking_entry.segments:
+            from_sector = frappe.get_value("Sector Master", segment.from_sector, "sector_code") if segment.from_sector else "?"
+            to_sector = frappe.get_value("Sector Master", segment.to_sector, "sector_code") if segment.to_sector else "?"
+            if from_sector and to_sector:
+                segment_codes.append(f"{from_sector}-{to_sector}")
+        
+        if segment_codes:
+            segments_info = " > ".join(segment_codes)
+    
+    # Add space before segments info if it exists
+    if segments_info:
+        segments_info = f"{segments_info} "
+        
+    ticket_info = f"#{booking_entry.ticket_number}" if booking_entry.ticket_number else ""
+    pnr_info = f"PNR: {booking_entry.pnr}" if booking_entry.pnr else ""
+    
+    # Use the first segment's travel date if available
+    travel_date = "N/A"
+    if booking_entry.segments and len(booking_entry.segments) > 0 and booking_entry.segments[0].travel_date:
+        travel_date = booking_entry.segments[0].travel_date.strftime("%d-%m-%Y")
+    
+    description = f"{passenger_name}: {segments_info}{ticket_info} {pnr_info} (Multicity: {travel_date})"
+    return description.strip()
+
+def get_flight_booking_online_multicity_description(booking_entry):
+    """Generate detailed description for Flight Online Multicity bookings"""
+    passenger_name = booking_entry.passenger_name or "N/A"
+    
+    # For multicity bookings, we need to get segments information
+    segments_info = ""
+    if booking_entry.segments and len(booking_entry.segments) > 0:
+        segment_codes = []
+        for segment in booking_entry.segments:
+            from_sector = frappe.get_value("Sector Master", segment.from_sector, "sector_code") if segment.from_sector else "?"
+            to_sector = frappe.get_value("Sector Master", segment.to_sector, "sector_code") if segment.to_sector else "?"
+            if from_sector and to_sector:
+                segment_codes.append(f"{from_sector}-{to_sector}")
+        
+        if segment_codes:
+            segments_info = " > ".join(segment_codes)
+    
+    # Add space before segments info if it exists
+    if segments_info:
+        segments_info = f"{segments_info} "
+        
+    ticket_info = f"#{booking_entry.ticket_number}" if booking_entry.ticket_number else ""
+    pnr_info = f"PNR: {booking_entry.pnr}" if booking_entry.pnr else ""
+    
+    # Use the first segment's travel date if available
+    travel_date = "N/A"
+    if booking_entry.segments and len(booking_entry.segments) > 0 and booking_entry.segments[0].travel_date:
+        travel_date = booking_entry.segments[0].travel_date.strftime("%d-%m-%Y")
+    
+    description = f"{passenger_name}: {segments_info}{ticket_info} {pnr_info} (Multicity: {travel_date})"
+    return description.strip()
+
 def get_service_description(doctype, docname):
     """Main function to get description for any service type"""
     if not doctype or not docname:
@@ -127,6 +191,10 @@ def get_service_description(doctype, docname):
         return get_flight_booking_gds_description(booking_entry)
     elif doctype == "Flight Booking Entry Online":
         return get_flight_booking_online_description(booking_entry)
+    elif doctype == "Flight Booking Entry GDS Multicity":
+        return get_flight_booking_gds_multicity_description(booking_entry)
+    elif doctype == "Flight Booking Entry Online Multicity":
+        return get_flight_booking_online_multicity_description(booking_entry)
     elif doctype == "Hotel Booking Entry":
         return get_hotel_booking_description(booking_entry)
     elif doctype == "Car Rental Booking Entry":

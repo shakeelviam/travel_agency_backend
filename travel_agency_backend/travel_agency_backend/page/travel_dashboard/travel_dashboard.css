@@ -1,0 +1,74 @@
+/* Travel Dashboard Styles */
+.travel-dashboard-container {
+    padding: 20px;
+    background-color: #f8f9fa;
+    min-height: calc(100vh - 160px);
+}
+
+.dashboard-section {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    padding: 20px;
+    margin-bottom: 25px;
+}
+
+.section-title {
+    position: relative;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.section-title:after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    width: 50px;
+    background: linear-gradient(to right, #A4DEF9, #97F9F9);
+}
+
+.doctype-card {
+    border: none;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.doctype-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.doctype-icon i {
+    font-size: 28px;
+    color: #2D3748;
+}
+
+/* Custom button styles */
+.btn-primary {
+    background: linear-gradient(to right, #A4DEF9, #97F9F9);
+    border-color: #97F9F9;
+    color: #2c3e50;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(to right, #97F9F9, #A4DEF9);
+    border-color: #A4DEF9;
+    color: #2c3e50;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767px) {
+    .action-buttons .btn {
+        margin-bottom: 10px;
+    }
+}
