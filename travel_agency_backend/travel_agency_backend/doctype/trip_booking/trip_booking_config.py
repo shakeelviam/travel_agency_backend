@@ -15,7 +15,8 @@ class TripBookingConfig:
             "child_doctype": "Flight Booking Entry GDS",
             "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
-            "commission_field": None
+            "commission_field": None,
+            "trip_types": ["One Way", "Return", "Multi City"]
         },
         "Flight Online Airlines": {
             "section": "flight_online_section",
@@ -24,8 +25,10 @@ class TripBookingConfig:
             "child_doctype": "Flight Booking Entry Online",
             "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
-            "commission_field": None
+            "commission_field": None,
+            "trip_types": ["One Way", "Return", "Multi City"]
         },
+        # Legacy multi-city DocTypes - to be deprecated after migration
         "Flight GDS Multicity": {
             "section": "flight_gds_multicity_section",
             "table": "flight_booking_entry_gds_multicity", 
@@ -33,7 +36,8 @@ class TripBookingConfig:
             "child_doctype": "Flight Booking Entry GDS Multicity",
             "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
-            "commission_field": None
+            "commission_field": None,
+            "deprecated": True
         },
         "Flight Online Airlines Multicity": {
             "section": "flight_online_multicity_section",
@@ -42,7 +46,8 @@ class TripBookingConfig:
             "child_doctype": "Flight Booking Entry Online Multicity",
             "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
-            "commission_field": None
+            "commission_field": None,
+            "deprecated": True
         },
         "Hotel Booking": {
             "section": "hotel_section",

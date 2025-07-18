@@ -15,6 +15,8 @@
   "from_sector",
   "to_sector",
   "return_sector",
+  "multi_city_section",
+  "sectors",
   "flight_details_section_2",
   "flight_number",
   "booking_class",
@@ -81,7 +83,7 @@
    "fieldname": "trip_type",
    "fieldtype": "Select",
    "label": "Trip Type",
-   "options": "One Way\nReturn"
+   "options": "One Way\nReturn\nMulti City"
   },
   {
    "fieldname": "column_break_flight",
@@ -103,7 +105,21 @@
    "fieldname": "return_sector",
    "fieldtype": "Link",
    "label": "Return To Sector",
-   "options": "Sector Master"
+   "options": "Sector Master",
+   "depends_on": "eval:doc.trip_type=='Return'"
+  },
+  {
+   "fieldname": "multi_city_section",
+   "fieldtype": "Section Break",
+   "label": "Multi-City Flight Segments",
+   "depends_on": "eval:doc.trip_type=='Multi City'"
+  },
+  {
+   "fieldname": "sectors",
+   "fieldtype": "Table",
+   "label": "Flight Sectors",
+   "options": "Flight Booking Sector",
+   "depends_on": "eval:doc.trip_type=='Multi City'"
   },
   {
    "fieldname": "ticket_details_section",
