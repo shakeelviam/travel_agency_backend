@@ -4,6 +4,12 @@ app_publisher = "Shakeel Mohammed Viam"
 app_description = "Fiesta-style travel back-office system"
 app_email = "shakeel.viam@gmail.com"
 app_license = "mit"
+
+# Define modules list
+modules = [
+    "Travel Agency Backend",
+    "Multi City Test"
+]
 # required_apps = []
 
 # Includes in <head>
