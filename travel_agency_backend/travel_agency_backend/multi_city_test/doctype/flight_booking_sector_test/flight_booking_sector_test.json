@@ -1,0 +1,97 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "hash",
+ "creation": "2025-07-21 13:35:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "sector_number",
+  "from_location",
+  "to_location",
+  "departure_date",
+  "arrival_date",
+  "column_break_1",
+  "airline",
+  "flight_number",
+  "booking_class",
+  "status"
+ ],
+ "fields": [
+  {
+   "fieldname": "sector_number",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Sector Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "from_location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "From",
+   "reqd": 1
+  },
+  {
+   "fieldname": "to_location",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "To",
+   "reqd": 1
+  },
+  {
+   "fieldname": "departure_date",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Departure Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "arrival_date",
+   "fieldtype": "Datetime",
+   "label": "Arrival Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "airline",
+   "fieldtype": "Data",
+   "label": "Airline",
+   "reqd": 1
+  },
+  {
+   "fieldname": "flight_number",
+   "fieldtype": "Data",
+   "label": "Flight Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "booking_class",
+   "fieldtype": "Data",
+   "label": "Booking Class"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Confirmed\nWaitlisted\nCancelled"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2025-07-21 13:35:00.000000",
+ "modified_by": "Administrator",
+ "module": "Multi City Test",
+ "name": "Flight Booking Sector Test",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
