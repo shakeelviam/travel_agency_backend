@@ -11,7 +11,6 @@
   "customer",
   "date_of_issue",
   "basic_information_section",
-  "passenger",
   "service_details_section",
   "service_type",
   "supplier",
@@ -53,12 +52,7 @@
    "fieldtype": "Section Break",
    "label": "Basic Information"
   },
-  {
-   "fieldname": "passenger",
-   "fieldtype": "Link",
-   "label": "Passenger",
-   "options": "Passenger"
-  },
+
   {
    "fieldname": "service_details_section",
    "fieldtype": "Section Break",

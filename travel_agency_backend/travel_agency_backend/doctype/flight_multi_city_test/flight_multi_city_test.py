@@ -31,7 +31,8 @@ class FlightMultiCityTest(Document):
 			
 		routes = []
 		for segment in self.segments:
-			if segment.origin and segment.destination:
-				routes.append(f"{segment.origin}-{segment.destination}")
+			if segment.from_location and segment.to_location:
+				passenger_info = f"({segment.passenger})" if segment.passenger else ""
+				routes.append(f"{segment.from_location}-{segment.to_location}{passenger_info}")
 				
 		self.route_summary = " / ".join(routes) if routes else ""

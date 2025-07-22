@@ -6,14 +6,60 @@ frappe.ui.form.on('Flight Multi City Test', {
 		// Show flight multicity section
 		frm.set_df_property("flight_multicity_section", "hidden", 0);
 		frm.set_df_property("segments", "hidden", 0);
+		
+		// Add Passenger Segment button
+		if (frm.doc.docstatus === 0) {
+			frm.add_custom_button("Add Passenger Segment", () => {
+				frappe.prompt(
+					[
+						{
+							fieldname: "passenger",
+							label: "Select Passenger",
+							fieldtype: "Link",
+							options: "Passenger",
+							reqd: 1,
+						},
+						{
+							fieldname: "from_location",
+							label: "From Location",
+							fieldtype: "Link",
+							options: "Sector Master",
+							reqd: 1,
+						},
+						{
+							fieldname: "to_location",
+							label: "To Location",
+							fieldtype: "Link",
+							options: "Sector Master",
+							reqd: 1,
+						},
+						{
+							fieldname: "date_of_travel",
+							label: "Date of Travel",
+							fieldtype: "Date",
+							reqd: 1,
+						}
+					],
+					(values) => {
+						// Add a new row to the segments table
+						const child = frm.add_child("segments", {
+							passenger: values.passenger,
+							from_location: values.from_location,
+							to_location: values.to_location,
+							date_of_travel: values.date_of_travel
+						});
+						frm.refresh_field("segments");
+						update_route_summary(frm);
+					},
+					"Add Passenger Segment",
+					"Add"
+				);
+			});
+		}
 	},
 	
 	customer: function(frm) {
 		// You can add customer-related logic here if needed
-	},
-	
-	passenger: function(frm) {
-		// You can fetch passenger details if needed
 	},
 	
 	supplier_cost: function(frm) {
@@ -39,11 +85,15 @@ frappe.ui.form.on('Flight Multi City Segment', {
 		update_route_summary(frm);
 	},
 	
-	origin: function(frm, cdt, cdn) {
+	passenger: function(frm, cdt, cdn) {
+		// You can add passenger-specific logic here if needed
+	},
+	
+	from_location: function(frm, cdt, cdn) {
 		update_route_summary(frm);
 	},
 	
-	destination: function(frm, cdt, cdn) {
+	to_location: function(frm, cdt, cdn) {
 		update_route_summary(frm);
 	}
 });
@@ -64,8 +114,11 @@ function update_route_summary(frm) {
 	}
 	
 	const routes = frm.doc.segments
-		.filter(segment => segment.origin && segment.destination)
-		.map(segment => `${segment.origin}-${segment.destination}`);
+		.filter(segment => segment.from_location && segment.to_location)
+		.map(segment => {
+			const passengerInfo = segment.passenger ? `(${segment.passenger})` : '';
+			return `${segment.from_location}-${segment.to_location}${passengerInfo}`;
+		});
 	
 	frm.set_value('route_summary', routes.join(' / '));
 }

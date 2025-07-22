@@ -4,6 +4,7 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
+  "passenger",
   "date_of_travel",
   "from_location",
   "to_location",
@@ -13,6 +14,13 @@
   "booking_class"
  ],
  "fields": [
+  {
+   "fieldname": "passenger",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Passenger",
+   "options": "Passenger"
+  },
   {
    "fieldname": "date_of_travel",
    "fieldtype": "Date",
