@@ -3,7 +3,7 @@
 
 frappe.ui.form.on('Flight Multi City Test', {
 	refresh: function(frm) {
-		// Show flight multicity section
+		// Only show the basic fields initially
 		frm.set_df_property("flight_multicity_section", "hidden", 0);
 		
 		// Add Passenger Segment button
@@ -41,8 +41,23 @@ frappe.ui.form.on('Flight Multi City Test', {
 							// Refresh the form
 							frm.refresh_field("passengers");
 							
-							// Directly add flight segment for this passenger
-							add_flight_segment_for_passenger(frm, passengerRow.name);
+							// Add an empty flight segment row for this passenger
+							const segment = frappe.model.add_child(passengerRow, 'segments', 'Flight Multi City Segment');
+							
+							// Save the form to ensure changes are persisted
+							frm.save().then(() => {
+								// After saving, render the passenger segments
+								render_passenger_segments(frm);
+								
+								// Update route summary
+								update_route_summary(frm);
+								
+								// Show success message
+								frappe.show_alert({
+									message: `Passenger ${r.full_name || values.passenger} added with empty flight segment`,
+									indicator: 'green'
+								}, 5);
+							});
 						});
 					},
 					"Add Passenger Segment",
@@ -56,23 +71,6 @@ frappe.ui.form.on('Flight Multi City Test', {
 		
 		// Render passenger segments in a custom HTML section
 		render_passenger_segments(frm);
-		
-		// Expand all passenger rows to show their segments
-		setTimeout(() => {
-			if (frm.fields_dict.passengers && frm.fields_dict.passengers.grid) {
-				const grid = frm.fields_dict.passengers.grid;
-				
-				// Force expand all passenger rows
-				if (frm.doc.passengers && frm.doc.passengers.length > 0) {
-					frm.doc.passengers.forEach(passenger => {
-						const grid_row = grid.grid_rows_by_docname[passenger.name];
-						if (grid_row && !grid_row.doc.__expanded) {
-							grid_row.toggle_view();
-						}
-					});
-				}
-			}
-		}, 500);
 	},
 	
 	customer: function(frm) {
@@ -113,53 +111,6 @@ frappe.ui.form.on('Flight Multi City Passenger', {
 			});
 			update_route_summary(frm);
 		}
-	},
-	
-	// Add button to add flight segments for this passenger and make segments table visible
-	form_render: function(frm, cdt, cdn) {
-		const row = locals[cdt][cdn];
-		if (frm.doc.docstatus === 0) {
-			const grid_row = cur_frm.fields_dict.passengers.grid.grid_rows_by_docname[cdn];
-			if (grid_row) {
-				// Add a button to add flight segments
-				if (!$(grid_row.wrapper).find('.add-flight-btn').length) {
-					$(grid_row.wrapper).find('.grid-row-check').closest('.row-check').append(
-						`<button class="btn btn-xs btn-primary add-flight-btn" data-name="${cdn}">
-							Add Flight
-						</button>`
-					);
-					
-					$(grid_row.wrapper).find('.add-flight-btn').click(function() {
-						const passenger_row_name = $(this).attr('data-name');
-						add_flight_segment_for_passenger(frm, passenger_row_name);
-						return false; // Prevent event bubbling
-					});
-				}
-				
-				// Force open the row to show the segments table
-				if (!grid_row.doc.__expanded) {
-					grid_row.toggle_view();
-				}
-				
-				// Make sure the segments table is visible
-				setTimeout(() => {
-					// Find the segments field and make it visible
-					const segments_field = $(grid_row.form.wrapper).find('.frappe-control[data-fieldname="segments"]');
-					if (segments_field.length) {
-						segments_field.show();
-						
-						// Add a header to make it clear this is the flight segments table
-						if (!segments_field.prev('.flight-segments-header').length) {
-							segments_field.before(`
-								<div class="flight-segments-header" style="margin-top: 15px; margin-bottom: 5px; font-weight: bold;">
-									Flight Segments for ${row.passenger_name || row.passenger}
-								</div>
-							`);
-						}
-					}
-				}, 300);
-			}
-		}
 	}
 });
 
@@ -197,18 +148,21 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 		{
 			fieldname: 'airline',
 			label: 'Airline',
-			fieldtype: 'Data'
+			fieldtype: 'Link',
+			options: 'Airline'
 		},
 		{
 			fieldname: 'from_location',
 			label: 'From Location',
-			fieldtype: 'Data',
+			fieldtype: 'Link',
+			options: 'Airport',
 			reqd: 1
 		},
 		{
 			fieldname: 'to_location',
 			label: 'To Location',
-			fieldtype: 'Data',
+			fieldtype: 'Link',
+			options: 'Airport',
 			reqd: 1
 		},
 		{
@@ -250,263 +204,208 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 		
 		// Save the form to ensure changes are persisted
 		frm.save().then(() => {
-			// After saving, make sure the passenger row is expanded
-			setTimeout(() => {
-				// Make sure the passenger row is expanded in the grid
-				const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger_row_name];
-				if (grid_row && !grid_row.doc.__expanded) {
-					grid_row.toggle_view();
-				}
-				
-				// Refresh fields and update route summary
-				frm.refresh_field("passengers");
-				update_route_summary(frm);
-				
-				// Make sure the passenger_segments_html field is visible
-				frm.set_df_property("passenger_segments_html", "hidden", 0);
-				
-				// Re-render the passenger segments in the custom HTML view
-				render_passenger_segments(frm);
-				
-				// Show success message
-				frappe.show_alert({
-					message: `Flight segment added for ${passenger_row.passenger_name || passenger_row.passenger}`,
-					indicator: 'green'
-				}, 5);
-			}, 500);
+			// Refresh fields and update route summary
+			frm.refresh_field("passengers");
+			update_route_summary(frm);
+			
+			// Re-render the passenger segments in the custom HTML view
+			render_passenger_segments(frm);
+			
+			// Show success message
+			frappe.show_alert({
+				message: `Flight segment added for ${passenger_row.passenger_name || passenger_row.passenger}`,
+				indicator: 'green'
+			}, 5);
 		});
 	}, 'Add Flight Segment', 'Add');
 }
 
 function render_passenger_segments(frm) {
-	const wrapper = frm.get_field('passenger_segments_html').$wrapper;
-	wrapper.empty();
-	
 	if (!frm.doc.passengers || frm.doc.passengers.length === 0) {
-		wrapper.html('<div class="text-muted">No passengers added yet</div>');
+		frm.set_df_property('passenger_segments_html', 'options', '<div class="text-muted">No passengers added yet</div>');
 		return;
 	}
 	
-	// Create a container for all passengers
-	const container = $('<div class="passenger-segments-container"></div>');
-	wrapper.append(container);
+	// Build HTML for each passenger's segments
+	let html = '<div class="passenger-segments-wrapper">';
 	
-	// Add CSS styles
-	const styles = `
-		<style>
-			.passenger-segments-container {
-				margin-bottom: 20px;
-			}
-			.passenger-card {
-				border: 1px solid #d1d8dd;
-				border-radius: 4px;
-				margin-bottom: 15px;
-				background-color: #f9f9f9;
-			}
-			.passenger-header {
-				padding: 10px 15px;
-				background-color: #f0f4f7;
-				border-bottom: 1px solid #d1d8dd;
-				font-weight: bold;
-				display: flex;
-				justify-content: space-between;
-				align-items: center;
-			}
-			.passenger-segments {
-				padding: 0;
-			}
-			.segment-table {
-				width: 100%;
-				border-collapse: collapse;
-			}
-			.segment-table th {
-				background-color: #eef1f5;
-				padding: 8px;
-				text-align: left;
-				border-bottom: 1px solid #d1d8dd;
-				font-weight: bold;
-			}
-			.segment-table td {
-				padding: 8px;
-				border-bottom: 1px solid #e3e8ee;
-			}
-			.segment-table tr:last-child td {
-				border-bottom: none;
-			}
-			.add-segment-btn {
-				margin: 10px 15px;
-			}
-			.edit-segment-btn {
-				margin-left: 5px;
-				padding: 2px 5px;
-			}
-			.delete-segment-btn {
-				margin-left: 5px;
-				padding: 2px 5px;
-			}
-			.no-segments {
-				padding: 15px;
-				text-align: center;
-				color: #8d99a6;
-			}
-			.action-cell {
-				white-space: nowrap;
-				text-align: right;
-			}
-		</style>
-	`;
-	container.append(styles);
-	
-	// Render each passenger and their segments
 	frm.doc.passengers.forEach(passenger => {
-		const passengerCard = $(`<div class="passenger-card" data-passenger="${passenger.name}"></div>`);
-		container.append(passengerCard);
+		// Add passenger header with clear styling
+		html += `
+			<div class="passenger-segments-container" style="margin-bottom: 30px; border: 1px solid #d1d8dd; border-radius: 4px; padding: 15px; background-color: #f9f9f9;">
+				<h4 style="margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid #d1d8dd;">
+					<i class="fa fa-user"></i> ${passenger.passenger_name || passenger.passenger}
+				</h4>
+		`;
 		
-		// Passenger header
-		const passengerHeader = $(`
-			<div class="passenger-header">
-				<div>${passenger.passenger_name || passenger.passenger}</div>
-			</div>
-		`);
-		passengerCard.append(passengerHeader);
-		
-		// Passenger segments
-		const passengerSegments = $('<div class="passenger-segments"></div>');
-		passengerCard.append(passengerSegments);
-		
-		if (!passenger.segments || passenger.segments.length === 0) {
-			passengerSegments.append('<div class="no-segments">No flight segments added yet</div>');
-		} else {
-			// Create table for segments
-			const table = $(`
-				<table class="segment-table">
+		// Add segments table with better styling
+		html += `
+			<div class="table-responsive">
+				<table class="table table-bordered table-hover" style="background-color: white;">
 					<thead>
 						<tr>
-							<th>Airline</th>
-							<th>From</th>
-							<th>To</th>
-							<th>Date</th>
-							<th>Flight #</th>
-							<th>Class</th>
-							<th>Ticket #</th>
-							<th>PNR</th>
-							${frm.doc.docstatus === 0 ? '<th>Actions</th>' : ''}
+							<th style="width: 12%;">Airline</th>
+							<th style="width: 12%;">Date of Travel</th>
+							<th style="width: 12%;">From</th>
+							<th style="width: 12%;">To</th>
+							<th style="width: 10%;">Flight #</th>
+							<th style="width: 8%;">Class</th>
+							<th style="width: 12%;">Ticket #</th>
+							<th style="width: 10%;">PNR</th>
+							<th style="width: 12%;">Actions</th>
 						</tr>
 					</thead>
-					<tbody></tbody>
-				</table>
-			`);
-			passengerSegments.append(table);
-			
-			// Add segments to table
+					<tbody>
+		`;
+		
+		// Add segment rows
+		if (passenger.segments && passenger.segments.length > 0) {
 			passenger.segments.forEach(segment => {
-				const row = $(`
-					<tr data-segment="${segment.name}">
+				html += `
+					<tr>
 						<td>${segment.airline || ''}</td>
+						<td>${segment.date_of_travel ? frappe.datetime.str_to_user(segment.date_of_travel) : ''}</td>
 						<td>${segment.from_location || ''}</td>
 						<td>${segment.to_location || ''}</td>
-						<td>${segment.date_of_travel ? frappe.datetime.str_to_user(segment.date_of_travel) : ''}</td>
 						<td>${segment.flight_number || ''}</td>
 						<td>${segment.booking_class || ''}</td>
 						<td>${segment.ticket_number || ''}</td>
 						<td>${segment.pnr || ''}</td>
-						${frm.doc.docstatus === 0 ? `
-						<td class="action-cell">
-							<button class="btn btn-xs btn-default edit-segment-btn" data-segment="${segment.name}">Edit</button>
-							<button class="btn btn-xs btn-danger delete-segment-btn" data-segment="${segment.name}">Delete</button>
-						</td>` : ''}
+						<td>
+							<button class="btn btn-xs btn-default edit-segment-btn" 
+								data-passenger="${passenger.name}" 
+								data-segment="${segment.name}">
+								<i class="fa fa-pencil"></i> Edit
+							</button>
+							<button class="btn btn-xs btn-danger delete-segment-btn" 
+								data-passenger="${passenger.name}" 
+								data-segment="${segment.name}">
+								<i class="fa fa-trash"></i>
+							</button>
+						</td>
 					</tr>
-				`);
-				table.find('tbody').append(row);
-				
-				// Add event handlers for edit and delete buttons
-				if (frm.doc.docstatus === 0) {
-					row.find('.edit-segment-btn').on('click', function() {
-						const segmentName = $(this).data('segment');
-						edit_flight_segment(frm, passenger.name, segmentName);
-						return false; // Prevent event bubbling
-					});
-					
-					row.find('.delete-segment-btn').on('click', function() {
-						const segmentName = $(this).data('segment');
-						delete_flight_segment(frm, passenger.name, segmentName);
-						return false; // Prevent event bubbling
-					});
-				}
+				`;
 			});
+		} else {
+			// No segments message
+			html += `
+				<tr>
+					<td colspan="9" class="text-center text-muted">
+						No flight segments added yet
+					</td>
+				</tr>
+			`;
 		}
 		
-		// Add segment button
-		if (frm.doc.docstatus === 0) {
-			const addButton = $(`<button class="btn btn-xs btn-primary add-segment-btn">Add Flight Segment</button>`);
-			passengerCard.append(addButton);
+		// Close table
+		html += `
+					</tbody>
+				</table>
+			</div>
 			
-			addButton.on('click', () => {
-				add_flight_segment_for_passenger(frm, passenger.name);
-			});
-		}
+			<div class="row" style="margin-top: 10px;">
+				<div class="col-xs-12">
+					<button class="btn btn-sm btn-primary add-segment-btn" 
+						data-passenger="${passenger.name}">
+						<i class="fa fa-plus"></i> Add Flight Segment
+					</button>
+				</div>
+			</div>
+		</div>
+		`;
 	});
+	
+	html += '</div>';
+	
+	// Set the HTML content
+	frm.set_df_property('passenger_segments_html', 'options', html);
+	
+	// Add event handlers for the buttons
+	setTimeout(() => {
+		// Add segment button
+		$('.add-segment-btn').on('click', function() {
+			const passengerName = $(this).data('passenger');
+			add_flight_segment_for_passenger(frm, passengerName);
+		});
+		
+		// Edit segment button
+		$('.edit-segment-btn').on('click', function() {
+			const passengerName = $(this).data('passenger');
+			const segmentName = $(this).data('segment');
+			edit_flight_segment(frm, passengerName, segmentName);
+		});
+		
+		// Delete segment button
+		$('.delete-segment-btn').on('click', function() {
+			const passengerName = $(this).data('passenger');
+			const segmentName = $(this).data('segment');
+			delete_flight_segment(frm, passengerName, segmentName);
+		});
+	}, 100);
 }
 
 function edit_flight_segment(frm, passenger_row_name, segment_name) {
 	// Find the passenger row and segment
 	const passenger_row = frm.doc.passengers.find(p => p.name === passenger_row_name);
-	if (!passenger_row) return;
+	if (!passenger_row || !passenger_row.segments) return;
 	
 	const segment = passenger_row.segments.find(s => s.name === segment_name);
 	if (!segment) return;
 	
-	// Create dialog to edit segment
+	// Create dialog to edit flight segment
 	frappe.prompt([
 		{
 			fieldname: 'airline',
 			label: 'Airline',
-			fieldtype: 'Data',
-			default: segment.airline || ''
+			fieldtype: 'Link',
+			options: 'Airline',
+			default: segment.airline
 		},
 		{
 			fieldname: 'from_location',
 			label: 'From Location',
-			fieldtype: 'Data',
-			default: segment.from_location || '',
-			reqd: 1
+			fieldtype: 'Link',
+			options: 'Airport',
+			reqd: 1,
+			default: segment.from_location
 		},
 		{
 			fieldname: 'to_location',
 			label: 'To Location',
-			fieldtype: 'Data',
-			default: segment.to_location || '',
-			reqd: 1
+			fieldtype: 'Link',
+			options: 'Airport',
+			reqd: 1,
+			default: segment.to_location
 		},
 		{
 			fieldname: 'date_of_travel',
 			label: 'Date of Travel',
 			fieldtype: 'Date',
-			default: segment.date_of_travel || ''
+			default: segment.date_of_travel
 		},
 		{
 			fieldname: 'flight_number',
 			label: 'Flight Number',
 			fieldtype: 'Data',
-			default: segment.flight_number || ''
+			default: segment.flight_number
 		},
 		{
 			fieldname: 'booking_class',
 			label: 'Booking Class',
 			fieldtype: 'Data',
-			default: segment.booking_class || ''
+			default: segment.booking_class
 		},
 		{
 			fieldname: 'ticket_number',
 			label: 'Ticket Number',
 			fieldtype: 'Data',
-			default: segment.ticket_number || ''
+			default: segment.ticket_number
 		},
 		{
 			fieldname: 'pnr',
 			label: 'PNR',
 			fieldtype: 'Data',
-			default: segment.pnr || ''
+			default: segment.pnr
 		}
 	], (values) => {
 		// Update segment values
@@ -540,34 +439,36 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 function delete_flight_segment(frm, passenger_row_name, segment_name) {
 	// Find the passenger row
 	const passenger_row = frm.doc.passengers.find(p => p.name === passenger_row_name);
-	if (!passenger_row) return;
+	if (!passenger_row || !passenger_row.segments) return;
 	
-	// Confirm before deleting
+	// Confirm deletion
 	frappe.confirm(
 		`Are you sure you want to delete this flight segment?`,
 		() => {
-			// Find the segment index
+			// Yes - delete the segment
 			const segment_idx = passenger_row.segments.findIndex(s => s.name === segment_name);
-			if (segment_idx === -1) return;
-			
-			// Remove the segment
-			frappe.model.clear_doc("Flight Multi City Segment", segment_name);
-			
-			// Save the form to ensure changes are persisted
-			frm.save().then(() => {
-				// Refresh fields and update route summary
-				frm.refresh_field("passengers");
-				update_route_summary(frm);
+			if (segment_idx !== -1) {
+				passenger_row.segments.splice(segment_idx, 1);
 				
-				// Re-render the passenger segments in the custom HTML view
-				render_passenger_segments(frm);
-				
-				// Show success message
-				frappe.show_alert({
-					message: `Flight segment deleted for ${passenger_row.passenger_name || passenger_row.passenger}`,
-					indicator: 'green'
-				}, 5);
-			});
+				// Save the form to ensure changes are persisted
+				frm.save().then(() => {
+					// Refresh fields and update route summary
+					frm.refresh_field("passengers");
+					update_route_summary(frm);
+					
+					// Re-render the passenger segments in the custom HTML view
+					render_passenger_segments(frm);
+					
+					// Show success message
+					frappe.show_alert({
+						message: `Flight segment deleted for ${passenger_row.passenger_name || passenger_row.passenger}`,
+						indicator: 'green'
+					}, 5);
+				});
+			}
+		},
+		() => {
+			// No - do nothing
 		}
 	);
 }
@@ -601,12 +502,13 @@ function update_route_summary(frm) {
 				}
 				
 				return routeInfo;
-			});
+			})
+			.join(' | ');
 		
-		if (routes.length > 0) {
-			passengerRoutes.push(`${passenger.passenger_name || passenger.passenger}: ${routes.join(' / ')}`);
+		if (routes) {
+			passengerRoutes.push(`${passenger.passenger_name || passenger.passenger}: ${routes}`);
 		}
 	});
 	
-	frm.set_value('route_summary', passengerRoutes.join(' | '));
+	frm.set_value('route_summary', passengerRoutes.join(' || '));
 }
