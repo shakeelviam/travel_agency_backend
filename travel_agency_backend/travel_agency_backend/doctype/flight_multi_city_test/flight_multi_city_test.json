@@ -12,15 +12,12 @@
   "date_of_issue",
   "basic_information_section",
   "flight_multicity_section",
-  "passenger",
-  "segments",
+  "passengers",
   "route_summary",
   "service_details_section",
   "service_type",
   "supplier",
   "item",
-  "ticket_number",
-  "pnr",
   "column_break_13",
   "supplier_cost",
   "markup",
@@ -82,16 +79,7 @@
    "options": "Item",
    "read_only": 1
   },
-  {
-   "fieldname": "ticket_number",
-   "fieldtype": "Data",
-   "label": "Ticket Number"
-  },
-  {
-   "fieldname": "pnr",
-   "fieldtype": "Data",
-   "label": "PNR"
-  },
+
   {
    "fieldname": "column_break_13",
    "fieldtype": "Column Break"
@@ -123,17 +111,10 @@
    "label": "Flight Multi City Details"
   },
   {
-   "fieldname": "passenger",
-   "fieldtype": "Link",
-   "label": "Passenger",
-   "options": "Passenger",
-   "reqd": 1
-  },
-  {
-   "fieldname": "segments",
+   "fieldname": "passengers",
    "fieldtype": "Table",
-   "label": "Segments",
-   "options": "Flight Multi City Segment"
+   "label": "Passengers",
+   "options": "Flight Multi City Passenger"
   },
   {
    "fieldname": "route_summary",

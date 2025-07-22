@@ -24,15 +24,24 @@ class FlightMultiCityTest(Document):
 			self.naming_series = "FMCT-.YYYY.-"
 	
 	def update_route_summary(self):
-		"""Update the route summary based on segments"""
-		if not self.segments:
+		"""Update the route summary based on passengers and their segments"""
+		if not self.passengers:
 			self.route_summary = ""
 			return
 			
-		routes = []
-		for segment in self.segments:
-			if segment.from_location and segment.to_location:
-				passenger_info = f"({segment.passenger})" if segment.passenger else ""
-				routes.append(f"{segment.from_location}-{segment.to_location}{passenger_info}")
+		passenger_routes = []
+		
+		for passenger in self.passengers:
+			if not passenger.segments:
+				continue
 				
-		self.route_summary = " / ".join(routes) if routes else ""
+			routes = []
+			for segment in passenger.segments:
+				if segment.from_location and segment.to_location:
+					routes.append(f"{segment.from_location}-{segment.to_location}")
+			
+			if routes:
+				passenger_name = passenger.passenger_name or passenger.passenger
+				passenger_routes.append(f"{passenger_name}: {' / '.join(routes)}")
+		
+		self.route_summary = " | ".join(passenger_routes) if passenger_routes else ""

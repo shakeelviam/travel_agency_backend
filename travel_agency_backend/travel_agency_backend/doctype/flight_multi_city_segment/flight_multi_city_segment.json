@@ -10,7 +10,10 @@
   "from_location",
   "to_location",
   "flight_number",
-  "booking_class"
+  "booking_class",
+  "section_break_1",
+  "ticket_number",
+  "pnr"
  ],
  "fields": [
   {
@@ -56,6 +59,21 @@
    "fieldname": "booking_class",
    "fieldtype": "Data",
    "label": "Booking Class"
+  },
+  {
+   "fieldname": "section_break_1",
+   "fieldtype": "Section Break",
+   "label": "Ticket Details"
+  },
+  {
+   "fieldname": "ticket_number",
+   "fieldtype": "Data",
+   "label": "Ticket Number"
+  },
+  {
+   "fieldname": "pnr",
+   "fieldtype": "Data",
+   "label": "PNR"
   }
  ],
  "istable": 1,
