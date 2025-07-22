@@ -38,7 +38,17 @@ class FlightMultiCityTest(Document):
 			routes = []
 			for segment in passenger.segments:
 				if segment.from_location and segment.to_location:
-					routes.append(f"{segment.from_location}-{segment.to_location}")
+					route_info = f"{segment.from_location}-{segment.to_location}"
+					
+					# Add flight number if available
+					if segment.flight_number:
+						route_info += f" ({segment.flight_number})"
+					
+					# Add date if available
+					if segment.date_of_travel:
+						route_info += f" on {segment.date_of_travel}"
+					
+					routes.append(route_info)
 			
 			if routes:
 				passenger_name = passenger.passenger_name or passenger.passenger

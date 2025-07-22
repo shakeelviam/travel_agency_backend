@@ -37,13 +37,18 @@ frappe.ui.form.on('Flight Multi City Test', {
 							if (r && r.full_name) {
 								frappe.model.set_value(passengerRow.doctype, passengerRow.name, 'passenger_name', r.full_name);
 							}
+							
+							// Refresh and save to ensure the passenger row is created before adding segments
+							frm.refresh_field("passengers");
+							frm.save().then(() => {
+								// After saving, reload the form to ensure all fields are properly initialized
+								frappe.model.with_doc(frm.doctype, frm.docname, function() {
+									frm.refresh();
+									// Now prompt to add flight segment for this passenger
+									add_flight_segment_for_passenger(frm, passengerRow.name);
+								});
+							});
 						});
-						
-						frm.refresh_field("passengers");
-						update_route_summary(frm);
-						
-						// Now prompt to add flight segment for this passenger
-						add_flight_segment_for_passenger(frm, passengerRow.name);
 					},
 					"Add Passenger Segment",
 					"Add"
@@ -92,23 +97,33 @@ frappe.ui.form.on('Flight Multi City Passenger', {
 		}
 	},
 	
-	// Add button to add flight segments for this passenger
+	// Add button to add flight segments for this passenger and make segments table visible
 	form_render: function(frm, cdt, cdn) {
 		const row = locals[cdt][cdn];
 		if (frm.doc.docstatus === 0) {
 			const grid_row = cur_frm.fields_dict.passengers.grid.grid_rows_by_docname[cdn];
 			if (grid_row) {
-				$(grid_row.wrapper).find('.grid-row-check').closest('.row-check').append(
-					`<button class="btn btn-xs btn-default add-flight-btn" data-name="${cdn}">
-						Add Flight
-					</button>`
-				);
+				// Add a button to add flight segments
+				if (!$(grid_row.wrapper).find('.add-flight-btn').length) {
+					$(grid_row.wrapper).find('.grid-row-check').closest('.row-check').append(
+						`<button class="btn btn-xs btn-default add-flight-btn" data-name="${cdn}">
+							Add Flight
+						</button>`
+					);
+					
+					$(grid_row.wrapper).find('.add-flight-btn').click(function() {
+						const passenger_row_name = $(this).attr('data-name');
+						add_flight_segment_for_passenger(frm, passenger_row_name);
+						return false; // Prevent event bubbling
+					});
+				}
 				
-				$(grid_row.wrapper).find('.add-flight-btn').click(function() {
-					const passenger_row_name = $(this).attr('data-name');
-					add_flight_segment_for_passenger(frm, passenger_row_name);
-					return false; // Prevent event bubbling
-				});
+				// Make the segments table visible by expanding the row
+				setTimeout(() => {
+					if (!$(grid_row.wrapper).hasClass('grid-row-open')) {
+						$(grid_row.wrapper).find('.grid-row-open').click();
+					}
+				}, 300);
 			}
 		}
 	}
@@ -200,12 +215,12 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 			frappe.model.set_value(segment.doctype, segment.name, "flight_number", values.flight_number);
 			frappe.model.set_value(segment.doctype, segment.name, "booking_class", values.booking_class);
 			
-			// Update ticket number and PNR at passenger level if provided
+			// Set ticket number and PNR at segment level
 			if (values.ticket_number) {
-				frappe.model.set_value(passenger_row.doctype, passenger_row.name, "ticket_number", values.ticket_number);
+				frappe.model.set_value(segment.doctype, segment.name, "ticket_number", values.ticket_number);
 			}
 			if (values.pnr) {
-				frappe.model.set_value(passenger_row.doctype, passenger_row.name, "pnr", values.pnr);
+				frappe.model.set_value(segment.doctype, segment.name, "pnr", values.pnr);
 			}
 			
 			frm.refresh_field("passengers");
@@ -230,7 +245,22 @@ function update_route_summary(frm) {
 		
 		const routes = passenger.segments
 			.filter(segment => segment.from_location && segment.to_location)
-			.map(segment => `${segment.from_location}-${segment.to_location}`);
+			.map(segment => {
+				let routeInfo = `${segment.from_location}-${segment.to_location}`;
+				
+				// Add flight number if available
+				if (segment.flight_number) {
+					routeInfo += ` (${segment.flight_number})`;
+				}
+				
+				// Add date if available
+				if (segment.date_of_travel) {
+					const formattedDate = frappe.datetime.str_to_user(segment.date_of_travel);
+					routeInfo += ` on ${formattedDate}`;
+				}
+				
+				return routeInfo;
+			});
 		
 		if (routes.length > 0) {
 			passengerRoutes.push(`${passenger.passenger_name || passenger.passenger}: ${routes.join(' / ')}`);
