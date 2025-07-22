@@ -11,11 +11,25 @@ frappe.ui.form.on('Flight Multi City Test', {
 		frm.set_df_property("service_details_section", "hidden", 1);
 		frm.set_df_property("passengers", "hidden", 1);
 		
+		// Update route summary
+		update_route_summary(frm);
+		
 		// Show sections only if data exists
 		if (frm.doc.passengers && frm.doc.passengers.length > 0) {
 			frm.set_df_property("flight_multicity_section", "hidden", 0);
 			frm.set_df_property("service_details_section", "hidden", 0);
 			frm.set_df_property("passengers", "hidden", 0);
+			
+			// Ensure all passenger segments are visible if they exist
+			frm.doc.passengers.forEach(passenger => {
+				if (passenger.segments && passenger.segments.length > 0) {
+					const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger.name];
+					if (grid_row) {
+						grid_row.toggle_display('segments', true);
+						grid_row.open();
+					}
+				}
+			});
 		}
 		
 		// Add Passenger Segment button in draft state
@@ -65,6 +79,14 @@ frappe.ui.form.on('Flight Multi City Test', {
 							frm.save().then(() => {
 								// Update route summary
 								update_route_summary(frm);
+								
+								// Find the grid row for this passenger to ensure segments are visible
+								const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passengerRow.name];
+								if (grid_row) {
+									// Make sure the segments field is visible
+									grid_row.toggle_display('segments', true);
+									grid_row.open();
+								}
 								
 								// Scroll to the passenger table
 								frm.scroll_to_field("passengers");
@@ -143,6 +165,13 @@ frappe.ui.form.on('Flight Multi City Passenger', {
 				return false;
 			});
 		}
+		
+		// Ensure the segments table is visible
+		if (row.segments && row.segments.length > 0) {
+			// Make sure the segments field is visible
+			grid_row.toggle_display('segments', true);
+			grid_row.open();
+		}
 	}
 });
 
@@ -153,6 +182,18 @@ frappe.ui.form.on('Flight Multi City Segment', {
 	},
 	
 	to_location: function(frm, cdt, cdn) {
+		update_route_summary(frm);
+	},
+	
+	airline: function(frm, cdt, cdn) {
+		update_route_summary(frm);
+	},
+	
+	flight_number: function(frm, cdt, cdn) {
+		update_route_summary(frm);
+	},
+	
+	date_of_travel: function(frm, cdt, cdn) {
 		update_route_summary(frm);
 	},
 	
@@ -169,6 +210,10 @@ frappe.ui.form.on('Flight Multi City Segment', {
 		// Find the nested grid row for this segment
 		const segment_grid = grid_row.doc.segments;
 		if (!segment_grid) return;
+		
+		// Make sure the parent row is open to show segments
+		grid_row.toggle_display('segments', true);
+		grid_row.open();
 		
 		// We need to find the grid row for this specific segment
 		const segment_grid_rows = grid_row.fields_dict.segments.grid.grid_rows;
@@ -202,6 +247,13 @@ frappe.ui.form.on('Flight Multi City Segment', {
 					
 					$action_wrapper.appendTo($row.find('.row-index'));
 				}
+				
+				// Ensure all fields are visible
+				const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+				fields.forEach(field => {
+					segment_grid_rows[i].toggle_display(field, true);
+				});
+				
 				break;
 			}
 		}
@@ -291,8 +343,13 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 			frm.refresh_field("passengers");
 			update_route_summary(frm);
 			
-			// Re-render the passenger segments in the custom HTML view
-			// No need for custom HTML rendering - using standard Frappe UI
+			// Find the grid row for this passenger to ensure segments are visible
+			const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger_row_name];
+			if (grid_row) {
+				// Make sure the segments field is visible
+				grid_row.toggle_display('segments', true);
+				grid_row.open();
+			}
 			
 			// Show success message
 			frappe.show_alert({
@@ -385,8 +442,13 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 			frm.refresh_field("passengers");
 			update_route_summary(frm);
 			
-			// Re-render the passenger segments in the custom HTML view
-			// No need for custom HTML rendering - using standard Frappe UI
+			// Find the grid row for this passenger to ensure segments are visible
+			const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger_row_name];
+			if (grid_row) {
+				// Make sure the segments field is visible
+				grid_row.toggle_display('segments', true);
+				grid_row.open();
+			}
 			
 			// Show success message
 			frappe.show_alert({
@@ -397,38 +459,49 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 	}, 'Edit Flight Segment', 'Update');
 }
 
-function delete_flight_segment(frm, passenger_row_name, segment_name) {
+// Function to delete a flight segment
+function delete_flight_segment(frm, parent_name, segment_name) {
 	// Find the passenger row
-	const passenger_row = frm.doc.passengers.find(p => p.name === passenger_row_name);
-	if (!passenger_row || !passenger_row.segments) return;
+	const passenger_row = frm.doc.passengers.find(p => p.name === parent_name);
+	if (!passenger_row) {
+		frappe.msgprint("Passenger not found.");
+		return;
+	}
+	
+	// Find the segment index
+	const segment_index = passenger_row.segments.findIndex(s => s.name === segment_name);
+	if (segment_index === -1) {
+		frappe.msgprint("Flight segment not found.");
+		return;
+	}
 	
 	// Confirm deletion
 	frappe.confirm(
 		`Are you sure you want to delete this flight segment?`,
-		() => {
-			// Yes - delete the segment
-			const segment_idx = passenger_row.segments.findIndex(s => s.name === segment_name);
-			if (segment_idx !== -1) {
-				passenger_row.segments.splice(segment_idx, 1);
+		function() {
+			// Remove the segment
+			frappe.model.clear_doc("Flight Multi City Segment", segment_name);
+			
+			// Save the form to ensure changes are persisted
+			frm.save().then(() => {
+				// Refresh fields and update route summary
+				frm.refresh_field("passengers");
+				update_route_summary(frm);
 				
-				// Save the form to ensure changes are persisted
-				frm.save().then(() => {
-					// Refresh fields and update route summary
-					frm.refresh_field("passengers");
-					update_route_summary(frm);
-					
-					// No need to render custom HTML anymore
-					
-					// Show success message
-					frappe.show_alert({
-						message: `Flight segment deleted for ${passenger_row.passenger_name || passenger_row.passenger}`,
-						indicator: 'green'
-					}, 5);
-				});
-			}
-		},
-		() => {
-			// No - do nothing
+				// Find the grid row for this passenger to ensure it stays open
+				const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[parent_name];
+				if (grid_row) {
+					// Make sure the segments field is visible and row is open
+					grid_row.toggle_display('segments', true);
+					grid_row.open();
+				}
+				
+				// Show success message
+				frappe.show_alert({
+					message: `Flight segment deleted for ${passenger_row.passenger_name || passenger_row.passenger}`,
+					indicator: 'green'
+				}, 5);
+			});
 		}
 	);
 }
