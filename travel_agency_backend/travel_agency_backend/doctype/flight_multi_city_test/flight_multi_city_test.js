@@ -3,7 +3,17 @@
 
 frappe.ui.form.on('Flight Multi City Test', {
 	refresh: function(frm) {
-		// Add any custom buttons or actions here
+		// Show flight multicity section
+		frm.set_df_property("flight_multicity_section", "hidden", 0);
+		frm.set_df_property("segments", "hidden", 0);
+	},
+	
+	customer: function(frm) {
+		// You can add customer-related logic here if needed
+	},
+	
+	passenger: function(frm) {
+		// You can fetch passenger details if needed
 	},
 	
 	supplier_cost: function(frm) {

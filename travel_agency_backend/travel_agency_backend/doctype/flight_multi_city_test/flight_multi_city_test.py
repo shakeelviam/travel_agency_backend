@@ -18,6 +18,10 @@ class FlightMultiCityTest(Document):
 		
 		# Update route summary
 		self.update_route_summary()
+		
+		# Set naming series if not already set
+		if not self.naming_series:
+			self.naming_series = "FMCT-.YYYY.-"
 	
 	def update_route_summary(self):
 		"""Update the route summary based on segments"""

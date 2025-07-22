@@ -8,14 +8,10 @@
  "engine": "InnoDB",
  "field_order": [
   "naming_series",
-  "passenger_details_section",
-  "passenger_name",
-  "passenger_email",
-  "passenger_phone",
-  "column_break_5",
-  "passenger_type",
-  "nationality",
-  "passport_number",
+  "customer",
+  "date_of_issue",
+  "basic_information_section",
+  "passenger",
   "service_details_section",
   "service_type",
   "supplier",
@@ -25,7 +21,7 @@
   "markup",
   "commission",
   "total_amount",
-  "segments_section",
+  "flight_multicity_section",
   "segments",
   "route_summary",
   "remarks_section",
@@ -40,45 +36,28 @@
    "reqd": 1
   },
   {
-   "fieldname": "passenger_details_section",
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1
+  },
+  {
+   "fieldname": "date_of_issue",
+   "fieldtype": "Date",
+   "label": "Date of Issue",
+   "reqd": 1
+  },
+  {
+   "fieldname": "basic_information_section",
    "fieldtype": "Section Break",
-   "label": "Passenger Details"
+   "label": "Basic Information"
   },
   {
-   "fieldname": "passenger_name",
-   "fieldtype": "Data",
-   "label": "Passenger Name"
-  },
-  {
-   "fieldname": "passenger_email",
-   "fieldtype": "Data",
-   "label": "Passenger Email",
-   "options": "Email"
-  },
-  {
-   "fieldname": "passenger_phone",
-   "fieldtype": "Data",
-   "label": "Passenger Phone"
-  },
-  {
-   "fieldname": "column_break_5",
-   "fieldtype": "Column Break"
-  },
-  {
-   "fieldname": "passenger_type",
-   "fieldtype": "Select",
-   "label": "Passenger Type",
-   "options": "Adult\nChild\nInfant"
-  },
-  {
-   "fieldname": "nationality",
-   "fieldtype": "Data",
-   "label": "Nationality"
-  },
-  {
-   "fieldname": "passport_number",
-   "fieldtype": "Data",
-   "label": "Passport Number"
+   "fieldname": "passenger",
+   "fieldtype": "Link",
+   "label": "Passenger",
+   "options": "Passenger"
   },
   {
    "fieldname": "service_details_section",
@@ -132,9 +111,9 @@
    "read_only": 1
   },
   {
-   "fieldname": "segments_section",
+   "fieldname": "flight_multicity_section",
    "fieldtype": "Section Break",
-   "label": "Flight Segments"
+   "label": "Flight Multi City Segments"
   },
   {
    "fieldname": "segments",
