@@ -3,16 +3,18 @@
 
 frappe.ui.form.on('Flight Multi City Test', {
 	refresh: function(frm) {
-		// Only show the basic fields initially
-		// Hide all sections except basic fields
-		if (!frm.doc.passengers || frm.doc.passengers.length === 0) {
-			// Hide all sections except the basic fields
-			frm.set_df_property("section_break_6", "hidden", 1);
-			frm.set_df_property("section_break_12", "hidden", 1);
-			frm.set_df_property("section_break_14", "hidden", 1);
-			frm.set_df_property("passenger_segments_section", "hidden", 1);
-		}
+		// Hide all sections initially except basic fields
 		frm.set_df_property("flight_multicity_section", "hidden", 0);
+		frm.set_df_property("passenger_segments_html", "hidden", 1); // Hide custom HTML field
+		
+		// Show sections based on data
+		if (frm.doc.passengers && frm.doc.passengers.length > 0) {
+			// Show service details section
+			frm.set_df_property("service_details_section", "hidden", 0);
+		} else {
+			// Hide sections when no passengers
+			frm.set_df_property("service_details_section", "hidden", 1);
+		}
 		
 		// Add Passenger Segment button
 		if (frm.doc.docstatus === 0) {
@@ -54,8 +56,8 @@ frappe.ui.form.on('Flight Multi City Test', {
 							
 							// Save the form to ensure changes are persisted
 							frm.save().then(() => {
-								// After saving, render the passenger segments
-								render_passenger_segments(frm);
+								// Show service details section
+								frm.set_df_property("service_details_section", "hidden", 0);
 								
 								// Update route summary
 								update_route_summary(frm);
@@ -73,12 +75,6 @@ frappe.ui.form.on('Flight Multi City Test', {
 				);
 			}).addClass('btn-primary');
 		}
-		
-		// Make sure the passenger_segments_html field is visible
-		frm.set_df_property("passenger_segments_html", "hidden", 0);
-		
-		// Render passenger segments in a custom HTML section
-		render_passenger_segments(frm);
 	},
 	
 	customer: function(frm) {
@@ -119,6 +115,27 @@ frappe.ui.form.on('Flight Multi City Passenger', {
 			});
 			update_route_summary(frm);
 		}
+	},
+	
+	// Add button to add flight segment for this passenger
+	form_render: function(frm, cdt, cdn) {
+		const row = locals[cdt][cdn];
+		
+		// Find the grid row for this passenger
+		const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[cdn];
+		if (!grid_row) return;
+		
+		// Add button to add flight segment only if it doesn't exist already
+		if (!grid_row.wrapper.find('.add-segment-btn').length) {
+			const $add_btn = $(`<button class="btn btn-xs btn-default add-segment-btn">
+				<i class="fa fa-plus"></i> Add Flight Segment
+			</button>`)
+			.appendTo(grid_row.wrapper.find('.data-row .col.col-xs-12'))
+			.on('click', function() {
+				add_flight_segment_for_passenger(frm, cdn);
+				return false;
+			});
+		}
 	}
 });
 
@@ -130,6 +147,57 @@ frappe.ui.form.on('Flight Multi City Segment', {
 	
 	to_location: function(frm, cdt, cdn) {
 		update_route_summary(frm);
+	},
+	
+	// Add edit and delete buttons to each segment row
+	form_render: function(frm, cdt, cdn) {
+		const segment = locals[cdt][cdn];
+		const parent_field = segment.parentfield;
+		const parent_name = segment.parent;
+		
+		// Find the grid row for this segment
+		const grid_row = cur_frm.fields_dict.passengers.grid.grid_rows_by_docname[parent_name];
+		if (!grid_row) return;
+		
+		// Find the nested grid row for this segment
+		const segment_grid = grid_row.doc.segments;
+		if (!segment_grid) return;
+		
+		// We need to find the grid row for this specific segment
+		const segment_grid_rows = grid_row.fields_dict.segments.grid.grid_rows;
+		for (let i = 0; i < segment_grid_rows.length; i++) {
+			if (segment_grid_rows[i].doc.name === cdn) {
+				const $row = $(segment_grid_rows[i].wrapper);
+				
+				// Add edit and delete buttons if they don't exist already
+				if (!$row.find('.edit-segment-btn').length) {
+					const $action_wrapper = $(`<div class="btn-group pull-right" style="margin-top: 3px;"></div>`);
+					
+					// Edit button
+					const $edit_btn = $(`<button class="btn btn-xs btn-default edit-segment-btn">
+						<i class="fa fa-pencil"></i>
+					</button>`)
+					.appendTo($action_wrapper)
+					.on('click', function() {
+						edit_flight_segment(frm, parent_name, cdn);
+						return false;
+					});
+					
+					// Delete button
+					const $delete_btn = $(`<button class="btn btn-xs btn-danger delete-segment-btn">
+						<i class="fa fa-trash"></i>
+					</button>`)
+					.appendTo($action_wrapper)
+					.on('click', function() {
+						delete_flight_segment(frm, parent_name, cdn);
+						return false;
+					});
+					
+					$action_wrapper.appendTo($row.find('.row-index'));
+				}
+				break;
+			}
+		}
 	}
 });
 
@@ -228,128 +296,10 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 	}, 'Add Flight Segment', 'Add');
 }
 
+// No longer needed as we're using standard Frappe UI
 function render_passenger_segments(frm) {
-	if (!frm.doc.passengers || frm.doc.passengers.length === 0) {
-		frm.set_df_property('passenger_segments_html', 'options', '<div class="text-muted">No passengers added yet</div>');
-		return;
-	}
-	
-	// Build HTML for each passenger's segments
-	let html = '<div class="passenger-segments-wrapper">';
-	
-	frm.doc.passengers.forEach(passenger => {
-		// Add passenger header with clear styling
-		html += `
-			<div class="passenger-segments-container" style="margin-bottom: 30px; border: 1px solid #d1d8dd; border-radius: 4px; padding: 15px; background-color: #f9f9f9;">
-				<h4 style="margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid #d1d8dd;">
-					<i class="fa fa-user"></i> ${passenger.passenger_name || passenger.passenger}
-				</h4>
-		`;
-		
-		// Add segments table with better styling
-		html += `
-			<div class="table-responsive">
-				<table class="table table-bordered table-hover" style="background-color: white;">
-					<thead>
-						<tr>
-							<th style="width: 12%;">Airline</th>
-							<th style="width: 12%;">Date of Travel</th>
-							<th style="width: 12%;">From</th>
-							<th style="width: 12%;">To</th>
-							<th style="width: 10%;">Flight #</th>
-							<th style="width: 8%;">Class</th>
-							<th style="width: 12%;">Ticket #</th>
-							<th style="width: 10%;">PNR</th>
-							<th style="width: 12%;">Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-		`;
-		
-		// Add segment rows
-		if (passenger.segments && passenger.segments.length > 0) {
-			passenger.segments.forEach(segment => {
-				html += `
-					<tr>
-						<td>${segment.airline || ''}</td>
-						<td>${segment.date_of_travel ? frappe.datetime.str_to_user(segment.date_of_travel) : ''}</td>
-						<td>${segment.from_location || ''}</td>
-						<td>${segment.to_location || ''}</td>
-						<td>${segment.flight_number || ''}</td>
-						<td>${segment.booking_class || ''}</td>
-						<td>${segment.ticket_number || ''}</td>
-						<td>${segment.pnr || ''}</td>
-						<td>
-							<button class="btn btn-xs btn-default edit-segment-btn" 
-								data-passenger="${passenger.name}" 
-								data-segment="${segment.name}">
-								<i class="fa fa-pencil"></i> Edit
-							</button>
-							<button class="btn btn-xs btn-danger delete-segment-btn" 
-								data-passenger="${passenger.name}" 
-								data-segment="${segment.name}">
-								<i class="fa fa-trash"></i>
-							</button>
-						</td>
-					</tr>
-				`;
-			});
-		} else {
-			// No segments message
-			html += `
-				<tr>
-					<td colspan="9" class="text-center text-muted">
-						No flight segments added yet
-					</td>
-				</tr>
-			`;
-		}
-		
-		// Close table
-		html += `
-					</tbody>
-				</table>
-			</div>
-			
-			<div class="row" style="margin-top: 10px;">
-				<div class="col-xs-12">
-					<button class="btn btn-sm btn-primary add-segment-btn" 
-						data-passenger="${passenger.name}">
-						<i class="fa fa-plus"></i> Add Flight Segment
-					</button>
-				</div>
-			</div>
-		</div>
-		`;
-	});
-	
-	html += '</div>';
-	
-	// Set the HTML content
-	frm.set_df_property('passenger_segments_html', 'options', html);
-	
-	// Add event handlers for the buttons
-	setTimeout(() => {
-		// Add segment button
-		$('.add-segment-btn').on('click', function() {
-			const passengerName = $(this).data('passenger');
-			add_flight_segment_for_passenger(frm, passengerName);
-		});
-		
-		// Edit segment button
-		$('.edit-segment-btn').on('click', function() {
-			const passengerName = $(this).data('passenger');
-			const segmentName = $(this).data('segment');
-			edit_flight_segment(frm, passengerName, segmentName);
-		});
-		
-		// Delete segment button
-		$('.delete-segment-btn').on('click', function() {
-			const passengerName = $(this).data('passenger');
-			const segmentName = $(this).data('segment');
-			delete_flight_segment(frm, passengerName, segmentName);
-		});
-	}, 100);
+	// This function is no longer used
+	// We're using standard Frappe UI for child tables
 }
 
 function edit_flight_segment(frm, passenger_row_name, segment_name) {
