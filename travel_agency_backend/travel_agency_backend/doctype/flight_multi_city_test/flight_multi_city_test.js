@@ -4,6 +4,14 @@
 frappe.ui.form.on('Flight Multi City Test', {
 	refresh: function(frm) {
 		// Only show the basic fields initially
+		// Hide all sections except basic fields
+		if (!frm.doc.passengers || frm.doc.passengers.length === 0) {
+			// Hide all sections except the basic fields
+			frm.set_df_property("section_break_6", "hidden", 1);
+			frm.set_df_property("section_break_12", "hidden", 1);
+			frm.set_df_property("section_break_14", "hidden", 1);
+			frm.set_df_property("passenger_segments_section", "hidden", 1);
+		}
 		frm.set_df_property("flight_multicity_section", "hidden", 0);
 		
 		// Add Passenger Segment button
@@ -149,20 +157,20 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 			fieldname: 'airline',
 			label: 'Airline',
 			fieldtype: 'Link',
-			options: 'Airline'
+			options: 'Airline Master'
 		},
 		{
 			fieldname: 'from_location',
 			label: 'From Location',
 			fieldtype: 'Link',
-			options: 'Airport',
+			options: 'Sector Master',
 			reqd: 1
 		},
 		{
 			fieldname: 'to_location',
 			label: 'To Location',
 			fieldtype: 'Link',
-			options: 'Airport',
+			options: 'Sector Master',
 			reqd: 1
 		},
 		{
