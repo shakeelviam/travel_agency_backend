@@ -8,7 +8,7 @@ class FlightBookingEntryMulticity(Document):
     def validate(self):
         # Set the item based on the Service Type
         if not self.item:
-            service_type = "Flight Multicity"
+            service_type = "Flight Booking Multi City"
             item_code = frappe.db.get_value("Service Type", service_type, "item_code")
             if item_code:
                 self.item = item_code

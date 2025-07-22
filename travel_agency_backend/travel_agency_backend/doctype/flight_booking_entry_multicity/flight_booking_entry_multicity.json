@@ -57,7 +57,7 @@
    "fieldtype": "Link",
    "label": "Service Type",
    "options": "Service Type",
-   "default": "Flight Multicity",
+   "default": "Flight Booking Multi City",
    "read_only": 1
   },
   {
