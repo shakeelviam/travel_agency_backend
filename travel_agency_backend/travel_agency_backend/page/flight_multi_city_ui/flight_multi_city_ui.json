@@ -1,0 +1,28 @@
+{
+ "content": null,
+ "creation": "2025-07-22 23:55:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-07-22 23:55:00.000000",
+ "modified_by": "Administrator",
+ "module": "Travel Agency Backend",
+ "name": "flight-multi-city-ui",
+ "owner": "Administrator",
+ "page_name": "flight-multi-city-ui",
+ "roles": [
+  {
+   "role": "System Manager"
+  },
+  {
+   "role": "Travel Agent"
+  },
+  {
+   "role": "Travel Manager"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "title": "Flight Multi City Interface"
+}

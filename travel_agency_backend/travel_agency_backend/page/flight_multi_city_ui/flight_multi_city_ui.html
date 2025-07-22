@@ -1,0 +1,318 @@
+<!-- Flight Multi City Interface -->
+<div id="flight-multi-city-app" class="flight-multi-city-ui-container">
+    <!-- Vue.js template -->
+    <div v-cloak>
+        <!-- Header with tabs -->
+        <div class="tabs-container">
+            <ul class="nav nav-tabs">
+                <li :class="{ 'active': activeTab === 'bookings' }" @click="setActiveTab('bookings')">
+                    <a><i class="fa fa-list"></i> Bookings</a>
+                </li>
+                <li :class="{ 'active': activeTab === 'create' }" @click="setActiveTab('create')">
+                    <a><i class="fa fa-plus-circle"></i> Create Booking</a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Bookings List Tab -->
+        <div v-if="activeTab === 'bookings'" class="bookings-container">
+            <div class="filters-container">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select v-model="filters.status" class="form-control">
+                                <option value="">All</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="Cancelled">Cancelled</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Customer</label>
+                            <input type="text" v-model="filters.customer" class="form-control" placeholder="Customer">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>From Date</label>
+                            <input type="date" v-model="filters.fromDate" class="form-control">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>To Date</label>
+                            <input type="date" v-model="filters.toDate" class="form-control">
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 text-right">
+                        <button class="btn btn-primary" @click="fetchBookings"><i class="fa fa-search"></i> Search</button>
+                        <button class="btn btn-default" @click="resetFilters"><i class="fa fa-refresh"></i> Reset</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bookings-list">
+                <div v-if="isLoading" class="text-center p-5">
+                    <i class="fa fa-spinner fa-spin fa-2x"></i>
+                    <p>Loading bookings...</p>
+                </div>
+                <div v-else-if="bookings.length === 0" class="text-center p-5">
+                    <p>No bookings found</p>
+                </div>
+                <div v-else class="table-responsive">
+                    <table class="table table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Customer</th>
+                                <th>Date</th>
+                                <th>Route Summary</th>
+                                <th>Status</th>
+                                <th>Total</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="booking in bookings" :key="booking.name">
+                                <td>{{ booking.name }}</td>
+                                <td>{{ booking.customer }}</td>
+                                <td>{{ formatDate(booking.date_of_issue) }}</td>
+                                <td>{{ booking.route_summary }}</td>
+                                <td>
+                                    <span :class="'status-indicator ' + getStatusClass(booking.docstatus)">
+                                        {{ getStatusText(booking.docstatus) }}
+                                    </span>
+                                </td>
+                                <td>{{ formatCurrency(booking.total_amount) }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-xs btn-default" @click="viewBooking(booking.name)">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                        <button v-if="booking.docstatus === 0" class="btn btn-xs btn-primary" @click="editBooking(booking.name)">
+                                            <i class="fa fa-pencil"></i>
+                                        </button>
+                                        <button v-if="booking.docstatus === 1" class="btn btn-xs btn-info" @click="createInvoice(booking.name)">
+                                            <i class="fa fa-file-text-o"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Booking Tab -->
+        <div v-if="activeTab === 'create'" class="create-booking-container">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title"><i class="fa fa-plane"></i> Create New Flight Multi City Booking</h3>
+                </div>
+                <div class="panel-body">
+                    <!-- Basic Information -->
+                    <div class="section-title">Basic Information</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Customer <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" v-model="newBooking.customer_name" class="form-control" readonly>
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-default" @click="selectCustomer">
+                                            <i class="fa fa-search"></i>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Date of Issue <span class="text-danger">*</span></label>
+                                <input type="date" v-model="newBooking.date_of_issue" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Passengers Section -->
+                    <div class="section-title">Passengers & Flight Segments</div>
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <button class="btn btn-sm btn-primary" @click="addPassenger">
+                                <i class="fa fa-plus"></i> Add Passenger
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Passengers List -->
+                    <div v-if="newBooking.passengers.length === 0" class="text-center p-3 bg-light">
+                        <p>No passengers added yet. Click "Add Passenger" to begin.</p>
+                    </div>
+                    
+                    <div v-for="(passenger, passengerIndex) in newBooking.passengers" :key="passengerIndex" class="passenger-card">
+                        <div class="passenger-header">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h4>
+                                        <i class="fa fa-user"></i> 
+                                        {{ passenger.passenger_name || 'Select Passenger' }}
+                                    </h4>
+                                </div>
+                                <div class="col-md-6 text-right">
+                                    <button class="btn btn-xs btn-danger" @click="removePassenger(passengerIndex)">
+                                        <i class="fa fa-trash"></i> Remove
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Passenger <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <input type="text" v-model="passenger.passenger_name" class="form-control" readonly>
+                                            <span class="input-group-btn">
+                                                <button class="btn btn-default" @click="selectPassenger(passengerIndex)">
+                                                    <i class="fa fa-search"></i>
+                                                </button>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Flight Segments for this passenger -->
+                        <div class="segments-container">
+                            <div class="row mb-2">
+                                <div class="col-md-12">
+                                    <button class="btn btn-sm btn-info" @click="addSegment(passengerIndex)">
+                                        <i class="fa fa-plus"></i> Add Flight Segment
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div v-if="!passenger.segments || passenger.segments.length === 0" class="text-center p-2 bg-light">
+                                <p>No flight segments added for this passenger.</p>
+                            </div>
+                            
+                            <div v-else class="table-responsive">
+                                <table class="table table-bordered table-condensed">
+                                    <thead>
+                                        <tr>
+                                            <th>Airline</th>
+                                            <th>From</th>
+                                            <th>To</th>
+                                            <th>Date</th>
+                                            <th>Flight #</th>
+                                            <th>Class</th>
+                                            <th>Ticket #</th>
+                                            <th>PNR</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="(segment, segmentIndex) in passenger.segments" :key="segmentIndex">
+                                            <td>{{ segment.airline_name || segment.airline }}</td>
+                                            <td>{{ segment.from_location_name || segment.from_location }}</td>
+                                            <td>{{ segment.to_location_name || segment.to_location }}</td>
+                                            <td>{{ formatDate(segment.date_of_travel) }}</td>
+                                            <td>{{ segment.flight_number }}</td>
+                                            <td>{{ segment.booking_class }}</td>
+                                            <td>{{ segment.ticket_number }}</td>
+                                            <td>{{ segment.pnr }}</td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-xs btn-default" @click="editSegment(passengerIndex, segmentIndex)">
+                                                        <i class="fa fa-pencil"></i>
+                                                    </button>
+                                                    <button class="btn btn-xs btn-danger" @click="removeSegment(passengerIndex, segmentIndex)">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Service Details -->
+                    <div class="section-title mt-4">Service Details</div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Supplier <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="text" v-model="newBooking.supplier_name" class="form-control" readonly>
+                                    <span class="input-group-btn">
+                                        <button class="btn btn-default" @click="selectSupplier">
+                                            <i class="fa fa-search"></i>
+                                        </button>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Supplier Cost</label>
+                                <input type="number" v-model="newBooking.supplier_cost" class="form-control" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Markup</label>
+                                <input type="number" v-model="newBooking.markup" class="form-control" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Commission</label>
+                                <input type="number" v-model="newBooking.commission" class="form-control" step="0.01">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label>Total Amount</label>
+                                <input type="number" v-model="newBooking.total_amount" class="form-control" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Remarks -->
+                    <div class="section-title mt-4">Remarks</div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <textarea v-model="newBooking.remarks" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="row mt-4">
+                        <div class="col-md-12 text-right">
+                            <button class="btn btn-default" @click="resetForm">Cancel</button>
+                            <button class="btn btn-primary" @click="saveBooking" :disabled="!isFormValid || isSaving">
+                                <i v-if="isSaving" class="fa fa-spinner fa-spin"></i>
+                                Save
+                            </button>
+                            <button v-if="newBooking.name" class="btn btn-success" @click="submitBooking" :disabled="!isFormValid || isSaving">
+                                <i v-if="isSubmitting" class="fa fa-spinner fa-spin"></i>
+                                Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
