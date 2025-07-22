@@ -1,4 +1,4 @@
-// Copyright (c) 2025, Travel Agency and contributors
+// Copyright (c) 2023, Shakeel Viam and contributors
 // For license information, please see license.txt
 
 frappe.ui.form.on('Flight Multi City Test', {
@@ -20,13 +20,27 @@ frappe.ui.form.on('Flight Multi City Test', {
 			frm.set_df_property("service_details_section", "hidden", 0);
 			frm.set_df_property("passengers", "hidden", 0);
 			
-			// Ensure all passenger segments are visible if they exist
+			// Ensure all passenger rows are open and segments are visible
 			frm.doc.passengers.forEach(passenger => {
-				if (passenger.segments && passenger.segments.length > 0) {
-					const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger.name];
-					if (grid_row) {
-						grid_row.toggle_display('segments', true);
-						grid_row.open();
+				const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger.name];
+				if (grid_row) {
+					// Make sure the segments field is visible
+					grid_row.toggle_display('segments', true);
+					grid_row.open();
+					
+					// Make sure all segment fields are visible
+					if (passenger.segments && passenger.segments.length > 0) {
+						const segments_grid = grid_row.fields_dict.segments.grid;
+						if (segments_grid && segments_grid.grid_rows) {
+							segments_grid.grid_rows.forEach(segment_row => {
+								// Ensure all fields are visible for each segment
+								const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
+									'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+								fields.forEach(field => {
+									segment_row.toggle_display(field, true);
+								});
+							});
+						}
 					}
 				}
 			});
@@ -34,74 +48,78 @@ frappe.ui.form.on('Flight Multi City Test', {
 		
 		// Add Passenger Segment button in draft state
 		if (frm.doc.docstatus === 0) {
-			frm.add_custom_button("Add Passenger Segment", () => {
-				frappe.prompt(
-					[
-						{
-							fieldname: "passenger",
-							label: "Passenger",
-							fieldtype: "Link",
-							options: "Passenger",
-							reqd: 1,
-						}
-					],
-					(values) => {
-						// Check if passenger already exists
-						const existingPassenger = (frm.doc.passengers || []).find(p => p.passenger === values.passenger);
-						if (existingPassenger) {
-							frappe.msgprint(`Passenger ${values.passenger} already exists in this booking.`);
-							return;
+			frm.add_custom_button(__('Add Passenger Segment'), function() {
+				// Prompt for passenger selection
+				frappe.prompt([
+					{
+						fieldname: 'passenger',
+						label: 'Passenger',
+						fieldtype: 'Link',
+						options: 'Passenger',
+						reqd: 1
+					}
+				], function(values) {
+					// Check if passenger already exists
+					const existingPassenger = (frm.doc.passengers || []).find(p => p.passenger === values.passenger);
+					if (existingPassenger) {
+						frappe.msgprint(`Passenger ${values.passenger} already exists in this booking.`);
+						return;
+					}
+					
+					// Add passenger to the list
+					const passenger = frappe.model.add_child(frm.doc, 'passengers', 'Flight Multi City Passenger');
+					passenger.passenger = values.passenger;
+					
+					// Fetch passenger name
+					frappe.db.get_value('Passenger', values.passenger, 'full_name', function(r) {
+						if (r && r.full_name) {
+							passenger.passenger_name = r.full_name;
+							frm.refresh_field('passengers');
 						}
 						
-						// Unhide the sections before adding data
+						// Show the sections
 						frm.set_df_property("flight_multicity_section", "hidden", 0);
 						frm.set_df_property("service_details_section", "hidden", 0);
 						frm.set_df_property("passengers", "hidden", 0);
 						
-						// Add a new passenger row
-						const passengerRow = frm.add_child("passengers", {
-							passenger: values.passenger
-						});
+						// Add an empty segment for this passenger
+						const segment = frappe.model.add_child(passenger, 'segments', 'Flight Multi City Segment');
 						
-						// Fetch passenger name
-						frappe.db.get_value('Passenger', values.passenger, 'full_name', function(r) {
-							if (r && r.full_name) {
-								frappe.model.set_value(passengerRow.doctype, passengerRow.name, 'passenger_name', r.full_name);
+						// Save the form to ensure changes are persisted
+						frm.save().then(() => {
+							// Refresh fields
+							frm.refresh_field("passengers");
+							update_route_summary(frm);
+							
+							// Find the grid row for this passenger to ensure segments are visible
+							const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger.name];
+							if (grid_row) {
+								// Make sure the segments field is visible
+								grid_row.toggle_display('segments', true);
+								grid_row.open();
+								
+								// Make sure all segment fields are visible
+								const segments_grid = grid_row.fields_dict.segments.grid;
+								if (segments_grid && segments_grid.grid_rows) {
+									segments_grid.grid_rows.forEach(segment_row => {
+										// Ensure all fields are visible for each segment
+										const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
+											'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+										fields.forEach(field => {
+											segment_row.toggle_display(field, true);
+										});
+									});
+								}
 							}
 							
-							// Refresh the form
-							frm.refresh_field("passengers");
-							
-							// Add an empty flight segment row for this passenger
-							const segment = frappe.model.add_child(passengerRow, 'segments', 'Flight Multi City Segment');
-							
-							// Save the form to ensure changes are persisted
-							frm.save().then(() => {
-								// Update route summary
-								update_route_summary(frm);
-								
-								// Find the grid row for this passenger to ensure segments are visible
-								const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passengerRow.name];
-								if (grid_row) {
-									// Make sure the segments field is visible
-									grid_row.toggle_display('segments', true);
-									grid_row.open();
-								}
-								
-								// Scroll to the passenger table
-								frm.scroll_to_field("passengers");
-								
-								// Show success message
-								frappe.show_alert({
-									message: `Passenger ${r.full_name || values.passenger} added with empty flight segment`,
-									indicator: 'green'
-								}, 5);
-							});
+							// Show success message
+							frappe.show_alert({
+								message: `Passenger ${r.full_name || values.passenger} added`,
+								indicator: 'green'
+							}, 5);
 						});
-					},
-					"Add Passenger Segment",
-					"Add"
-				);
+					});
+				}, 'Add Passenger', 'Add');
 			}).addClass('btn-primary');
 		}
 	},
@@ -166,11 +184,23 @@ frappe.ui.form.on('Flight Multi City Passenger', {
 			});
 		}
 		
-		// Ensure the segments table is visible
+		// Always ensure the segments field is visible and row is open
+		grid_row.toggle_display('segments', true);
+		grid_row.open();
+		
+		// Make sure all segment fields are visible
 		if (row.segments && row.segments.length > 0) {
-			// Make sure the segments field is visible
-			grid_row.toggle_display('segments', true);
-			grid_row.open();
+			const segments_grid = grid_row.fields_dict.segments.grid;
+			if (segments_grid && segments_grid.grid_rows) {
+				segments_grid.grid_rows.forEach(segment_row => {
+					// Ensure all fields are visible for each segment
+					const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
+						'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+					fields.forEach(field => {
+						segment_row.toggle_display(field, true);
+					});
+				});
+			}
 		}
 	}
 });
@@ -203,59 +233,62 @@ frappe.ui.form.on('Flight Multi City Segment', {
 		const parent_field = segment.parentfield;
 		const parent_name = segment.parent;
 		
-		// Find the grid row for this segment
+		// Find the grid row for this passenger
 		const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[parent_name];
 		if (!grid_row) return;
-		
-		// Find the nested grid row for this segment
-		const segment_grid = grid_row.doc.segments;
-		if (!segment_grid) return;
 		
 		// Make sure the parent row is open to show segments
 		grid_row.toggle_display('segments', true);
 		grid_row.open();
 		
-		// We need to find the grid row for this specific segment
-		const segment_grid_rows = grid_row.fields_dict.segments.grid.grid_rows;
-		for (let i = 0; i < segment_grid_rows.length; i++) {
-			if (segment_grid_rows[i].doc.name === cdn) {
-				const $row = $(segment_grid_rows[i].wrapper);
-				
-				// Add edit and delete buttons if they don't exist already
-				if (!$row.find('.edit-segment-btn').length) {
-					const $action_wrapper = $(`<div class="btn-group pull-right" style="margin-top: 3px;"></div>`);
-					
-					// Edit button
-					const $edit_btn = $(`<button class="btn btn-xs btn-default edit-segment-btn">
-						<i class="fa fa-pencil"></i>
-					</button>`)
-					.appendTo($action_wrapper)
-					.on('click', function() {
-						edit_flight_segment(frm, parent_name, cdn);
-						return false;
-					});
-					
-					// Delete button
-					const $delete_btn = $(`<button class="btn btn-xs btn-danger delete-segment-btn">
-						<i class="fa fa-trash"></i>
-					</button>`)
-					.appendTo($action_wrapper)
-					.on('click', function() {
-						delete_flight_segment(frm, parent_name, cdn);
-						return false;
-					});
-					
-					$action_wrapper.appendTo($row.find('.row-index'));
-				}
-				
-				// Ensure all fields are visible
-				const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 'flight_number', 'booking_class', 'ticket_number', 'pnr'];
-				fields.forEach(field => {
-					segment_grid_rows[i].toggle_display(field, true);
-				});
-				
+		// Find the segment grid row
+		const segments_grid = grid_row.fields_dict.segments.grid;
+		if (!segments_grid || !segments_grid.grid_rows) return;
+		
+		// Find this specific segment row
+		let segment_row = null;
+		for (let i = 0; i < segments_grid.grid_rows.length; i++) {
+			if (segments_grid.grid_rows[i].doc.name === cdn) {
+				segment_row = segments_grid.grid_rows[i];
 				break;
 			}
+		}
+		
+		if (!segment_row) return;
+		
+		// Ensure all fields are visible for this segment
+		const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
+			'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+		fields.forEach(field => {
+			segment_row.toggle_display(field, true);
+		});
+		
+		// Add edit and delete buttons if they don't exist already
+		const $row = $(segment_row.wrapper);
+		if (!$row.find('.edit-segment-btn').length) {
+			const $action_wrapper = $(`<div class="btn-group pull-right" style="margin-top: 3px;"></div>`);
+			
+			// Edit button
+			const $edit_btn = $(`<button class="btn btn-xs btn-default edit-segment-btn">
+				<i class="fa fa-pencil"></i>
+			</button>`)
+			.appendTo($action_wrapper)
+			.on('click', function() {
+				edit_flight_segment(frm, parent_name, cdn);
+				return false;
+			});
+			
+			// Delete button
+			const $delete_btn = $(`<button class="btn btn-xs btn-danger delete-segment-btn">
+				<i class="fa fa-trash"></i>
+			</button>`)
+			.appendTo($action_wrapper)
+			.on('click', function() {
+				delete_flight_segment(frm, parent_name, cdn);
+				return false;
+			});
+			
+			$action_wrapper.appendTo($row.find('.row-index'));
 		}
 	}
 });
@@ -303,7 +336,8 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 		{
 			fieldname: 'date_of_travel',
 			label: 'Date of Travel',
-			fieldtype: 'Date'
+			fieldtype: 'Date',
+			reqd: 1
 		},
 		{
 			fieldname: 'flight_number',
@@ -349,6 +383,19 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 				// Make sure the segments field is visible
 				grid_row.toggle_display('segments', true);
 				grid_row.open();
+				
+				// Make sure all segment fields are visible
+				const segments_grid = grid_row.fields_dict.segments.grid;
+				if (segments_grid && segments_grid.grid_rows) {
+					segments_grid.grid_rows.forEach(segment_row => {
+						// Ensure all fields are visible for each segment
+						const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
+							'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+						fields.forEach(field => {
+							segment_row.toggle_display(field, true);
+						});
+					});
+				}
 			}
 			
 			// Show success message
@@ -399,6 +446,7 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 			fieldname: 'date_of_travel',
 			label: 'Date of Travel',
 			fieldtype: 'Date',
+			reqd: 1,
 			default: segment.date_of_travel
 		},
 		{
@@ -448,6 +496,19 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 				// Make sure the segments field is visible
 				grid_row.toggle_display('segments', true);
 				grid_row.open();
+				
+				// Make sure all segment fields are visible
+				const segments_grid = grid_row.fields_dict.segments.grid;
+				if (segments_grid && segments_grid.grid_rows) {
+					segments_grid.grid_rows.forEach(segment_row => {
+						// Ensure all fields are visible for each segment
+						const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
+							'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+						fields.forEach(field => {
+							segment_row.toggle_display(field, true);
+						});
+					});
+				}
 			}
 			
 			// Show success message
@@ -494,6 +555,19 @@ function delete_flight_segment(frm, parent_name, segment_name) {
 					// Make sure the segments field is visible and row is open
 					grid_row.toggle_display('segments', true);
 					grid_row.open();
+					
+					// Make sure all remaining segment fields are visible
+					const segments_grid = grid_row.fields_dict.segments.grid;
+					if (segments_grid && segments_grid.grid_rows) {
+						segments_grid.grid_rows.forEach(segment_row => {
+							// Ensure all fields are visible for each segment
+							const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
+								'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+							fields.forEach(field => {
+								segment_row.toggle_display(field, true);
+							});
+						});
+					}
 				}
 				
 				// Show success message
