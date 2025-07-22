@@ -11,18 +11,21 @@
   "customer",
   "date_of_issue",
   "basic_information_section",
+  "flight_multicity_section",
+  "passenger",
+  "segments",
+  "route_summary",
   "service_details_section",
   "service_type",
   "supplier",
   "item",
+  "ticket_number",
+  "pnr",
   "column_break_13",
   "supplier_cost",
   "markup",
   "commission",
   "total_amount",
-  "flight_multicity_section",
-  "segments",
-  "route_summary",
   "remarks_section",
   "remarks"
  ],
@@ -52,7 +55,6 @@
    "fieldtype": "Section Break",
    "label": "Basic Information"
   },
-
   {
    "fieldname": "service_details_section",
    "fieldtype": "Section Break",
@@ -77,7 +79,18 @@
    "fieldname": "item",
    "fieldtype": "Link",
    "label": "Item",
-   "options": "Item"
+   "options": "Item",
+   "read_only": 1
+  },
+  {
+   "fieldname": "ticket_number",
+   "fieldtype": "Data",
+   "label": "Ticket Number"
+  },
+  {
+   "fieldname": "pnr",
+   "fieldtype": "Data",
+   "label": "PNR"
   },
   {
    "fieldname": "column_break_13",
@@ -107,7 +120,14 @@
   {
    "fieldname": "flight_multicity_section",
    "fieldtype": "Section Break",
-   "label": "Flight Multi City Segments"
+   "label": "Flight Multi City Details"
+  },
+  {
+   "fieldname": "passenger",
+   "fieldtype": "Link",
+   "label": "Passenger",
+   "options": "Passenger",
+   "reqd": 1
   },
   {
    "fieldname": "segments",

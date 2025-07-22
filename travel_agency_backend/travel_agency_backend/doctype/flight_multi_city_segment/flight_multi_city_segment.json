@@ -4,23 +4,15 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "passenger",
+  "airline",
   "date_of_travel",
+  "column_break_1",
   "from_location",
   "to_location",
-  "column_break_1",
-  "airline",
   "flight_number",
   "booking_class"
  ],
  "fields": [
-  {
-   "fieldname": "passenger",
-   "fieldtype": "Link",
-   "in_list_view": 1,
-   "label": "Passenger",
-   "options": "Passenger"
-  },
   {
    "fieldname": "date_of_travel",
    "fieldtype": "Date",
