@@ -3,20 +3,22 @@
 
 frappe.ui.form.on('Flight Multi City Test', {
 	refresh: function(frm) {
-		// Hide all sections initially except basic fields
-		frm.set_df_property("flight_multicity_section", "hidden", 0);
-		frm.set_df_property("passenger_segments_html", "hidden", 1); // Hide custom HTML field
+		// Clear existing custom buttons to avoid duplicates on refresh
+		frm.clear_custom_buttons();
 		
-		// Show sections based on data
+		// Hide all sections initially - EVERYTHING is hidden by default
+		frm.set_df_property("flight_multicity_section", "hidden", 1);
+		frm.set_df_property("service_details_section", "hidden", 1);
+		frm.set_df_property("passengers", "hidden", 1);
+		
+		// Show sections only if data exists
 		if (frm.doc.passengers && frm.doc.passengers.length > 0) {
-			// Show service details section
+			frm.set_df_property("flight_multicity_section", "hidden", 0);
 			frm.set_df_property("service_details_section", "hidden", 0);
-		} else {
-			// Hide sections when no passengers
-			frm.set_df_property("service_details_section", "hidden", 1);
+			frm.set_df_property("passengers", "hidden", 0);
 		}
 		
-		// Add Passenger Segment button
+		// Add Passenger Segment button in draft state
 		if (frm.doc.docstatus === 0) {
 			frm.add_custom_button("Add Passenger Segment", () => {
 				frappe.prompt(
@@ -37,6 +39,11 @@ frappe.ui.form.on('Flight Multi City Test', {
 							return;
 						}
 						
+						// Unhide the sections before adding data
+						frm.set_df_property("flight_multicity_section", "hidden", 0);
+						frm.set_df_property("service_details_section", "hidden", 0);
+						frm.set_df_property("passengers", "hidden", 0);
+						
 						// Add a new passenger row
 						const passengerRow = frm.add_child("passengers", {
 							passenger: values.passenger
@@ -56,11 +63,11 @@ frappe.ui.form.on('Flight Multi City Test', {
 							
 							// Save the form to ensure changes are persisted
 							frm.save().then(() => {
-								// Show service details section
-								frm.set_df_property("service_details_section", "hidden", 0);
-								
 								// Update route summary
 								update_route_summary(frm);
+								
+								// Scroll to the passenger table
+								frm.scroll_to_field("passengers");
 								
 								// Show success message
 								frappe.show_alert({
@@ -156,7 +163,7 @@ frappe.ui.form.on('Flight Multi City Segment', {
 		const parent_name = segment.parent;
 		
 		// Find the grid row for this segment
-		const grid_row = cur_frm.fields_dict.passengers.grid.grid_rows_by_docname[parent_name];
+		const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[parent_name];
 		if (!grid_row) return;
 		
 		// Find the nested grid row for this segment
@@ -285,7 +292,7 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 			update_route_summary(frm);
 			
 			// Re-render the passenger segments in the custom HTML view
-			render_passenger_segments(frm);
+			// No need for custom HTML rendering - using standard Frappe UI
 			
 			// Show success message
 			frappe.show_alert({
@@ -296,11 +303,7 @@ function add_flight_segment_for_passenger(frm, passenger_row_name) {
 	}, 'Add Flight Segment', 'Add');
 }
 
-// No longer needed as we're using standard Frappe UI
-function render_passenger_segments(frm) {
-	// This function is no longer used
-	// We're using standard Frappe UI for child tables
-}
+// We're using standard Frappe UI - no need for custom HTML rendering
 
 function edit_flight_segment(frm, passenger_row_name, segment_name) {
 	// Find the passenger row and segment
@@ -316,14 +319,14 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 			fieldname: 'airline',
 			label: 'Airline',
 			fieldtype: 'Link',
-			options: 'Airline',
+			options: 'Airline Master',
 			default: segment.airline
 		},
 		{
 			fieldname: 'from_location',
 			label: 'From Location',
 			fieldtype: 'Link',
-			options: 'Airport',
+			options: 'Sector Master',
 			reqd: 1,
 			default: segment.from_location
 		},
@@ -331,7 +334,7 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 			fieldname: 'to_location',
 			label: 'To Location',
 			fieldtype: 'Link',
-			options: 'Airport',
+			options: 'Sector Master',
 			reqd: 1,
 			default: segment.to_location
 		},
@@ -383,7 +386,7 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 			update_route_summary(frm);
 			
 			// Re-render the passenger segments in the custom HTML view
-			render_passenger_segments(frm);
+			// No need for custom HTML rendering - using standard Frappe UI
 			
 			// Show success message
 			frappe.show_alert({
@@ -414,8 +417,7 @@ function delete_flight_segment(frm, passenger_row_name, segment_name) {
 					frm.refresh_field("passengers");
 					update_route_summary(frm);
 					
-					// Re-render the passenger segments in the custom HTML view
-					render_passenger_segments(frm);
+					// No need to render custom HTML anymore
 					
 					// Show success message
 					frappe.show_alert({
