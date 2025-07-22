@@ -6,7 +6,17 @@ from frappe.model.document import Document
 
 class FlightBookingEntryMulticity(Document):
     def validate(self):
-        self.calculate_total()
+        # Set the item based on the Service Type
+        if not self.item:
+            service_type = "Flight Multicity"
+            item_code = frappe.db.get_value("Service Type", service_type, "item_code")
+            if item_code:
+                self.item = item_code
+        
+        # Calculate total from supplier cost, markup, and commission
+        self.total_amount = (self.supplier_cost or 0) + (self.markup or 0) - (self.commission or 0)
+        
+        # Update route summary
         self.update_route_summary()
     
     def calculate_total(self):
