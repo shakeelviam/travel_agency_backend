@@ -32,6 +32,9 @@
      "flight_online_section",
      "flight_online_supplier",
      "flight_booking_entry_online",
+     "flight_multicity_section",
+     "flight_multicity_supplier",
+     "flight_booking_entry_multicity",
      "insurance_section",
      "insurance_supplier",
      "insurance_booking_entry"
@@ -221,6 +224,26 @@
       "hidden": 1,
       "label": "Insurance Booking Entry",
       "options": "Insurance Booking Entry"
+     },
+     {
+      "fieldname": "flight_multicity_section",
+      "fieldtype": "Section Break",
+      "hidden": 1,
+      "label": "Flight Multicity Services"
+     },
+     {
+      "fieldname": "flight_multicity_supplier",
+      "fieldtype": "Link",
+      "hidden": 1,
+      "label": "Flight Multicity Supplier",
+      "options": "Supplier"
+     },
+     {
+      "fieldname": "flight_booking_entry_multicity",
+      "fieldtype": "Table",
+      "hidden": 1,
+      "label": "Flight Booking Entry Multicity",
+      "options": "Flight Booking Entry Multicity"
      },
      {
       "fieldname": "selected_services",

@@ -6,8 +6,7 @@ frappe.ui.form.on("Trip Booking", {
     const serviceMap = {
       "Flight GDS": ["flight_gds_section", "flight_booking_entry_gds", "flight_gds_supplier"],
       "Flight Online Airlines": ["flight_online_section", "flight_booking_entry_online", "flight_online_supplier"],
-      "Flight Booking GDS Multi City": ["flight_gds_multicity_section", "flight_booking_entry_gds_multicity", "flight_gds_supplier_multicity"],
-      "Flight Booking Online Airlines Multi City": ["flight_online_multicity_section", "flight_booking_entry_online_multicity", "flight_online_supplier_multicity"],
+      "Flight Multicity": ["flight_multicity_section", "flight_booking_entry_multicity", "flight_multicity_supplier"],
       "Hotel Booking": ["hotel_section", "hotel_booking_entry", "hotel_supplier"],
       "Visa Application Charges": ["visa_section", "visa_booking_entry", "visa_supplier"],
       "Insurance Service": ["insurance_section", "insurance_booking_entry", "insurance_supplier"],
@@ -86,8 +85,7 @@ frappe.ui.form.on("Trip Booking", {
               const serviceTypeToSelectWbjnMap = {
                 "Flight GDS": "Flight GDS",
                 "Flight Online Airlines": "Flight Online Airlines",
-                "Flight Booking GDS Multi City": "Flight Booking GDS Multi City",
-                "Flight Booking Online Airlines Multi City": "Flight Booking Online Airlines Multi City",
+                "Flight Multicity": "Flight Multicity",
                 "Hotel Booking": "Hotel Booking",
                 "Visa Application Charges": "Visa Application Charges",
                 "Car Rental Service": "Car Rental Service", 
@@ -192,8 +190,7 @@ frappe.ui.form.on("Trip Booking", {
     const supportedTables = [
       "flight_booking_entry_gds",
       "flight_booking_entry_online",
-      "flight_booking_entry_gds_multicity",
-      "flight_booking_entry_online_multicity",
+      "flight_booking_entry_multicity",
       "hotel_booking_entry",
       "car_rental_booking_entry",
       "visa_booking_entry",
@@ -235,8 +232,38 @@ frappe.ui.form.on("Trip Booking", {
     supportedTables.forEach(table => {
       const doctype = frappe.model.unscrub(table);
 
+      // Special handling for Flight Booking Entry Multicity
+      if (table === "flight_booking_entry_multicity") {
+        frappe.ui.form.on(doctype, {
+          supplier_cost: function(frm, cdt, cdn) {
+            calculate_row_total(frm, cdt, cdn);
+          },
+          markup: function(frm, cdt, cdn) {
+            calculate_row_total(frm, cdt, cdn);
+          },
+          commission: function(frm, cdt, cdn) {
+            calculate_row_total(frm, cdt, cdn);
+          },
+          segments_add: function(frm, cdt, cdn) {
+            // When a segment is added, update route summary
+            let row = locals[cdt][cdn];
+            if (row.update_route_summary) {
+              row.update_route_summary();
+            }
+            calculate_row_total(frm, cdt, cdn);
+          },
+          segments_remove: function(frm, cdt, cdn) {
+            // When a segment is removed, update route summary
+            let row = locals[cdt][cdn];
+            if (row.update_route_summary) {
+              row.update_route_summary();
+            }
+            calculate_row_total(frm, cdt, cdn);
+          }
+        });
+      }
       // Special handling for Flight Booking Entry GDS
-      if (table === "flight_booking_entry_gds") {
+      else if (table === "flight_booking_entry_gds") {
         frappe.ui.form.on(doctype, {
           base_fare: function(frm, cdt, cdn) {
             let row = locals[cdt][cdn];
