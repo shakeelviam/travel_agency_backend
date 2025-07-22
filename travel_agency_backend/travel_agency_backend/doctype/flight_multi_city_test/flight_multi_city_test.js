@@ -10,7 +10,6 @@ frappe.ui.form.on('Flight Multi City Test', {
 		frm.set_df_property("flight_multicity_section", "hidden", 1);
 		frm.set_df_property("service_details_section", "hidden", 1);
 		frm.set_df_property("passengers", "hidden", 1);
-		frm.set_df_property("passenger_segments_html", "hidden", 1);
 		
 		// Update route summary
 		update_route_summary(frm);
@@ -22,9 +21,9 @@ frappe.ui.form.on('Flight Multi City Test', {
 			frm.set_df_property("passengers", "hidden", 0);
 		}
 		
-		// Add Passenger Segment button in draft state
+		// Add Passenger button in draft state
 		if (frm.doc.docstatus === 0) {
-			frm.add_custom_button(__('Add Passenger Segment'), function() {
+			frm.add_custom_button(__('Add Passenger'), function() {
 				// Prompt for passenger selection
 				frappe.prompt([
 					{
@@ -43,7 +42,7 @@ frappe.ui.form.on('Flight Multi City Test', {
 					}
 					
 					// Add passenger to the list
-					const passenger = frappe.model.add_child(frm.doc, 'passengers');
+					const passenger = frappe.model.add_child(frm.doc, 'Flight Multi City Passenger', 'passengers');
 					passenger.passenger = values.passenger;
 					
 					// Fetch passenger name
@@ -58,7 +57,7 @@ frappe.ui.form.on('Flight Multi City Test', {
 						frm.set_df_property("passengers", "hidden", 0);
 						
 						// Add an empty segment for this passenger
-						const segment = frappe.model.add_child(passenger, 'segments');
+						const segment = frappe.model.add_child(passenger, 'Flight Multi City Segment', 'segments');
 						
 						// Refresh fields
 						frm.refresh_field("passengers");
@@ -101,36 +100,44 @@ frappe.ui.form.on('Flight Multi City Test', {
 						}
 					});
 				}, createGroup).addClass('btn-danger');
+			} else {
+				// Add View Sales Invoice button
+				frm.add_custom_button(__('View Sales Invoice'), function() {
+					frappe.set_route('Form', 'Sales Invoice', frm.doc.sales_invoice_id);
+				}, __('View'));
 			}
 			
 			if (!purchaseInvoiceExists) {
-				// Add Purchase Invoices button (red if no invoices exist)
-				frm.add_custom_button(__('Purchase Invoices'), function() {
-					frappe.call({
+				// Add Purchase Invoice button
+				frm.add_custom_button(__('Purchase Invoice'), function() {
+					frappe.model.open_mapped_doc({
 						method: "travel_agency_backend.travel_agency_backend.doctype.flight_multi_city_test.flight_multi_city_test.make_purchase_invoice",
-						args: {
-							source_name: frm.doc.name
-						},
-						callback: function(r) {
-							if (r.message && r.message.length) {
-								frappe.msgprint({
-									title: __('Purchase Invoices Created'),
-									message: __('Created {0} Purchase Invoice(s)', [r.message.length]),
-									indicator: 'green'
-								});
-								// Refresh the form after invoice creation
-								frm.reload_doc();
-							} else {
-								frappe.msgprint({
-									title: __('No Invoices Created'),
-									message: __('No Purchase Invoices were created. Please check supplier and cost details.'),
-									indicator: 'orange'
-								});
-							}
+						frm: frm,
+						callback: function(doc) {
+							// Refresh the form after invoice creation
+							frm.reload_doc();
 						}
 					});
 				}, createGroup).addClass('btn-danger');
+			} else {
+				// Add View Purchase Invoice button
+				frm.add_custom_button(__('View Purchase Invoice'), function() {
+					// Open the first purchase invoice in the list
+					if (frm.doc.purchase_invoice_ids && frm.doc.purchase_invoice_ids.length > 0) {
+						frappe.set_route('Form', 'Purchase Invoice', frm.doc.purchase_invoice_ids[0]);
+					}
+				}, __('View'));
 			}
+		}
+		
+		// Make sure all passenger rows are expanded and their flight segments are visible
+		if (frm.doc.passengers && frm.doc.passengers.length > 0) {
+			frm.doc.passengers.forEach(function(passenger) {
+				if (frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger.name]) {
+					// Open the passenger row to show segments
+					frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger.name].toggle_view(true);
+				}
+			});
 		}
 	},
 	
@@ -177,21 +184,35 @@ frappe.ui.form.on('Flight Multi City Passenger', {
 				__('Add Flight Segment'),
 				function() {
 					// Add a new segment to this passenger
-					const segment = frappe.model.add_child(row, 'segments');
+					const segment = frappe.model.add_child(row, 'Flight Multi City Segment', 'segments');
 					frm.refresh_field('passengers');
 					
 					// Open dialog to edit segment details
 					edit_flight_segment(frm, segment.doctype, segment.name, row.name);
 				}
-			);
+			).addClass('btn-primary');
 		}
 		
 		// Always ensure the segments field is visible and row is open
-		grid_row.toggle_display('segments', true);
-		grid_row.open();
+		if (grid_row) {
+			// Force the row to be open
+			grid_row.toggle_view(true, true); // Force open
+			
+			// Make segments field visible
+			if (grid_row.fields_dict.segments) {
+				grid_row.fields_dict.segments.df.hidden = 0;
+				grid_row.fields_dict.segments.$wrapper.show();
+				
+				// Expand the segments grid to show all rows
+				if (grid_row.fields_dict.segments.grid) {
+					grid_row.fields_dict.segments.grid.grid_pagination.page_length = 50; // Show more rows
+					grid_row.fields_dict.segments.grid.refresh();
+				}
+			}
+		}
 		
 		// Make sure all segment fields are visible
-		if (row.segments && row.segments.length > 0) {
+		if (row.segments && row.segments.length > 0 && grid_row && grid_row.fields_dict.segments) {
 			const segments_grid = grid_row.fields_dict.segments.grid;
 			if (segments_grid && segments_grid.grid_rows) {
 				segments_grid.grid_rows.forEach(segment_row => {
@@ -199,11 +220,22 @@ frappe.ui.form.on('Flight Multi City Passenger', {
 					const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
 						'flight_number', 'booking_class', 'ticket_number', 'pnr'];
 					fields.forEach(field => {
-						segment_row.toggle_display(field, true);
+						if (segment_row.columns_dict && segment_row.columns_dict[field]) {
+							segment_row.columns_dict[field].df.hidden = 0;
+							segment_row.columns_dict[field].$wrapper.show();
+						}
 					});
+					
+					// Force refresh of segment row
+					segment_row.refresh();
 				});
 			}
 		}
+		
+		// Force refresh after a short delay to ensure UI updates
+		setTimeout(() => {
+			frm.refresh_field('passengers');
+		}, 200);
 	},
 	
 	passengers_add: function(frm, cdt, cdn) {
@@ -276,6 +308,25 @@ frappe.ui.form.on('Flight Multi City Segment', {
 					);
 				}
 			);
+		}
+		
+		// Ensure all fields are visible for this segment
+		if (grid_row) {
+			// Make all fields visible
+			const fields = ['airline', 'from_location', 'to_location', 'date_of_travel', 
+				'flight_number', 'booking_class', 'ticket_number', 'pnr'];
+			
+			fields.forEach(field => {
+				if (grid_row.columns_dict[field]) {
+					grid_row.columns_dict[field].df.hidden = 0;
+					grid_row.columns_dict[field].$wrapper.show();
+				}
+			});
+			
+			// Force grid to refresh
+			setTimeout(() => {
+				grid_row.refresh();
+			}, 100);
 		}
 	},
 	
