@@ -8,9 +8,7 @@
   "passenger",
   "passenger_name",
   "section_break_3",
-  "segments",
-  "ticket_number",
-  "pnr"
+  "segments"
  ],
  "fields": [
   {
@@ -38,16 +36,6 @@
    "fieldtype": "Table",
    "label": "Flight Segments",
    "options": "Flight Multi City Segment"
-  },
-  {
-   "fieldname": "ticket_number",
-   "fieldtype": "Data",
-   "label": "Ticket Number"
-  },
-  {
-   "fieldname": "pnr",
-   "fieldtype": "Data",
-   "label": "PNR"
   }
  ],
  "index_web_pages_for_search": 1,
