@@ -32,6 +32,9 @@
      "flight_online_section",
      "flight_online_supplier",
      "flight_booking_entry_online",
+     "flight_multicity_section",
+     "flight_multicity_supplier",
+     "flight_booking_entry_multicity",
      "insurance_section",
      "insurance_supplier",
      "insurance_booking_entry"
@@ -228,6 +231,62 @@
       "fieldtype": "Table",
       "label": "Selected Services",
       "options": "Selected Service"
+     },
+     {
+      "fieldname": "flight_multicity_section",
+      "fieldtype": "Section Break",
+      "hidden": 1,
+      "label": "Flight Multicity Services"
+     },
+     {
+      "fieldname": "flight_multicity_supplier",
+      "fieldtype": "Link",
+      "hidden": 1,
+      "label": "Flight Multicity Supplier",
+      "options": "Supplier"
+     },
+     {
+      "fieldname": "flight_booking_entry_multicity",
+      "fieldtype": "Table",
+      "hidden": 1,
+      "label": "Flight Booking Entry Multicity",
+      "options": "Flight Booking Entry Multicity"
+     },
+     {
+      "fieldname": "flight_multicity_totals_section",
+      "fieldtype": "Section Break",
+      "hidden": 1,
+      "label": "Flight Multi City Totals",
+      "depends_on": "eval:doc.flight_multicity_supplier"
+     },
+     {
+      "fieldname": "flight_multicity_total_supplier_cost",
+      "fieldtype": "Currency",
+      "hidden": 1,
+      "label": "Total Supplier Cost",
+      "read_only": 1
+     },
+     {
+      "fieldname": "flight_multicity_column_break",
+      "fieldtype": "Column Break"
+     },
+     {
+      "fieldname": "flight_multicity_total_markup",
+      "fieldtype": "Currency",
+      "hidden": 1,
+      "label": "Total Markup",
+      "read_only": 1
+     },
+     {
+      "fieldname": "flight_multicity_column_break_2",
+      "fieldtype": "Column Break"
+     },
+     {
+      "fieldname": "flight_multicity_total_selling_price",
+      "fieldtype": "Currency",
+      "hidden": 1,
+      "label": "Total Selling Price",
+      "read_only": 1
      }
     ],
     "index_web_pages_for_search": 1,

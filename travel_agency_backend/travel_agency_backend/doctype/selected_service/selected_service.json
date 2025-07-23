@@ -12,7 +12,7 @@
   {
    "fieldname": "select_wbjn",
    "fieldtype": "Select",
-   "options": "Flight GDS\nFlight Online Airlines\nHotel Booking\nVisa Application Charges\nCar Rental Service\nInsurance Service"
+   "options": "Flight GDS\nFlight Online Airlines\nFlight Booking Multi City\nHotel Booking\nVisa Application Charges\nCar Rental Service\nInsurance Service"
   }
  ],
  "index_web_pages_for_search": 1,
