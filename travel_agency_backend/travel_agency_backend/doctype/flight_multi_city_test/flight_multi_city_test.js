@@ -21,8 +21,9 @@ frappe.ui.form.on('Flight Multi City Test', {
 		
 		// Add Service button in draft state (following Trip Booking pattern exactly)
 		if (frm.doc.docstatus === 0) {
+			// Add Service button (primary action)
 			frm.add_custom_button(__('Add Service'), function() {
-				// First prompt for service type selection - EXACTLY matching Trip Booking pattern
+				// First prompt for service type and passenger selection - adapted from Trip Booking pattern
 				frappe.prompt([
 					{
 						fieldname: 'service_type',
@@ -35,33 +36,61 @@ frappe.ui.form.on('Flight Multi City Test', {
 						}
 					},
 					{
-						fieldname: 'supplier',
-						label: 'Select Supplier',
+						fieldname: 'passenger',
+						label: 'Select Passenger',
 						fieldtype: 'Link',
-						options: 'Supplier',
+						options: 'Passenger',
 						reqd: 1
 					}
 				], function(values) {
-					// Set service type and supplier at parent level
-					frm.set_value('service_type', values.service_type);
-					frm.set_value('supplier', values.supplier);
+					// Check if this passenger already exists
+					const passengerExists = frm.doc.passengers && frm.doc.passengers.some(p => p.passenger === values.passenger);
 					
-					// Unhide the sections
-					frm.set_df_property("flight_multicity_section", "hidden", 0);
-					frm.set_df_property("service_details_section", "hidden", 0);
-					
-					// Show success message
-					frappe.show_alert({
-						message: __(`Service ${values.service_type} with supplier ${values.supplier} added`),
-						indicator: 'green'
-					}, 5);
-					
-					// Add a passenger button if not already added
-					if (!frm.custom_buttons['Add Passenger']) {
-						frm.add_custom_button(__('Add Passenger'), function() {
-							add_passenger(frm);
-						});
+					if (passengerExists) {
+						frappe.msgprint(`Passenger ${values.passenger} already added.`);
+						return;
 					}
+					
+					// Set service type at parent level
+					frm.set_value('service_type', values.service_type);
+					
+					// Add passenger to the table
+					let child = frm.add_child('passengers');
+					child.passenger = values.passenger;
+					
+					// Fetch passenger name
+					frappe.db.get_value('Passenger', values.passenger, 'full_name', function(r) {
+						if (r && r.full_name) {
+							child.passenger_name = r.full_name;
+						}
+						
+						// Add a segment automatically for this passenger
+						const segment = frappe.model.add_child(child, 'Flight Multi City Segment', 'segments');
+						
+						// Unhide the sections
+						frm.set_df_property("flight_multicity_section", "hidden", 0);
+						frm.set_df_property("service_details_section", "hidden", 0);
+						
+						frm.refresh_field('passengers');
+						update_route_summary(frm);
+						
+						// Show success message
+						frappe.show_alert({
+							message: __(`Service ${values.service_type} with passenger ${child.passenger_name || child.passenger} added`),
+							indicator: 'green'
+						}, 5);
+						
+						// Open the passenger row and prompt to add a flight segment
+						setTimeout(() => {
+							const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[child.name];
+							if (grid_row) {
+								grid_row.toggle_view(true); // Open the row
+								
+								// Add flight segment dialog
+								add_flight_segment_for_passenger(frm, child.name);
+							}
+						}, 500);
+					});
 					
 					// Focus on the passengers section
 					frm.scroll_to_field('passengers');
@@ -73,12 +102,39 @@ frappe.ui.form.on('Flight Multi City Test', {
 				create_invoice(frm);
 			});
 			
-			// Add Passenger button if service type is set
-			if (frm.doc.service_type && frm.doc.supplier) {
-				frm.add_custom_button(__('Add Passenger'), function() {
-					add_passenger(frm);
+			// Add Segment button if there are passengers
+			if (frm.doc.passengers && frm.doc.passengers.length > 0) {
+				frm.add_custom_button(__('Add Segment'), function() {
+					// Prompt for passenger selection first
+					frappe.prompt([
+						{
+							fieldname: 'passenger',
+							label: 'Select Passenger',
+							fieldtype: 'Link',
+							options: 'Passenger',
+							reqd: 1,
+							get_query: function() {
+								// Only show passengers that are already added
+								const passengers = frm.doc.passengers.map(p => p.passenger);
+								return {
+									filters: [['name', 'in', passengers]]
+								};
+							}
+						}
+					], function(values) {
+						// Find the passenger row
+						const passenger_row = frm.doc.passengers.find(p => p.passenger === values.passenger);
+						if (!passenger_row) {
+							frappe.msgprint("Passenger not found.");
+							return;
+						}
+						
+						// Add flight segment for this passenger
+						add_flight_segment_for_passenger(frm, passenger_row.name);
+					});
 				});
 			}
+			
 		}
 		
 		// Add Create Invoice buttons if submitted
@@ -470,61 +526,7 @@ function calculate_total(frm) {
 	frm.set_value('total_amount', total);
 }
 
-// Function to add passenger
-function add_passenger(frm) {
-	// Prompt for passenger selection
-	frappe.prompt([
-		{
-			fieldname: 'passenger',
-			label: 'Select Passenger',
-			fieldtype: 'Link',
-			options: 'Passenger',
-			reqd: 1
-		}
-	], function(values) {
-		// Check if this passenger already exists
-		const passengerExists = frm.doc.passengers && frm.doc.passengers.some(p => p.passenger === values.passenger);
-		
-		if (passengerExists) {
-			frappe.msgprint(`Passenger ${values.passenger} already added.`);
-			return;
-		}
-		
-		// Add passenger to the table
-		let child = frm.add_child('passengers');
-		child.passenger = values.passenger;
-		
-		// Fetch passenger name
-		frappe.db.get_value('Passenger', values.passenger, 'full_name', function(r) {
-			if (r && r.full_name) {
-				child.passenger_name = r.full_name;
-			}
-			
-			// Add a segment automatically for this passenger
-			const segment = frappe.model.add_child(child, 'Flight Multi City Segment', 'segments');
-			
-			frm.refresh_field('passengers');
-			update_route_summary(frm);
-			
-			// Show success message
-			frappe.show_alert({
-				message: __(`Passenger ${child.passenger_name || child.passenger} added`),
-				indicator: 'green'
-			}, 5);
-			
-			// Open the passenger row and prompt to add a flight segment
-			setTimeout(() => {
-				const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[child.name];
-				if (grid_row) {
-					grid_row.toggle_view(true); // Open the row
-					
-					// Add flight segment dialog
-					add_flight_segment_for_passenger(frm, child.name);
-				}
-			}, 500);
-		});
-	}, __('Add Passenger'), __('Add'));
-}
+
 
 // Function to update route summary
 function update_route_summary(frm) {
