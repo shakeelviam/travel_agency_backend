@@ -56,6 +56,10 @@ frappe.ui.form.on('Flight Multi City Test', {
 						frm.set_value('service_type', values.service_type);
 					}
 					
+					// Unhide the flight multicity section
+					frm.set_df_property("flight_multicity_section", "hidden", 0);
+					frm.set_df_property("service_details_section", "hidden", 0);
+					
 					// Add passenger to the table
 					const passenger = frappe.model.add_child(frm.doc, 'Flight Multi City Passenger', 'passengers');
 					passenger.passenger = values.passenger;
@@ -65,6 +69,9 @@ frappe.ui.form.on('Flight Multi City Test', {
 						if (r && r.full_name) {
 							passenger.passenger_name = r.full_name;
 						}
+						
+						// Add a segment automatically
+						const segment = frappe.model.add_child(passenger, 'segments', 'Flight Multi City Segment');
 						
 						// Save the form to ensure changes are persisted
 						frm.save().then(() => {
@@ -84,14 +91,8 @@ frappe.ui.form.on('Flight Multi City Test', {
 								if (grid_row) {
 									grid_row.toggle_view(true); // Open the row
 									
-									// Ask if they want to add a flight segment
-									frappe.confirm(
-										__('Do you want to add a flight segment for this passenger?'),
-										function() {
-											// Yes - add flight segment
-											add_flight_segment_for_passenger(frm, passenger.name);
-										}
-									);
+									// Add flight segment dialog
+									add_flight_segment_for_passenger(frm, passenger.name);
 								}
 							}, 500);
 						});
