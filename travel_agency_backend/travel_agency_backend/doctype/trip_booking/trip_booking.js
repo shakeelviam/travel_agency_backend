@@ -6,7 +6,6 @@ frappe.ui.form.on("Trip Booking", {
     const serviceMap = {
       "Flight GDS": ["flight_gds_section", "flight_booking_entry_gds", "flight_gds_supplier"],
       "Flight Online Airlines": ["flight_online_section", "flight_booking_entry_online", "flight_online_supplier"],
-      "Flight Booking Multi City": ["flight_multicity_section", "flight_booking_entry_multicity", "flight_multicity_supplier"],
       "Hotel Booking": ["hotel_section", "hotel_booking_entry", "hotel_supplier"],
       "Visa Application Charges": ["visa_section", "visa_booking_entry", "visa_supplier"],
       "Insurance Service": ["insurance_section", "insurance_booking_entry", "insurance_supplier"],
@@ -85,7 +84,6 @@ frappe.ui.form.on("Trip Booking", {
               const serviceTypeToSelectWbjnMap = {
                 "Flight GDS": "Flight GDS",
                 "Flight Online Airlines": "Flight Online Airlines",
-                "Flight Booking Multi City": "Flight Booking Multi City",
                 "Hotel Booking": "Hotel Booking",
                 "Visa Application Charges": "Visa Application Charges",
                 "Car Rental Service": "Car Rental Service", 
