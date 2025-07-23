@@ -19,10 +19,84 @@ frappe.ui.form.on('Flight Multi City Test', {
 			frm.set_df_property("service_details_section", "hidden", 0);
 		}
 		
-		// Add Passenger button in draft state
+		// Add Service button in draft state (following Trip Booking pattern)
 		if (frm.doc.docstatus === 0) {
-			frm.add_custom_button(__('Add Passenger'), function() {
-				add_new_passenger(frm);
+			frm.add_custom_button(__('Add Service'), function() {
+				// First prompt for service type selection
+				frappe.prompt([
+					{
+						fieldname: 'service_type',
+						label: 'Select Service',
+						fieldtype: 'Link',
+						options: 'Service Type',
+						reqd: 1,
+						filters: {
+							name: ['in', ['Flight Multi City GDS', 'Flight Multi City Online']]
+						},
+						description: 'Select Flight Multi City GDS or Flight Multi City Online'
+					},
+					{
+						fieldname: 'passenger',
+						label: 'Select Passenger',
+						fieldtype: 'Link',
+						options: 'Passenger',
+						reqd: 1
+					}
+				], function(values) {
+					// Check if passenger already exists
+					const passengerExists = frm.doc.passengers && frm.doc.passengers.some(p => p.passenger === values.passenger);
+					
+					if (passengerExists) {
+						frappe.msgprint(__(`Passenger ${values.passenger} already added.`));
+						return;
+					}
+					
+					// Set service type at parent level if not already set
+					if (!frm.doc.service_type) {
+						frm.set_value('service_type', values.service_type);
+					}
+					
+					// Add passenger to the table
+					const passenger = frappe.model.add_child(frm.doc, 'Flight Multi City Passenger', 'passengers');
+					passenger.passenger = values.passenger;
+					
+					// Fetch passenger name
+					frappe.db.get_value('Passenger', values.passenger, 'full_name', function(r) {
+						if (r && r.full_name) {
+							passenger.passenger_name = r.full_name;
+						}
+						
+						// Save the form to ensure changes are persisted
+						frm.save().then(() => {
+							// Refresh fields and update route summary
+							frm.refresh_field("passengers");
+							update_route_summary(frm);
+							
+							// Show success message
+							frappe.show_alert({
+								message: __(`Passenger ${passenger.passenger_name || passenger.passenger} added`),
+								indicator: 'green'
+							}, 5);
+							
+							// Open the passenger row and prompt to add a flight segment
+							setTimeout(() => {
+								const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger.name];
+								if (grid_row) {
+									grid_row.toggle_view(true); // Open the row
+									
+									// Ask if they want to add a flight segment
+									frappe.confirm(
+										__('Do you want to add a flight segment for this passenger?'),
+										function() {
+											// Yes - add flight segment
+											add_flight_segment_for_passenger(frm, passenger.name);
+										}
+									);
+								}
+							}, 500);
+						});
+					});
+				}, __('Add New Service'), __('Add'));
 			}).addClass('btn-primary');
 			
 			// Add Create Invoice button
@@ -183,68 +257,6 @@ frappe.ui.form.on('Flight Multi City Segment', {
 		update_route_summary(frm);
 	}
 });
-
-// Function to add a new passenger
-function add_new_passenger(frm) {
-	frappe.prompt([
-		{
-			fieldname: 'passenger',
-			label: 'Passenger',
-			fieldtype: 'Link',
-			options: 'Passenger',
-			reqd: 1
-		}
-	], function(values) {
-		// Check if passenger already exists
-		const passengerExists = frm.doc.passengers && frm.doc.passengers.some(p => p.passenger === values.passenger);
-		
-		if (passengerExists) {
-			frappe.msgprint(__(`Passenger ${values.passenger} already added.`));
-			return;
-		}
-		
-		// Add passenger to the table
-		const passenger = frappe.model.add_child(frm.doc, 'Flight Multi City Passenger', 'passengers');
-		passenger.passenger = values.passenger;
-		
-		// Fetch passenger name
-		frappe.db.get_value('Passenger', values.passenger, 'full_name', function(r) {
-			if (r && r.full_name) {
-				passenger.passenger_name = r.full_name;
-			}
-			
-			// Save the form to ensure changes are persisted
-			frm.save().then(() => {
-				// Refresh fields and update route summary
-				frm.refresh_field("passengers");
-				update_route_summary(frm);
-				
-				// Show success message
-				frappe.show_alert({
-					message: __(`Passenger ${passenger.passenger_name || passenger.passenger} added`),
-					indicator: 'green'
-				}, 5);
-				
-				// Open the passenger row and prompt to add a flight segment
-				setTimeout(() => {
-					const grid_row = frm.fields_dict.passengers.grid.grid_rows_by_docname[passenger.name];
-					if (grid_row) {
-						grid_row.toggle_view(true); // Open the row
-						
-						// Ask if they want to add a flight segment
-						frappe.confirm(
-							__('Do you want to add a flight segment for this passenger?'),
-							function() {
-								// Yes - add flight segment
-								add_flight_segment_for_passenger(frm, passenger.name);
-							}
-						);
-					}
-				}, 500);
-			});
-		});
-	}, __('Add Passenger'), __('Add'));
-}
 
 // Function to add flight segment for a specific passenger
 function add_flight_segment_for_passenger(frm, passenger_row_name) {
@@ -423,53 +435,52 @@ function edit_flight_segment(frm, passenger_row_name, segment_name) {
 			fieldtype: 'Data',
 			default: segment.pnr || ''
 		}
-	], function(values) {
-		// Update segment with values from dialog
-		frappe.model.set_value('Flight Multi City Segment', segment_name, 'airline', values.airline);
-		frappe.model.set_value('Flight Multi City Segment', segment_name, 'date_of_travel', values.date_of_travel);
-		frappe.model.set_value('Flight Multi City Segment', segment_name, 'from_location', values.from_location);
-		frappe.model.set_value('Flight Multi City Segment', segment_name, 'to_location', values.to_location);
-		frappe.model.set_value('Flight Multi City Segment', segment_name, 'flight_number', values.flight_number);
-		frappe.model.set_value('Flight Multi City Segment', segment_name, 'booking_class', values.booking_class);
-		frappe.model.set_value('Flight Multi City Segment', segment_name, 'ticket_number', values.ticket_number);
-		frappe.model.set_value('Flight Multi City Segment', segment_name, 'pnr', values.pnr);
+	], (values) => {
+		// Update segment values
+		frappe.model.set_value(segment.doctype, segment.name, 'airline', values.airline);
+		frappe.model.set_value(segment.doctype, segment.name, 'from_location', values.from_location);
+		frappe.model.set_value(segment.doctype, segment.name, 'to_location', values.to_location);
+		frappe.model.set_value(segment.doctype, segment.name, 'date_of_travel', values.date_of_travel);
+		frappe.model.set_value(segment.doctype, segment.name, 'flight_number', values.flight_number);
+		frappe.model.set_value(segment.doctype, segment.name, 'booking_class', values.booking_class);
+		frappe.model.set_value(segment.doctype, segment.name, 'ticket_number', values.ticket_number);
+		frappe.model.set_value(segment.doctype, segment.name, 'pnr', values.pnr);
 		
-		// Refresh the form
-		frm.refresh_field('passengers');
-		
-		// Update route summary
-		update_route_summary(frm);
-		
-		// Show success message
-		frappe.show_alert({
-			message: __('Flight segment updated'),
-			indicator: 'green'
-		}, 5);
+		// Save the form to ensure changes are persisted
+		frm.save().then(() => {
+			// Refresh fields and update route summary
+			frm.refresh_field("passengers");
+			update_route_summary(frm);
+			
+			// Show success message
+			frappe.show_alert({
+				message: `Flight segment updated for ${passenger_row.passenger_name || passenger_row.passenger}`,
+				indicator: 'green'
+			}, 5);
+		});
 	}, __('Edit Flight Segment'), __('Update'));
 }
 
 // Function to create invoice
 function create_invoice(frm) {
+	// Check if there are passengers and segments
 	if (!frm.doc.passengers || frm.doc.passengers.length === 0) {
-		frappe.msgprint(__('Please add at least one passenger'));
+		frappe.msgprint("Please add at least one passenger before creating an invoice.");
 		return;
 	}
-
-	// Check if any passenger has flight segments
-	let hasSegments = false;
-	for (const passenger of frm.doc.passengers) {
-		if (passenger.segments && passenger.segments.length > 0) {
-			hasSegments = true;
-			break;
+	
+	// Check if each passenger has at least one segment
+	let valid = true;
+	frm.doc.passengers.forEach(passenger => {
+		if (!passenger.segments || passenger.segments.length === 0) {
+			frappe.msgprint(`Passenger ${passenger.passenger_name || passenger.passenger} has no flight segments.`);
+			valid = false;
 		}
-	}
-
-	if (!hasSegments) {
-		frappe.msgprint(__('Please add at least one flight segment'));
-		return;
-	}
-
-	// Create dialog to choose invoice type
+	});
+	
+	if (!valid) return;
+	
+	// Create dialog to select invoice type
 	frappe.prompt([
 		{
 			fieldname: 'invoice_type',
@@ -478,9 +489,8 @@ function create_invoice(frm) {
 			options: 'Sales\nPurchase\nBoth',
 			default: 'Sales'
 		}
-	], function(values) {
+	], (values) => {
 		if (values.invoice_type === 'Sales' || values.invoice_type === 'Both') {
-			// Create sales invoice
 			frappe.model.open_mapped_doc({
 				method: "travel_agency_backend.travel_agency_backend.doctype.flight_multi_city_test.flight_multi_city_test.make_sales_invoice",
 				frm: frm,
@@ -489,9 +499,8 @@ function create_invoice(frm) {
 				}
 			});
 		}
-
+		
 		if (values.invoice_type === 'Purchase' || values.invoice_type === 'Both') {
-			// Create purchase invoice
 			frappe.model.open_mapped_doc({
 				method: "travel_agency_backend.travel_agency_backend.doctype.flight_multi_city_test.flight_multi_city_test.make_purchase_invoice",
 				frm: frm,
@@ -508,8 +517,7 @@ function calculate_total(frm) {
 	const supplier_cost = frm.doc.supplier_cost || 0;
 	const markup = frm.doc.markup || 0;
 	const commission = frm.doc.commission || 0;
-
-	// Calculate total cost
+	
 	const total = supplier_cost + markup - commission;
 	frm.set_value('total_amount', total);
 }
