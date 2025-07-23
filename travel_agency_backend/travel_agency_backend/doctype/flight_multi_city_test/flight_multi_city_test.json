@@ -13,7 +13,6 @@
   "basic_information_section",
   "flight_multicity_section",
   "passengers",
-  "passenger_segments_html",
   "route_summary",
   "service_details_section",
   "service_type",
@@ -116,11 +115,6 @@
    "fieldtype": "Table",
    "label": "Passengers",
    "options": "Flight Multi City Passenger"
-  },
-  {
-   "fieldname": "passenger_segments_html",
-   "fieldtype": "HTML",
-   "label": "Passenger Segments"
   },
   {
    "fieldname": "route_summary",
