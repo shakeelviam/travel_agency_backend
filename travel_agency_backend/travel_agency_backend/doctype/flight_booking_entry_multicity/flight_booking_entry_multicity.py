@@ -4,8 +4,11 @@ from datetime import datetime
 
 class FlightBookingEntryMulticity(Document):
     def validate(self):
-        if self.supplier_cost and self.markup:
-            self.selling_price = self.supplier_cost + self.markup
+        # Always calculate selling_price as sum of supplier_cost and markup
+        # Convert to float to ensure proper calculation
+        supplier_cost = float(self.supplier_cost or 0)
+        markup = float(self.markup or 0)
+        self.selling_price = supplier_cost + markup
         
         if not self.service_type:
             # Check if supplier name contains 'GDS' to determine service type
@@ -22,13 +25,25 @@ class FlightBookingEntryMulticity(Document):
             
     def get_route_summary(self):
         """Generate a route summary for this segment"""
+        # Start with basic route information
         summary = f"{self.from_location} → {self.to_location}"
-        if self.date_of_travel:
-            summary += f" ({frappe.utils.formatdate(self.date_of_travel)})"
+        
+        # Add flight details if available
+        flight_info = []
         if self.airline:
-            summary += f" | {self.airline}"
+            flight_info.append(self.airline)
         if self.flight_number:
-            summary += f" {self.flight_number}"
+            flight_info.append(self.flight_number)
+        if flight_info:
+            summary += f" | {' '.join(flight_info)}"
+            
+        # Add date if available
+        if self.date_of_travel:
+            summary += f" | {frappe.utils.formatdate(self.date_of_travel)}"
+            
+        # Add booking class if available
+        if self.booking_class:
+            summary += f" | Class: {self.booking_class}"
         return summary
     
     def validate_segment_order(self):

@@ -6,6 +6,11 @@
 
 frappe.ui.form.on("Trip Booking", {
   refresh: function (frm) {
+    // Update totals for Flight Multi City if it exists
+    if (frm.doc.flight_booking_entry_multicity && frm.doc.flight_booking_entry_multicity.length > 0) {
+      travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+    }
+    
     // Clear existing custom buttons to avoid duplicates on refresh
     frm.clear_custom_buttons(); // More robust way to clear all custom buttons
 
@@ -87,8 +92,7 @@ frappe.ui.form.on("Trip Booking", {
               let selected_service_value = values.service_type;
               
               // Handle mapping based on the available options in Selected Service doctype
-              // These are the options defined in selected_service.json: 
-              // "Flight GDS\nFlight Online Airlines\nHotel Booking\nVisa Application Charges\nCar Rental Service\nInsurance Service"
+              // These are the options defined in selected_service.json
               const serviceTypeToSelectWbjnMap = {
                 "Flight GDS": "Flight GDS",
                 "Flight Online Airlines": "Flight Online Airlines",
@@ -371,6 +375,14 @@ frappe.ui.form.on("Trip Booking", {
       });
       
       frm.set_value('total_amount', total);
+    }
+  },
+  
+  after_save: function(frm) {
+    // Recalculate totals after saving
+    if (frm.doc.flight_booking_entry_multicity && frm.doc.flight_booking_entry_multicity.length > 0) {
+      travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+      frm.refresh_field('total_amount');
     }
   }
 });

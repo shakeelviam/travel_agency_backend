@@ -20,9 +20,17 @@ travel_agency.trip_booking.totals.calculate_passenger_totals = function(frm, pas
     let totalSellingPrice = 0;
     
     segments.forEach(segment => {
-        totalSupplierCost += segment.supplier_cost ? parseFloat(segment.supplier_cost) : 0;
-        totalMarkup += segment.markup ? parseFloat(segment.markup) : 0;
-        totalSellingPrice += segment.selling_price ? parseFloat(segment.selling_price) : 0;
+        // Parse values with fallback to 0 if undefined or NaN
+        const supplierCost = segment.supplier_cost ? parseFloat(segment.supplier_cost) : 0;
+        const markup = segment.markup ? parseFloat(segment.markup) : 0;
+        
+        // Add to totals
+        totalSupplierCost += supplierCost;
+        totalMarkup += markup;
+        
+        // Calculate selling price as sum of supplier_cost and markup
+        // This ensures selling_price is always correct even if not set on the segment
+        totalSellingPrice += (supplierCost + markup);
     });
     
     return {
@@ -77,25 +85,62 @@ travel_agency.trip_booking.totals.update_trip_booking_totals = function(frm) {
         // Calculate selling price based on parent-level fields
         const sellingPrice = parentSupplierCost + parentMarkup;
         frm.set_value('flight_multicity_total_selling_price', sellingPrice);
+        
+        // Update the main total_amount field
+        // This is critical for submission and other calculations
         frm.set_value('total_amount', sellingPrice);
+        
+        // Force refresh to ensure UI updates
+        frm.refresh_field('total_amount');
+        frm.refresh_field('flight_multicity_total_selling_price');
     } else {
         // Otherwise calculate from segments
         const totals = travel_agency.trip_booking.totals.calculate_all_totals(frm);
         
-        // Update the Trip Booking form with the totals
-        frm.set_value('flight_multicity_total_supplier_cost', totals.supplier_cost);
-        frm.set_value('flight_multicity_total_markup', totals.markup);
-        frm.set_value('flight_multicity_total_selling_price', totals.selling_price);
+        // Set values with proper type conversion to ensure numeric values
+        const supplierCost = parseFloat(totals.supplier_cost) || 0;
+        const markup = parseFloat(totals.markup) || 0;
+        const sellingPrice = parseFloat(totals.selling_price) || 0;
         
-        // Update the main total_amount field for the Trip Booking
-        frm.set_value('total_amount', totals.selling_price);
+        frm.set_value('flight_multicity_total_supplier_cost', supplierCost);
+        frm.set_value('flight_multicity_total_markup', markup);
+        frm.set_value('flight_multicity_total_selling_price', sellingPrice);
+        
+        // Update the main total_amount field
+        frm.set_value('total_amount', sellingPrice);
+        
+        // Force refresh to ensure UI updates
+        frm.refresh_field('flight_multicity_total_supplier_cost');
+        frm.refresh_field('flight_multicity_total_markup');
+        frm.refresh_field('flight_multicity_total_selling_price');
+        frm.refresh_field('total_amount');
     }
     
-    frm.refresh_field('flight_multicity_total_supplier_cost');
-    frm.refresh_field('flight_multicity_total_markup');
-    frm.refresh_field('flight_multicity_total_selling_price');
-    frm.refresh_field('total_amount');
+    // No need for additional refresh calls as we've already refreshed all fields above
 };
+
+// Add event handlers for flight_booking_entry_multicity table
+frappe.ui.form.on('Trip Booking', {
+    flight_booking_entry_multicity_add: function(frm, cdt, cdn) {
+        // Update totals when a new segment is added
+        travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+    },
+    
+    flight_booking_entry_multicity_remove: function(frm, cdt, cdn) {
+        // Update totals when a segment is removed
+        travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+    },
+    
+    flight_multicity_total_supplier_cost: function(frm) {
+        // Update totals when parent-level supplier cost changes
+        travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+    },
+    
+    flight_multicity_total_markup: function(frm) {
+        // Update totals when parent-level markup changes
+        travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+    }
+});
 
 // Enhance view_all_passengers to show totals
 travel_agency.trip_booking.totals.enhance_view_all_passengers = function() {

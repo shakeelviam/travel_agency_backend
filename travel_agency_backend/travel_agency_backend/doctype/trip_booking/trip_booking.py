@@ -122,9 +122,48 @@ class TripBooking(Document):
 
     def calculate_total_amount(self):
         total = 0
+        
+        # Special handling for Flight Multi City with parent-level pricing
+        if self.flight_multicity_supplier and self.flight_booking_entry_multicity:
+            # Calculate segment totals regardless of whether parent fields are set
+            segment_supplier_cost = 0
+            segment_markup = 0
+            segment_selling_price = 0
+            
+            for row in self.flight_booking_entry_multicity:
+                segment_supplier_cost += float(row.supplier_cost or 0)
+                segment_markup += float(row.markup or 0)
+                segment_selling_price += float(row.selling_price or 0)
+            
+            # If parent-level fields are set manually, use those values
+            if self.flight_multicity_total_supplier_cost or self.flight_multicity_total_markup:
+                supplier_cost = float(self.flight_multicity_total_supplier_cost or 0)
+                markup = float(self.flight_multicity_total_markup or 0)
+                flight_multi_city_total = supplier_cost + markup
+                
+                # Set the selling price field for consistency
+                self.flight_multicity_total_selling_price = flight_multi_city_total
+                
+                # Add to total
+                total += flight_multi_city_total
+            else:
+                # Otherwise use segment totals and update parent fields
+                self.flight_multicity_total_supplier_cost = segment_supplier_cost
+                self.flight_multicity_total_markup = segment_markup
+                self.flight_multicity_total_selling_price = segment_selling_price
+                
+                # Add to total
+                total += segment_selling_price
+        
+        # Handle all other service types
         for table in self.get_all_booking_tables():
+            # Skip Flight Multi City as we've already handled it
+            if table == 'flight_booking_entry_multicity':
+                continue
+                
             for row in self.get(table) or []:
-                total += row.total_amount or 0
+                total += float(row.total_amount or 0)
+                
         self.total_amount = total
 
     def clean_unused_services(self):
@@ -147,10 +186,20 @@ class TripBooking(Document):
                     setattr(self, fieldname, [])
 
     def before_submit(self):
-        # DIRECT FIX FOR SUBMISSION ERROR - Skip service validation completely
         # Check if any booking tables have entries and allow submission if any entries exist
-        if any(self.get(table) for table in self.get_all_booking_tables()):
-            # If ANY booking table has entries, allow submission regardless of selected_services
+        has_entries = False
+        
+        # Specifically check for Flight Multi City entries
+        if self.flight_booking_entry_multicity and len(self.flight_booking_entry_multicity) > 0:
+            has_entries = True
+        # Check other tables
+        elif any(self.get(table) for table in self.get_all_booking_tables()):
+            has_entries = True
+            
+        if has_entries:
+            # Auto-populate selected services if missing
+            if not self.selected_services:
+                self.auto_populate_selected_services()
             return
             
         # Only throw an error if there are absolutely no bookings of any kind
@@ -160,6 +209,31 @@ class TripBooking(Document):
         """Helper method to populate selected_services from booking tables"""
         # Only try to populate if we have no selected services
         if not self.selected_services:
+            # Special handling for Flight Multi City
+            if self.flight_booking_entry_multicity and len(self.flight_booking_entry_multicity) > 0:
+                # Determine service type based on supplier or first row
+                service_type = None
+                
+                # First check if we can determine from supplier name
+                if self.flight_multicity_supplier and 'GDS' in self.flight_multicity_supplier:
+                    service_type = "Flight Multi City GDS"
+                else:
+                    service_type = "Flight Multi City Online"
+                    
+                # If still not determined, try to get from first row
+                if not service_type:
+                    first_row = self.flight_booking_entry_multicity[0]
+                    if hasattr(first_row, 'service_type') and first_row.service_type:
+                        service_type = first_row.service_type
+                        
+                # Add to selected services
+                if service_type:
+                    self.append('selected_services', {
+                        'select_wbjn': service_type
+                    })
+                    return
+                    
+            # Handle other service types
             for table in self.get_all_booking_tables():
                 if self.get(table):
                     # Get the service category from the first row's service_type

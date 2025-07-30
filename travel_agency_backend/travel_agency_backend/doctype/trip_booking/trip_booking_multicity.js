@@ -168,6 +168,28 @@ travel_agency.trip_booking.add_flight_segment = function(frm) {
             // Save the last passenger for better UX
             travel_agency.trip_booking.last_passenger = values.passenger;
             
+            // If this is a new passenger, ensure we have a valid service type
+            if (!frm.doc.flight_booking_entry_multicity || frm.doc.flight_booking_entry_multicity.length === 0) {
+                // Determine service type based on supplier name
+                let service_type = "Flight Multi City Online";
+                if (frm.doc.flight_multicity_supplier && frm.doc.flight_multicity_supplier.includes('GDS')) {
+                    service_type = "Flight Multi City GDS";
+                }
+                
+                // Ensure we have this service in selected_services
+                let service_exists = false;
+                if (frm.doc.selected_services) {
+                    service_exists = frm.doc.selected_services.some(s => s.select_wbjn === service_type);
+                }
+                
+                if (!service_exists) {
+                    frm.add_child('selected_services', {
+                        select_wbjn: service_type
+                    });
+                    frm.refresh_field('selected_services');
+                }
+            }
+            
             // Calculate segment number if not provided
             if (!values.segment_number) {
                 // Find existing segments for this passenger
