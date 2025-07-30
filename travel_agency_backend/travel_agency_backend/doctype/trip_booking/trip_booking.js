@@ -3,7 +3,7 @@
 // @include travel_agency_backend/travel_agency_backend/doctype/trip_booking/trip_booking_multicity_batch.js
 // @include travel_agency_backend/travel_agency_backend/doctype/trip_booking/trip_booking_multicity_totals.js
 // @include travel_agency_backend/travel_agency_backend/doctype/trip_booking/trip_booking_multicity_reorder.js
-// @include travel_agency_backend/travel_agency_backend/doctype/trip_booking/trip_booking_submitted_view.js
+// @include travel_agency_backend/travel_agency_backend/doctype/trip_booking/trip_booking_multicity_display.js
 
 frappe.ui.form.on("Trip Booking", {
   refresh: function (frm) {
@@ -14,15 +14,6 @@ frappe.ui.form.on("Trip Booking", {
     
     // Clear existing custom buttons to avoid duplicates on refresh
     frm.clear_custom_buttons(); // More robust way to clear all custom buttons
-    
-    // For submitted documents, show passenger segments and ensure invoice buttons
-    if (frm.doc.docstatus === 1) {
-      // Show passenger segments in the submitted view
-      travel_agency.trip_booking.submitted_view.show_passenger_segments(frm);
-      
-      // Ensure invoice creation buttons are visible
-      travel_agency.trip_booking.submitted_view.ensure_invoice_buttons(frm);
-    }
 
     const serviceMap = {
       "Flight GDS": ["flight_gds_section", "flight_booking_entry_gds", "flight_gds_supplier"],
@@ -205,6 +196,11 @@ frappe.ui.form.on("Trip Booking", {
             // No need to add buttons as they've already been created
             frm.remove_custom_button(__('Sales Invoice'), createGroup);
             frm.remove_custom_button(__('Purchase Invoices'), createGroup);
+        }
+        
+        // Display passenger segments for Flight Multi City bookings
+        if (frm.doc.flight_booking_entry_multicity && frm.doc.flight_booking_entry_multicity.length > 0) {
+            travel_agency.trip_booking.display.show_passenger_segments_after_submit(frm);
         }
     }
 
