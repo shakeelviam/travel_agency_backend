@@ -4,11 +4,8 @@ from datetime import datetime
 
 class FlightBookingEntryMulticity(Document):
     def validate(self):
-        # Always calculate selling_price as sum of supplier_cost and markup
-        # Convert to float to ensure proper calculation
-        supplier_cost = float(self.supplier_cost or 0)
-        markup = float(self.markup or 0)
-        self.selling_price = supplier_cost + markup
+        # Pricing is now handled at the parent level
+        # No need to calculate selling_price at segment level
         
         if not self.service_type:
             # Check if supplier name contains 'GDS' to determine service type

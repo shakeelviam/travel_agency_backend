@@ -32,20 +32,6 @@ travel_agency.trip_booking.add_flight_segment = function(frm, callback) {
         existing_passengers = [...new Set(existing_passengers)];
     }
     
-    // If a callback is provided, it means we're adding another segment for the same passenger
-    // In this case, we should use the passenger from the callback
-    let default_passenger = "";
-    let use_existing_default = 0;
-    
-    if (typeof callback === 'function') {
-        // This will be set by the callback later
-        default_passenger = "";
-        use_existing_default = 1;
-    } else {
-        // Use the last passenger if available
-        default_passenger = last_passenger || travel_agency.trip_booking.last_passenger || "";
-    }
-    
     // Prepare fields for the dialog
     let fields = [
         {
@@ -54,7 +40,7 @@ travel_agency.trip_booking.add_flight_segment = function(frm, callback) {
             label: 'Passenger',
             options: 'Passenger',
             reqd: 1,
-            default: default_passenger
+            default: last_passenger || travel_agency.trip_booking.last_passenger || ""
         }
     ];
     
@@ -64,7 +50,7 @@ travel_agency.trip_booking.add_flight_segment = function(frm, callback) {
             fieldtype: 'Check',
             fieldname: 'use_existing_passenger',
             label: 'Use Existing Passenger',
-            default: use_existing_default,
+            default: 0,
             onchange: function() {
                 const use_existing = this.get_value();
                 if (use_existing) {
@@ -230,17 +216,14 @@ travel_agency.trip_booking.add_flight_segment = function(frm, callback) {
                     // Store current passenger to use in next dialog
                     let current_passenger = values.passenger;
                     
-                    // Call add_flight_segment with the current passenger
+                    // Call add_flight_segment with a callback to set the passenger
                     travel_agency.trip_booking.add_flight_segment(frm, function(dialog) {
                         // Pre-select the same passenger
+                        dialog.set_value('passenger', current_passenger);
+                        
+                        // If there's a use_existing_passenger field, check it
                         if (dialog.fields_dict.use_existing_passenger) {
                             dialog.set_value('use_existing_passenger', 1);
-                            // Need to wait for the field to update before setting passenger
-                            setTimeout(() => {
-                                dialog.set_value('passenger', current_passenger);
-                            }, 100);
-                        } else {
-                            dialog.set_value('passenger', current_passenger);
                         }
                     });
                 }, 300);
@@ -249,11 +232,6 @@ travel_agency.trip_booking.add_flight_segment = function(frm, callback) {
             }
         }
     });
-    
-    // Execute callback if provided (to set values from previous dialog)
-    if (typeof callback === 'function') {
-        callback(d);
-    }
     
     d.show();
 };
@@ -291,7 +269,7 @@ travel_agency.trip_booking.view_passenger_segments = function(frm, passenger) {
         <div class="segment-viewer">
             <h4>Flight Segments for ${passenger}</h4>
             <div class="route-summary alert alert-info">
-                <strong>Route:</strong> ${routeSummary}
+                <strong>Complete Route:</strong> ${routeSummary}
             </div>
             <table class="table table-bordered">
                 <thead>
@@ -302,45 +280,200 @@ travel_agency.trip_booking.view_passenger_segments = function(frm, passenger) {
                         <th>Date</th>
                         <th>Airline</th>
                         <th>Flight</th>
-                        <th>Class</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
     `;
     
-    // Add rows for each segment
     segments.forEach(segment => {
         html += `
             <tr>
-                <td>${segment.segment_number || ''}</td>
-                <td>${segment.from_location || ''}</td>
-                <td>${segment.to_location || ''}</td>
-                <td>${segment.date_of_travel ? frappe.datetime.str_to_user(segment.date_of_travel) : ''}</td>
+                <td>${segment.segment_number}</td>
+                <td>${segment.from_location}</td>
+                <td>${segment.to_location}</td>
+                <td>${frappe.datetime.str_to_user(segment.date_of_travel)}</td>
                 <td>${segment.airline || ''}</td>
                 <td>${segment.flight_number || ''}</td>
-                <td>${segment.booking_class || ''}</td>
+                <td>
+                    <button class="btn btn-xs btn-default edit-segment" 
+                        data-idx="${segment.idx}">
+                        Edit
+                    </button>
+                </td>
             </tr>
         `;
     });
     
-    // Close table
     html += `
                 </tbody>
             </table>
         </div>
     `;
     
-    // Show dialog with segments
+    // Create dialog
     let d = new frappe.ui.Dialog({
-        title: 'Flight Segments',
-        size: 'large',
+        title: `Flight Segments for ${passenger}`,
         fields: [
             {
                 fieldtype: 'HTML',
-                fieldname: 'segments_html',
+                fieldname: 'segment_viewer',
                 options: html
             }
-        ]
+        ],
+        primary_action_label: 'Close',
+        primary_action: () => d.hide()
+    });
+    
+    d.show();
+    
+    // Add event handlers for edit buttons
+    d.$wrapper.find('.edit-segment').on('click', function() {
+        const idx = $(this).data('idx');
+        d.hide();
+        travel_agency.trip_booking.edit_segment(frm, idx);
+    });
+};
+
+// Edit a segment
+travel_agency.trip_booking.edit_segment = function(frm, idx) {
+    const segment = frm.doc.flight_booking_entry_multicity[idx - 1];
+    if (!segment) return;
+    
+    // Create dialog with segment data
+    let d = new frappe.ui.Dialog({
+        title: 'Edit Flight Segment',
+        fields: [
+            {
+                fieldtype: 'Link',
+                fieldname: 'passenger',
+                label: 'Passenger',
+                options: 'Passenger',
+                default: segment.passenger,
+                read_only: 1
+            },
+            {
+                fieldtype: 'Int',
+                fieldname: 'segment_number',
+                label: 'Segment Number',
+                default: segment.segment_number
+            },
+            {
+                fieldtype: 'Section Break',
+                label: 'Segment Details'
+            },
+            {
+                fieldtype: 'Link',
+                fieldname: 'airline',
+                label: 'Airline',
+                options: 'Airline Master',
+                default: segment.airline
+            },
+            {
+                fieldtype: 'Column Break'
+            },
+            {
+                fieldtype: 'Link',
+                fieldname: 'from_location',
+                label: 'From Location',
+                options: 'Sector Master',
+                reqd: 1,
+                default: segment.from_location
+            },
+            {
+                fieldtype: 'Link',
+                fieldname: 'to_location',
+                label: 'To Location',
+                options: 'Sector Master',
+                reqd: 1,
+                default: segment.to_location
+            },
+            {
+                fieldtype: 'Column Break'
+            },
+            {
+                fieldtype: 'Date',
+                fieldname: 'date_of_travel',
+                label: 'Date of Travel',
+                reqd: 1,
+                default: segment.date_of_travel
+            },
+            {
+                fieldtype: 'Data',
+                fieldname: 'flight_number',
+                label: 'Flight Number',
+                default: segment.flight_number
+            },
+            {
+                fieldtype: 'Section Break',
+                label: 'Additional Details'
+            },
+            {
+                fieldtype: 'Data',
+                fieldname: 'booking_class',
+                label: 'Booking Class',
+                default: segment.booking_class
+            },
+            {
+                fieldtype: 'Data',
+                fieldname: 'ticket_number',
+                label: 'Ticket Number',
+                default: segment.ticket_number
+            },
+            {
+                fieldtype: 'Data',
+                fieldname: 'pnr',
+                label: 'PNR',
+                default: segment.pnr
+            },
+            {
+                fieldtype: 'Section Break',
+                label: 'Pricing'
+            },
+            {
+                fieldtype: 'Currency',
+                fieldname: 'supplier_cost',
+                label: 'Supplier Cost',
+                default: segment.supplier_cost
+            },
+            {
+                fieldtype: 'Currency',
+                fieldname: 'markup',
+                label: 'Markup',
+                default: segment.markup
+            }
+        ],
+        primary_action_label: 'Update',
+        primary_action: function(values) {
+            // Update segment
+            $.extend(segment, values);
+            
+            // Calculate selling price
+            if (segment.supplier_cost && segment.markup) {
+                segment.selling_price = segment.supplier_cost + segment.markup;
+            }
+            
+            // Generate route summary
+            segment.route_summary = `${segment.from_location} → ${segment.to_location} | ${segment.airline || ''} ${segment.flight_number || ''}`;
+            
+            // Update the main total amount
+            travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+            
+            frm.refresh_field('flight_booking_entry_multicity');
+            
+            // Show success message
+            frappe.show_alert({
+                message: __(`Flight segment updated`),
+                indicator: 'green'
+            }, 5);
+            
+            d.hide();
+            
+            // Show the segments view again
+            setTimeout(() => {
+                travel_agency.trip_booking.view_passenger_segments(frm, segment.passenger);
+            }, 300);
+        }
     });
     
     d.show();
@@ -379,68 +512,70 @@ travel_agency.trip_booking.view_all_passengers = function(frm) {
         if (segments.length > 0) {
             routePoints.push(segments[segments.length - 1].to_location);
         }
-        let routeSummary = routePoints.join(' → ');
+        let route = routePoints.join(' → ');
         
-        // Add passenger section
         html += `
-            <div class="passenger-section">
+            <div class="passenger-card" style="margin-bottom: 15px; padding: 10px; border: 1px solid #d1d8dd; border-radius: 4px;">
                 <h4>${passenger}</h4>
-                <div class="route-summary alert alert-info">
-                    <strong>Route:</strong> ${routeSummary}
-                </div>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Segment</th>
-                            <th>From</th>
-                            <th>To</th>
-                            <th>Date</th>
-                            <th>Airline</th>
-                            <th>Flight</th>
-                            <th>Class</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        // Add rows for each segment
-        segments.forEach(segment => {
-            html += `
-                <tr>
-                    <td>${segment.segment_number || ''}</td>
-                    <td>${segment.from_location || ''}</td>
-                    <td>${segment.to_location || ''}</td>
-                    <td>${segment.date_of_travel ? frappe.datetime.str_to_user(segment.date_of_travel) : ''}</td>
-                    <td>${segment.airline || ''}</td>
-                    <td>${segment.flight_number || ''}</td>
-                    <td>${segment.booking_class || ''}</td>
-                </tr>
-            `;
-        });
-        
-        // Close table
-        html += `
-                    </tbody>
-                </table>
+                <p><strong>Route:</strong> ${route}</p>
+                <p><strong>Segments:</strong> ${segments.length}</p>
+                <button class="btn btn-sm btn-default view-segments" 
+                    data-passenger="${passenger}">
+                    View Segments
+                </button>
+                <button class="btn btn-sm btn-primary add-segment" 
+                    data-passenger="${passenger}">
+                    Add Segment
+                </button>
             </div>
         `;
     });
     
-    // Close container
     html += `</div>`;
     
-    // Show dialog with all passengers
+    // Create dialog
     let d = new frappe.ui.Dialog({
-        title: 'Flight Passengers',
-        size: 'large',
+        title: 'Flight Multi City Passengers',
         fields: [
             {
                 fieldtype: 'HTML',
-                fieldname: 'passengers_html',
+                fieldname: 'passenger_viewer',
                 options: html
             }
-        ]
+        ],
+        primary_action_label: 'Close',
+        primary_action: () => d.hide()
     });
     
     d.show();
+    
+    // Add event handlers for buttons
+    d.$wrapper.find('.view-segments').on('click', function() {
+        const passenger = $(this).data('passenger');
+        d.hide();
+        travel_agency.trip_booking.view_passenger_segments(frm, passenger);
+    });
+    
+    d.$wrapper.find('.add-segment').on('click', function() {
+        const passenger = $(this).data('passenger');
+        travel_agency.trip_booking.last_passenger = passenger;
+        d.hide();
+        travel_agency.trip_booking.add_flight_segment(frm);
+    });
 };
+
+// Update Trip Booking form
+frappe.ui.form.on('Trip Booking', {
+    refresh: function(frm) {
+        // Add custom buttons for Flight Multi City
+        if (frm.doc.flight_multicity_supplier) {
+            frm.add_custom_button(__('Add Flight Segment'), function() {
+                travel_agency.trip_booking.add_flight_segment(frm);
+            }, __('Flight Multi City'));
+            
+            frm.add_custom_button(__('View All Passengers'), function() {
+                travel_agency.trip_booking.view_all_passengers(frm);
+            }, __('Flight Multi City'));
+        }
+    }
+});

@@ -101,13 +101,18 @@ class TripBooking(Document):
             if not table or not self.get(table):
                 frappe.throw(_("Please add details for {0} service").format(service.select_wbjn))
             
-            # Validate each row in the table
-            for row in self.get(table) or []:
-                # For flight services, we now use supplier_cost directly
-                if mapped_service in ["Flight GDS", "Flight Online Airlines", "Flight GDS Multicity", "Flight Online Airlines Multicity", "Flight Multi City Online", "Flight Multi City GDS"]:
-                    if not hasattr(row, 'supplier_cost') or not flt(row.supplier_cost):
-                        frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
-                            row.passenger, service.select_wbjn))
+            # Special handling for Flight Multi City - check parent-level supplier cost
+            if mapped_service in ["Flight Multi City Online", "Flight Multi City GDS"]:
+                if not self.flight_multicity_total_supplier_cost or flt(self.flight_multicity_total_supplier_cost) <= 0:
+                    frappe.throw(_("Missing Supplier Cost for Flight Multi City booking. Please set the total supplier cost."))
+            # Validate each row in the table for other services
+            elif table != 'flight_booking_entry_multicity':
+                for row in self.get(table) or []:
+                    # For flight services, we now use supplier_cost directly
+                    if mapped_service in ["Flight GDS", "Flight Online Airlines", "Flight GDS Multicity", "Flight Online Airlines Multicity"]:
+                        if not hasattr(row, 'supplier_cost') or not flt(row.supplier_cost):
+                            frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
+                                row.passenger, service.select_wbjn))
                 else:
                     # For other services, use the cost_fields as configured
                     has_cost = False
