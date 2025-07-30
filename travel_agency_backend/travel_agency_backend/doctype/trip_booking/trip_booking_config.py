@@ -79,6 +79,24 @@ class TripBookingConfig:
             "cost_fields": ["supplier_cost"],
             "markup_field": "markup",
             "commission_field": "commission"
+        },
+        "Flight Multi City Online": {
+            "section": "flight_multicity_section",
+            "table": "flight_booking_entry_multicity",
+            "supplier_field": "flight_multicity_supplier",
+            "child_doctype": "Flight Booking Entry Multicity",
+            "cost_fields": ["supplier_cost"],
+            "markup_field": "markup",
+            "commission_field": None
+        },
+        "Flight Multi City GDS": {
+            "section": "flight_multicity_section",
+            "table": "flight_booking_entry_multicity",
+            "supplier_field": "flight_multicity_supplier",
+            "child_doctype": "Flight Booking Entry Multicity",
+            "cost_fields": ["supplier_cost"],
+            "markup_field": "markup",
+            "commission_field": None
         }
     }
     
