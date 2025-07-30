@@ -15,9 +15,20 @@ travel_agency.trip_booking.add_flight_segment = function(frm) {
     
     // Get existing passengers in the multi-city segments
     let existing_passengers = [];
+    let last_passenger = null;
+    let last_segment = null;
+    
     if (frm.doc.flight_booking_entry_multicity && frm.doc.flight_booking_entry_multicity.length > 0) {
+        // Get all passengers
         existing_passengers = frm.doc.flight_booking_entry_multicity.map(row => row.passenger);
-        // Remove duplicates
+        
+        // Get the last segment added
+        last_segment = frm.doc.flight_booking_entry_multicity[frm.doc.flight_booking_entry_multicity.length - 1];
+        if (last_segment) {
+            last_passenger = last_segment.passenger;
+        }
+        
+        // Remove duplicates from passenger list
         existing_passengers = [...new Set(existing_passengers)];
     }
     
@@ -29,7 +40,7 @@ travel_agency.trip_booking.add_flight_segment = function(frm) {
             label: 'Passenger',
             options: 'Passenger',
             reqd: 1,
-            default: travel_agency.trip_booking.last_passenger || ""
+            default: last_passenger || travel_agency.trip_booking.last_passenger || ""
         }
     ];
     
@@ -174,6 +185,12 @@ travel_agency.trip_booking.add_flight_segment = function(frm) {
             if (child.supplier_cost && child.markup) {
                 child.selling_price = child.supplier_cost + child.markup;
             }
+            
+            // Generate route summary
+            child.route_summary = `${child.from_location} → ${child.to_location} | ${child.airline || ''} ${child.flight_number || ''}`;
+            
+            // Update the main total amount
+            travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
             
             frm.refresh_field('flight_booking_entry_multicity');
             
@@ -414,6 +431,12 @@ travel_agency.trip_booking.edit_segment = function(frm, idx) {
             if (segment.supplier_cost && segment.markup) {
                 segment.selling_price = segment.supplier_cost + segment.markup;
             }
+            
+            // Generate route summary
+            segment.route_summary = `${segment.from_location} → ${segment.to_location} | ${segment.airline || ''} ${segment.flight_number || ''}`;
+            
+            // Update the main total amount
+            travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
             
             frm.refresh_field('flight_booking_entry_multicity');
             

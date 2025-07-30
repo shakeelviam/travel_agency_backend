@@ -255,16 +255,16 @@
      {
       "fieldname": "flight_multicity_totals_section",
       "fieldtype": "Section Break",
-      "hidden": 1,
+      "hidden": 0,
       "label": "Flight Multi City Totals",
       "depends_on": "eval:doc.flight_multicity_supplier"
      },
      {
       "fieldname": "flight_multicity_total_supplier_cost",
       "fieldtype": "Currency",
-      "hidden": 1,
+      "hidden": 0,
       "label": "Total Supplier Cost",
-      "read_only": 1
+      "read_only": 0
      },
      {
       "fieldname": "flight_multicity_column_break",
@@ -273,9 +273,9 @@
      {
       "fieldname": "flight_multicity_total_markup",
       "fieldtype": "Currency",
-      "hidden": 1,
+      "hidden": 0,
       "label": "Total Markup",
-      "read_only": 1
+      "read_only": 0
      },
      {
       "fieldname": "flight_multicity_column_break_2",
@@ -284,7 +284,7 @@
      {
       "fieldname": "flight_multicity_total_selling_price",
       "fieldtype": "Currency",
-      "hidden": 1,
+      "hidden": 0,
       "label": "Total Selling Price",
       "read_only": 1
      }

@@ -68,16 +68,33 @@ travel_agency.trip_booking.totals.calculate_all_totals = function(frm) {
 travel_agency.trip_booking.totals.update_trip_booking_totals = function(frm) {
     if (!frm.doc.flight_multicity_supplier) return;
     
-    const totals = travel_agency.trip_booking.totals.calculate_all_totals(frm);
+    // Check if we have parent-level pricing fields set
+    const parentSupplierCost = frm.doc.flight_multicity_total_supplier_cost || 0;
+    const parentMarkup = frm.doc.flight_multicity_total_markup || 0;
     
-    // Update the Trip Booking form with the totals
-    frm.set_value('flight_multicity_total_supplier_cost', totals.supplier_cost);
-    frm.set_value('flight_multicity_total_markup', totals.markup);
-    frm.set_value('flight_multicity_total_selling_price', totals.selling_price);
+    // If parent-level fields are set manually, use those values
+    if (parentSupplierCost > 0 || parentMarkup > 0) {
+        // Calculate selling price based on parent-level fields
+        const sellingPrice = parentSupplierCost + parentMarkup;
+        frm.set_value('flight_multicity_total_selling_price', sellingPrice);
+        frm.set_value('total_amount', sellingPrice);
+    } else {
+        // Otherwise calculate from segments
+        const totals = travel_agency.trip_booking.totals.calculate_all_totals(frm);
+        
+        // Update the Trip Booking form with the totals
+        frm.set_value('flight_multicity_total_supplier_cost', totals.supplier_cost);
+        frm.set_value('flight_multicity_total_markup', totals.markup);
+        frm.set_value('flight_multicity_total_selling_price', totals.selling_price);
+        
+        // Update the main total_amount field for the Trip Booking
+        frm.set_value('total_amount', totals.selling_price);
+    }
     
     frm.refresh_field('flight_multicity_total_supplier_cost');
     frm.refresh_field('flight_multicity_total_markup');
     frm.refresh_field('flight_multicity_total_selling_price');
+    frm.refresh_field('total_amount');
 };
 
 // Enhance view_all_passengers to show totals
@@ -218,14 +235,7 @@ $(document).ready(function() {
 frappe.ui.form.on('Trip Booking', {
     refresh: function(frm) {
         if (frm.doc.flight_multicity_supplier) {
-            // Add a button to update totals
-            frm.add_custom_button(__('Update Totals'), function() {
-                travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
-                frappe.show_alert({
-                    message: __('Multi-city flight booking totals updated'),
-                    indicator: 'green'
-                }, 5);
-            }, __('Flight Multi City'));
+            travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
         }
     },
     
@@ -236,6 +246,15 @@ frappe.ui.form.on('Trip Booking', {
     
     flight_booking_entry_multicity_remove: function(frm) {
         // Update totals when a segment is removed
+        travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+    },
+    
+    // Handle parent-level pricing field changes
+    flight_multicity_total_supplier_cost: function(frm) {
+        travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
+    },
+    
+    flight_multicity_total_markup: function(frm) {
         travel_agency.trip_booking.totals.update_trip_booking_totals(frm);
     }
 });

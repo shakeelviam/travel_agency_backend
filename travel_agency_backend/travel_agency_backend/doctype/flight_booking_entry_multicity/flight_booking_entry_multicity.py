@@ -14,6 +14,9 @@ class FlightBookingEntryMulticity(Document):
             else:
                 self.service_type = "Flight Multi City Online"
         
+        # Generate and set route summary
+        self.route_summary = self.get_route_summary()
+        
         # Validate segment order
         self.validate_segment_order()
             

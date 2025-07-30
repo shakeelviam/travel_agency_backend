@@ -9,6 +9,7 @@
   "passenger",
   "passenger_name",
   "segment_number",
+  "route_summary",
   "airline",
   "column_break_1",
   "from_location",
@@ -49,6 +50,12 @@
    "in_list_view": 1,
    "label": "Segment Number",
    "default": "1"
+  },
+  {
+   "fieldname": "route_summary",
+   "fieldtype": "Data",
+   "label": "Route Summary",
+   "read_only": 1
   },
   {
    "fieldname": "airline",

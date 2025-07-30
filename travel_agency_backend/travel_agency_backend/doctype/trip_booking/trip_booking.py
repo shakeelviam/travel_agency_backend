@@ -104,7 +104,7 @@ class TripBooking(Document):
             # Validate each row in the table
             for row in self.get(table) or []:
                 # For flight services, we now use supplier_cost directly
-                if mapped_service in ["Flight GDS", "Flight Online Airlines", "Flight GDS Multicity", "Flight Online Airlines Multicity"]:
+                if mapped_service in ["Flight GDS", "Flight Online Airlines", "Flight GDS Multicity", "Flight Online Airlines Multicity", "Flight Multi City Online", "Flight Multi City GDS"]:
                     if not hasattr(row, 'supplier_cost') or not flt(row.supplier_cost):
                         frappe.throw(_("Missing Supplier Cost for passenger '{0}' in {1}").format(
                             row.passenger, service.select_wbjn))

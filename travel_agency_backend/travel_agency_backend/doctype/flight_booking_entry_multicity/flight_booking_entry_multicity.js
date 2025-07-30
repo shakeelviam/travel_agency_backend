@@ -5,6 +5,18 @@ frappe.ui.form.on('Flight Booking Entry Multicity', {
         frm.add_fetch('markup', '', 'selling_price');
     },
     
+    setup: function(frm) {
+        // Keep track of the last passenger for auto-population
+        frm.last_passenger = null;
+    },
+    
+    passenger: function(frm) {
+        // Store the selected passenger for future rows
+        if (frm.doc.passenger) {
+            frm.last_passenger = frm.doc.passenger;
+        }
+    },
+    
     supplier_cost: function(frm) {
         calculate_selling_price(frm);
     },
