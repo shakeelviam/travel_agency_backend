@@ -8,7 +8,11 @@ class FlightBookingEntryMulticity(Document):
             self.selling_price = self.supplier_cost + self.markup
         
         if not self.service_type:
-            self.service_type = "Flight Booking Multi City"
+            # Check if supplier name contains 'GDS' to determine service type
+            if hasattr(self, 'supplier') and self.supplier and 'GDS' in self.supplier:
+                self.service_type = "Flight Multi City GDS"
+            else:
+                self.service_type = "Flight Multi City Online"
         
         # Validate segment order
         self.validate_segment_order()

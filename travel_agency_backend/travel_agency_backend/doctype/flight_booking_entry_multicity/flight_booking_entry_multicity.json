@@ -139,7 +139,7 @@
    "read_only": 1
   },
   {
-   "default": "Flight Booking Multi City",
+   "default": "Flight Multi City GDS",
    "fieldname": "service_type",
    "fieldtype": "Data",
    "hidden": 1,
